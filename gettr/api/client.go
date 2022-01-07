@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -23,6 +24,23 @@ func MakeClient(user, token string, mOpts ...MakeClientOption) *Client {
 		xAppAuth: xAppAuth,
 		debug:    opts.Debug(),
 	}
+}
+
+type param struct {
+	key string
+	val interface{}
+}
+
+func createRoute(base string, ps ...param) string {
+	if len(ps) == 0 {
+		return base
+	}
+	var ss []string
+	for _, p := range ps {
+		s := fmt.Sprintf("%s=%v", p.key, p.val)
+		ss = append(ss, s)
+	}
+	return fmt.Sprintf("%s?%s", base, strings.Join(ss, "&"))
 }
 
 func (c *Client) request(route string, result interface{}) error {
