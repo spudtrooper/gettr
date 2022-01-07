@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/spudtrooper/gettr/gettr/api"
+	"github.com/spudtrooper/gettr/api"
 	"github.com/spudtrooper/goutil/check"
 )
 
