@@ -44,15 +44,15 @@ func (i IntDate) String() string {
 	return fmt.Sprintf("%d@%v", i, t)
 }
 
-func (c *Client) GetUserInfo(username string) (*UserInfo, error) {
+func (c *Client) GetUserInfo(username string) (UserInfo, error) {
 	route := fmt.Sprintf("s/uinf/%s", username)
 	var payload struct {
 		Data UserInfo
 	}
 	if err := c.request(route, &payload); err != nil {
-		return nil, err
+		return UserInfo{}, err
 	}
-	return &payload.Data, nil
+	return payload.Data, nil
 }
 
 type BoolString string
@@ -94,11 +94,7 @@ type HtInfo struct {
 	Topic       string   `json:"topic"`
 }
 
-type Suggestions struct {
-	HTInfo []HtInfo
-}
-
-func (c *Client) GetSuggestions(sOpts ...SuggestOption) (*Suggestions, error) {
+func (c *Client) GetSuggestions(sOpts ...SuggestOption) ([]HtInfo, error) {
 	opts := MakeSuggestOptions(sOpts...)
 	max := or.Int(opts.Max(), 10)
 	route := createRoute("s/hashtag/suggest", param{"max", max})
@@ -111,11 +107,11 @@ func (c *Client) GetSuggestions(sOpts ...SuggestOption) (*Suggestions, error) {
 	if err := c.request(route, &payload); err != nil {
 		return nil, err
 	}
-	var res Suggestions
+	var res []HtInfo
 	for _, s := range payload.Aux.HTInfo {
-		res.HTInfo = append(res.HTInfo, s)
+		res = append(res, s)
 	}
-	return &res, nil
+	return res, nil
 }
 
 type PostInfo struct {
@@ -131,11 +127,7 @@ type PostInfo struct {
 	Reposts     int     `json:"shbpst"`
 }
 
-type Posts struct {
-	Posts []PostInfo
-}
-
-func (c *Client) GetPosts(username string, pOpts ...PostsOption) (*Posts, error) {
+func (c *Client) GetPosts(username string, pOpts ...PostsOption) ([]PostInfo, error) {
 	opts := MakePostsOptions(pOpts...)
 	offset := or.Int(opts.Offset(), 0)
 	max := or.Int(opts.Max(), offset+20)
@@ -153,11 +145,11 @@ func (c *Client) GetPosts(username string, pOpts ...PostsOption) (*Posts, error)
 	if err := c.request(route, &payload); err != nil {
 		return nil, err
 	}
-	var res Posts
+	var res []PostInfo
 	for _, p := range payload.Aux.Posts {
-		res.Posts = append(res.Posts, p)
+		res = append(res, p)
 	}
-	return &res, nil
+	return res, nil
 }
 
 type CommentInfo struct {
@@ -173,11 +165,7 @@ type CommentInfo struct {
 	PID      string   `json:"pid"`
 }
 
-type Comments struct {
-	Comments []CommentInfo
-}
-
-func (c *Client) GetComments(post string, cOpts ...CommentsOption) (*Comments, error) {
+func (c *Client) GetComments(post string, cOpts ...CommentsOption) ([]CommentInfo, error) {
 	opts := MakeCommentsOptions(cOpts...)
 	offset := or.Int(opts.Offset(), 0)
 	max := or.Int(opts.Max(), offset+20)
@@ -194,11 +182,11 @@ func (c *Client) GetComments(post string, cOpts ...CommentsOption) (*Comments, e
 	if err := c.request(route, &payload); err != nil {
 		return nil, err
 	}
-	var res Comments
+	var res []CommentInfo
 	for _, p := range payload.Aux.Comments {
-		res.Comments = append(res.Comments, p)
+		res = append(res, p)
 	}
-	return &res, nil
+	return res, nil
 }
 
 type ShareInfo struct {
@@ -220,18 +208,21 @@ type UserInfo struct {
 	TwtFlw    string     `json:"twt_flw"`
 	Flg       string     `json:"flg"`
 	Flw       string     `json:"flw"`
-	Update    StringDate `json:"update"`
+	CDate     StringDate `json:"cdate"`
+	UDate     StringDate `json:"udate"`
 	Type      string     `json:"_t"`
 	ID        string     `json:"_id"`
 }
 
+type UserInfos []UserInfo
+
 type PostDetails struct {
 	ShareInfo
 	PostInfo
-	UserInfos []UserInfo
+	UserInfos
 }
 
-func (c *Client) GetPost(post string, pOpts ...PostOption) (*PostDetails, error) {
+func (c *Client) GetPost(post string, pOpts ...PostOption) (PostDetails, error) {
 	opts := MakePostOptions(pOpts...)
 	incl := or.String(strings.Join(opts.Incl(), "|"), "posts|stats|userinfo|shared|liked")
 	route := createRoute(fmt.Sprintf("u/post/%s", post), param{"incl", incl})
@@ -244,7 +235,7 @@ func (c *Client) GetPost(post string, pOpts ...PostOption) (*PostDetails, error)
 		Data PostInfo `json:"data"`
 	}
 	if err := c.request(route, &payload); err != nil {
-		return nil, err
+		return PostDetails{}, err
 	}
 	res := PostDetails{
 		ShareInfo: payload.Aux.Share,
@@ -253,5 +244,48 @@ func (c *Client) GetPost(post string, pOpts ...PostOption) (*PostDetails, error)
 	for _, u := range payload.Aux.Uinf {
 		res.UserInfos = append(res.UserInfos, u)
 	}
-	return &res, nil
+	return res, nil
+}
+
+type MutedInfo struct {
+	UserInfos
+	CDate IntDate
+	Udate IntDate
+	Type  string
+	ID    string
+}
+
+func (c *Client) GetMuted(username string, mOpts ...MutedOption) (MutedInfo, error) {
+	opts := MakeMutedOptions(mOpts...)
+	offset := or.Int(opts.Offset(), 0)
+	max := or.Int(opts.Max(), offset+20)
+	incl := or.String(strings.Join(opts.Incl(), "|"), "userstats|userinfo")
+	route := createRoute(fmt.Sprintf("u/user/%s/mutes", username),
+		param{"offset", offset}, param{"max", max}, param{"incl", incl})
+	type aux struct {
+		Uinf map[string]UserInfo `json:"uinf"`
+	}
+	type data struct {
+		CDate IntDate `json:"cdate"`
+		Udate IntDate `json:"udate"`
+		Type  string  `json:"_t"`
+		ID    string  `json:"_id"`
+	}
+	var payload struct {
+		Aux  aux  `json:"aux"`
+		Data data `json:"data"`
+	}
+	if err := c.request(route, &payload); err != nil {
+		return MutedInfo{}, err
+	}
+	res := MutedInfo{
+		CDate: payload.Data.CDate,
+		Udate: payload.Data.Udate,
+		Type:  payload.Data.Type,
+		ID:    payload.Data.ID,
+	}
+	for _, u := range payload.Aux.Uinf {
+		res.UserInfos = append(res.UserInfos, u)
+	}
+	return res, nil
 }

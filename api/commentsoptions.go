@@ -1,6 +1,6 @@
 package api
 
-// genopts --opt_type=CommentsOption --prefix=Comments --outfile=gettr/api/commentsoptions.go 'offset:int' 'max:int' 'dir:string' 'incl:[]string'
+// genopts --opt_type=CommentsOption --prefix=Comments --outfile=api/commentsoptions.go 'offset:int' 'max:int' 'dir:string' 'incl:[]string'
 
 type CommentsOption func(*commentsOptionImpl)
 

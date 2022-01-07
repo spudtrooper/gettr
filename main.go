@@ -94,6 +94,14 @@ func realMain() error {
 		}
 		log.Printf("GetPost: %+v", info)
 	}
+	if should("GetMuted") {
+		info, err := c.GetMuted("spudtrooper")
+		if err != nil {
+			return err
+		}
+		log.Printf("GetMuted: %+v", info)
+	}
+
 	return nil
 }
 

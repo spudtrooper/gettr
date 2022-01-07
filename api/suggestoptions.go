@@ -1,6 +1,6 @@
 package api
 
-// genopts --opt_type=SuggestOption --prefix=Suggest --outfile=gettr/api/suggestoptions.go 'max:int'
+// genopts --opt_type=SuggestOption --prefix=Suggest --outfile=api/suggestoptions.go 'max:int'
 
 type SuggestOption func(*suggestOptionImpl)
 
