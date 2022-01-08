@@ -83,7 +83,12 @@ func (c *Client) request(method, route string, result interface{}) error {
 
 	var payload struct {
 		ResponseCode string `json:"rc"`
-		Result       interface{}
+		Error        struct {
+			Code string `json:"code"`
+			EMsg string `json:"emsg"`
+			Type string `json:"_t"`
+		} `json:"error"`
+		Result interface{}
 	}
 	payload.Result = result
 	if err := json.Unmarshal(data, &payload); err != nil {
@@ -91,7 +96,7 @@ func (c *Client) request(method, route string, result interface{}) error {
 	}
 
 	if payload.ResponseCode != "OK" {
-		return errors.Errorf("non-OK response: %+v", payload)
+		return errors.Errorf("response error: %+v", payload.Error)
 	}
 
 	return nil
