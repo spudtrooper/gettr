@@ -182,8 +182,8 @@ func realMain() error {
 		go func() {
 			scanner := bufio.NewScanner(f)
 			for scanner.Scan() {
-				if plate := scanner.Text(); plate != "" {
-					usernames <- plate
+				if u := scanner.Text(); u != "" {
+					usernames <- u
 				}
 			}
 			close(usernames)
