@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spudtrooper/gettr/api"
@@ -15,6 +16,7 @@ var (
 	token = flag.String("token", "", "auth token")
 	debug = flag.Bool("debug", false, "whether to debug requests")
 	calls = flag.String("calls", "", "comma-delimited list of calls to make")
+	pause = flag.Duration("pause", 0, "pause amount between follows")
 )
 
 func realMain() error {
@@ -24,8 +26,6 @@ func realMain() error {
 	if *token == "" {
 		return errors.Errorf("--token required")
 	}
-
-	c := api.MakeClient(*user, *token, api.MakeClientDebug(*debug))
 
 	callMap := map[string]bool{}
 	if *calls != "" {
@@ -51,6 +51,8 @@ func realMain() error {
 	if len(callMap) == 0 {
 		return errors.Errorf("you need to specify at least one call")
 	}
+
+	c := api.MakeClient(*user, *token, api.MakeClientDebug(*debug))
 
 	if should("GetUserInfo") {
 		info, err := c.GetUserInfo("spudtrooper")
@@ -118,6 +120,9 @@ func realMain() error {
 			if err := c.Follow(u.Username); err != nil {
 				return err
 			}
+			if *pause > 0 {
+				time.Sleep(*pause)
+			}
 		}
 	}
 	if should("GetFollowers") {
@@ -132,6 +137,9 @@ func realMain() error {
 			for _, u := range us {
 				if err := c.Follow(u.Username); err != nil {
 					return err
+				}
+				if *pause > 0 {
+					time.Sleep(*pause)
 				}
 			}
 			return nil
