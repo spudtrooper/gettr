@@ -1,3 +1,5 @@
 main
 data
 data/*
+.cache
+.cache/*

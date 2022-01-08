@@ -12,6 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spudtrooper/gettr/api"
+	"github.com/spudtrooper/gettr/model"
 	"github.com/spudtrooper/goutil/check"
 )
 
@@ -24,6 +25,7 @@ var (
 	offset        = flag.Int("offset", 0, "offset for calls that take offsets")
 	other         = flag.String("other", "mtg4america", "other username")
 	usernamesFile = flag.String("usernames_file", "", "file containing usernames")
+	cacheDir      = flag.String("cache_dir", ".cache", "cache directory")
 )
 
 func realMain() error {
@@ -215,6 +217,26 @@ func realMain() error {
 		for err := range errs {
 			log.Fatalf("error: %v", err)
 		}
+	}
+
+	if should("UserTest") {
+		cache := model.MakeCache(*cacheDir)
+		user := model.MakeUser(*user, cache, c)
+		userInfo, err := user.UserInfo()
+		check.Err(err)
+		log.Printf("userInfo: %v", userInfo)
+		var followerCount int
+		check.Err(user.Followers(func(u model.User) error {
+			log.Printf("Followers[%d]: %v", followerCount, u.Username())
+			followerCount++
+			return nil
+		}))
+		var followingCount int
+		check.Err(user.Following(func(u model.User) error {
+			log.Printf("Following[%d]: %v", followingCount, u.Username())
+			followingCount++
+			return nil
+		}))
 	}
 	return nil
 }
