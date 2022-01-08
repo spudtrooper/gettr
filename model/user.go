@@ -10,27 +10,12 @@ type User interface {
 }
 
 type user struct {
+	*factory
 	username string
-	cache    Cache
-	client   *api.Client
 	userInfo api.UserInfo
 }
 
-func MakeUser(username string, cache Cache, client *api.Client) User {
-	return wrapUser(username, cache, client)
-}
-
-func wrapUser(username string, cache Cache, client *api.Client) *user {
-	return &user{
-		username: username,
-		cache:    cache,
-		client:   client,
-	}
-}
-
-func (u *user) Username() string {
-	return u.username
-}
+func (u *user) Username() string { return u.username }
 
 func (u *user) UserInfo() (api.UserInfo, error) {
 	if u.userInfo.Username == "" {
@@ -46,8 +31,8 @@ func (u *user) UserInfo() (api.UserInfo, error) {
 func (u *user) Followers(process func(u User) error) error {
 	if err := u.client.AllFollowers(u.username, func(offset int, us api.UserInfos) error {
 		for _, userInfo := range us {
-			follower := wrapUser(userInfo.Username, u.cache, u.client)
-			follower.userInfo = userInfo
+			follower := u.MakeUser(userInfo.Username)
+			follower.(*user).userInfo = userInfo
 			if err := process(follower); err != nil {
 				return err
 			}
@@ -62,8 +47,8 @@ func (u *user) Followers(process func(u User) error) error {
 func (u *user) Following(process func(u User) error) error {
 	if err := u.client.AllFollowings(u.username, func(offset int, us api.UserInfos) error {
 		for _, userInfo := range us {
-			follower := wrapUser(userInfo.Username, u.cache, u.client)
-			follower.userInfo = userInfo
+			follower := u.MakeUser(userInfo.Username)
+			follower.(*user).userInfo = userInfo
 			if err := process(follower); err != nil {
 				return err
 			}

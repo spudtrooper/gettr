@@ -221,7 +221,8 @@ func realMain() error {
 
 	if should("UserTest") {
 		cache := model.MakeCache(*cacheDir)
-		user := model.MakeUser(*user, cache, c)
+		factory := model.MakeFactory(cache, c)
+		user := factory.MakeUser(*user)
 		userInfo, err := user.UserInfo()
 		check.Err(err)
 		log.Printf("userInfo: %v", userInfo)
