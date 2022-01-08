@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"flag"
+	"fmt"
 	"log"
+	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -12,11 +16,14 @@ import (
 )
 
 var (
-	user  = flag.String("user", "", "auth username")
-	token = flag.String("token", "", "auth token")
-	debug = flag.Bool("debug", false, "whether to debug requests")
-	calls = flag.String("calls", "", "comma-delimited list of calls to make")
-	pause = flag.Duration("pause", 0, "pause amount between follows")
+	user          = flag.String("user", "", "auth username")
+	token         = flag.String("token", "", "auth token")
+	debug         = flag.Bool("debug", false, "whether to debug requests")
+	calls         = flag.String("calls", "", "comma-delimited list of calls to make")
+	pause         = flag.Duration("pause", 0, "pause amount between follows")
+	offset        = flag.Int("offset", 0, "offset for calls that take offsets")
+	other         = flag.String("other", "mtg4america", "other username")
+	usernamesFile = flag.String("usernames_file", "", "file containing usernames")
 )
 
 func realMain() error {
@@ -126,14 +133,14 @@ func realMain() error {
 		}
 	}
 	if should("GetFollowers") {
-		info, err := c.GetFollowers("repmattgaetz")
+		info, err := c.GetFollowers("repmattgaetz", api.FollowersOffset(*offset))
 		if err != nil {
 			return err
 		}
 		log.Printf("GetFollowers: %+v", info)
 	}
 	if should("AllFollowers") {
-		username := "mtg4america"
+		username := *other
 		if err := c.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
 			log.Printf("following users[%d] of %s", offset, username)
 			for _, u := range userInfos {
@@ -145,8 +152,67 @@ func realMain() error {
 				}
 			}
 			return nil
-		}); err != nil {
+		}, api.AllFollowersOffset(*offset)); err != nil {
 			return err
+		}
+	}
+	if should("PrintAllFollowers") {
+		username := *other
+		if err := c.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
+			log.Printf("following users[%d] of %s", offset, username)
+			for _, u := range userInfos {
+				fmt.Println(u.Username)
+			}
+			return nil
+		}, api.AllFollowersOffset(*offset)); err != nil {
+			return err
+		}
+	}
+	if should("AllFollowersFromFile") {
+		usernames := make(chan string)
+		errs := make(chan error)
+		out := make(chan string)
+
+		f, err := os.Open(*usernamesFile)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		go func() {
+			scanner := bufio.NewScanner(f)
+			for scanner.Scan() {
+				if plate := scanner.Text(); plate != "" {
+					usernames <- plate
+				}
+			}
+			close(usernames)
+		}()
+
+		go func() {
+			var wg sync.WaitGroup
+			for i := 0; i < 100; i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for u := range usernames {
+						if err := c.Follow(u); err != nil {
+							errs <- err
+						} else {
+							out <- u
+						}
+					}
+				}()
+			}
+			wg.Wait()
+			close(errs)
+		}()
+
+		for u := range out {
+			log.Printf("done: %s", u)
+		}
+		for err := range errs {
+			log.Fatalf("error: %v", err)
 		}
 	}
 	return nil
