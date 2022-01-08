@@ -11,6 +11,12 @@ import (
 	"github.com/spudtrooper/goutil/or"
 )
 
+const (
+	defaultMax    = 20
+	defaultOffset = 0
+	defaultDir    = "fwd"
+)
+
 type Date interface {
 	Time() (time.Time, error)
 	String() string
@@ -129,9 +135,9 @@ type PostInfo struct {
 
 func (c *Client) GetPosts(username string, pOpts ...PostsOption) ([]PostInfo, error) {
 	opts := MakePostsOptions(pOpts...)
-	offset := or.Int(opts.Offset(), 0)
-	max := or.Int(opts.Max(), 20)
-	dir := or.String(opts.Dir(), "fwd")
+	offset := or.Int(opts.Offset(), defaultOffset)
+	max := or.Int(opts.Max(), defaultMax)
+	dir := or.String(opts.Dir(), defaultDir)
 	incl := or.String(strings.Join(opts.Incl(), "|"), "posts|stats|userinfo|shared|liked")
 	fp := or.String(opts.Fp(), "f_uo")
 	route := createRoute(fmt.Sprintf("u/user/%s/posts", username),
@@ -167,9 +173,9 @@ type CommentInfo struct {
 
 func (c *Client) GetComments(post string, cOpts ...CommentsOption) ([]CommentInfo, error) {
 	opts := MakeCommentsOptions(cOpts...)
-	offset := or.Int(opts.Offset(), 0)
-	max := or.Int(opts.Max(), 20)
-	dir := or.String(opts.Dir(), "fwd")
+	offset := or.Int(opts.Offset(), defaultOffset)
+	max := or.Int(opts.Max(), defaultMax)
+	dir := or.String(opts.Dir(), defaultDir)
 	incl := or.String(strings.Join(opts.Incl(), "|"), "posts|stats|userinfo|shared|liked")
 	route := createRoute(fmt.Sprintf("u/post/%s/comments", post),
 		param{"offset", offset}, param{"max", max}, param{"dir", dir}, param{"incl", incl})
@@ -249,8 +255,8 @@ func (c *Client) GetPost(post string, pOpts ...PostOption) (PostDetails, error) 
 
 func (c *Client) GetMuted(mOpts ...MutedOption) (UserInfos, error) {
 	opts := MakeMutedOptions(mOpts...)
-	offset := or.Int(opts.Offset(), 0)
-	max := or.Int(opts.Max(), 20)
+	offset := or.Int(opts.Offset(), defaultOffset)
+	max := or.Int(opts.Max(), defaultMax)
 	incl := or.String(strings.Join(opts.Incl(), "|"), "userstats|userinfo")
 	route := createRoute(fmt.Sprintf("u/user/%s/mutes", c.username), param{"offset", offset}, param{"max", max}, param{"incl", incl})
 	type aux struct {
@@ -271,8 +277,8 @@ func (c *Client) GetMuted(mOpts ...MutedOption) (UserInfos, error) {
 
 func (c *Client) GetFollowings(username string, fOpts ...FollowingsOption) (UserInfos, error) {
 	opts := MakeFollowingsOptions(fOpts...)
-	offset := or.Int(opts.Offset(), 0)
-	max := or.Int(opts.Max(), 20)
+	offset := or.Int(opts.Offset(), defaultOffset)
+	max := or.Int(opts.Max(), defaultMax)
 	incl := or.String(strings.Join(opts.Incl(), "|"), "userstats|userinfo")
 	route := createRoute(fmt.Sprintf("u/user/%s/followings", username), param{"offset", offset}, param{"max", max}, param{"incl", incl})
 	type aux struct {
@@ -292,8 +298,9 @@ func (c *Client) GetFollowings(username string, fOpts ...FollowingsOption) (User
 }
 
 func (c *Client) GetAllFollowings(username string, fOpts ...FollowingsOption) (UserInfos, error) {
+	opts := MakeFollowingsOptions(fOpts...)
+	max := or.Int(opts.Max(), defaultMax)
 	var res UserInfos
-	max := 20
 	for offset := 0; ; offset += max {
 		followings, err := c.GetFollowings(username, FollowingsOffset(offset), FollowingsMax(max))
 		if err != nil {
@@ -307,9 +314,11 @@ func (c *Client) GetAllFollowings(username string, fOpts ...FollowingsOption) (U
 	return res, nil
 }
 
-func (c *Client) AllFollowings(username string, f func(UserInfos) error, fOpts ...FollowingsOption) error {
-	max := 20
-	for offset := 0; ; offset += max {
+func (c *Client) AllFollowings(username string, f func(offset int, us UserInfos) error, fOpts ...AllFollowingsOption) error {
+	opts := MakeAllFollowingsOptions(fOpts...)
+	max := or.Int(opts.Max(), defaultMax)
+	start := or.Int(opts.Start(), 0)
+	for offset := start; ; offset += max {
 		followings, err := c.GetFollowings(username, FollowingsOffset(offset), FollowingsMax(max))
 		if err != nil {
 			return err
@@ -317,7 +326,7 @@ func (c *Client) AllFollowings(username string, f func(UserInfos) error, fOpts .
 		if len(followings) == 0 {
 			break
 		}
-		if err := f(followings); err != nil {
+		if err := f(offset, followings); err != nil {
 			return err
 		}
 	}
@@ -334,8 +343,8 @@ func (c *Client) Follow(username string) error {
 
 func (c *Client) GetFollowers(username string, fOpts ...FollowersOption) (UserInfos, error) {
 	opts := MakeFollowersOptions(fOpts...)
-	offset := or.Int(opts.Offset(), 0)
-	max := or.Int(opts.Max(), 20)
+	offset := or.Int(opts.Offset(), defaultOffset)
+	max := or.Int(opts.Max(), defaultMax)
 	incl := or.String(strings.Join(opts.Incl(), "|"), "userstats|userinfo")
 	route := createRoute(fmt.Sprintf("u/user/%s/followers", username), param{"offset", offset}, param{"max", max}, param{"incl", incl})
 	type aux struct {
@@ -354,9 +363,11 @@ func (c *Client) GetFollowers(username string, fOpts ...FollowersOption) (UserIn
 	return res, nil
 }
 
-func (c *Client) AllFollowers(username string, f func(UserInfos) error, fOpts ...FollowersOption) error {
-	max := 20
-	for offset := 0; ; offset += max {
+func (c *Client) AllFollowers(username string, f func(offset int, userInfos UserInfos) error, fOpts ...AllFollowersOption) error {
+	opts := MakeAllFollowersOptions(fOpts...)
+	max := or.Int(opts.Max(), defaultMax)
+	start := or.Int(opts.Start(), 0)
+	for offset := start; ; offset += max {
 		followings, err := c.GetFollowers(username, FollowersOffset(offset), FollowersMax(max))
 		if err != nil {
 			return err
@@ -364,7 +375,7 @@ func (c *Client) AllFollowers(username string, f func(UserInfos) error, fOpts ..
 		if len(followings) == 0 {
 			break
 		}
-		if err := f(followings); err != nil {
+		if err := f(offset, followings); err != nil {
 			return err
 		}
 	}

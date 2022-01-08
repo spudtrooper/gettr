@@ -133,8 +133,10 @@ func realMain() error {
 		log.Printf("GetFollowers: %+v", info)
 	}
 	if should("AllFollowers") {
-		if err := c.AllFollowers("mtg4america", func(us api.UserInfos) error {
-			for _, u := range us {
+		username := "mtg4america"
+		if err := c.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
+			log.Printf("following users[%d] of %s", offset, username)
+			for _, u := range userInfos {
 				if err := c.Follow(u.Username); err != nil {
 					return err
 				}
