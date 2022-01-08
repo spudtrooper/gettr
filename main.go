@@ -206,6 +206,7 @@ func realMain() error {
 			}
 			wg.Wait()
 			close(errs)
+			close(out)
 		}()
 
 		for u := range out {
