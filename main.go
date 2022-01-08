@@ -95,13 +95,50 @@ func realMain() error {
 		log.Printf("GetPost: %+v", info)
 	}
 	if should("GetMuted") {
-		info, err := c.GetMuted("spudtrooper")
+		info, err := c.GetMuted()
 		if err != nil {
 			return err
 		}
 		log.Printf("GetMuted: %+v", info)
 	}
-
+	if should("GetFollowings") {
+		info, err := c.GetFollowings("repmattgaetz")
+		if err != nil {
+			return err
+		}
+		log.Printf("GetFollowings: %+v", info)
+	}
+	if should("GetAllFollowings") {
+		info, err := c.GetAllFollowings("mtg4america")
+		if err != nil {
+			return err
+		}
+		log.Printf("GetAllFollowings: %+v", info)
+		for _, u := range info {
+			if err := c.Follow(u.Username); err != nil {
+				return err
+			}
+		}
+	}
+	if should("GetFollowers") {
+		info, err := c.GetFollowers("repmattgaetz")
+		if err != nil {
+			return err
+		}
+		log.Printf("GetFollowers: %+v", info)
+	}
+	if should("AllFollowers") {
+		if err := c.AllFollowers("mtg4america", func(us api.UserInfos) error {
+			for _, u := range us {
+				if err := c.Follow(u.Username); err != nil {
+					return err
+				}
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

@@ -49,7 +49,7 @@ func (c *Client) GetUserInfo(username string) (UserInfo, error) {
 	var payload struct {
 		Data UserInfo
 	}
-	if err := c.request(route, &payload); err != nil {
+	if err := c.get(route, &payload); err != nil {
 		return UserInfo{}, err
 	}
 	return payload.Data, nil
@@ -78,7 +78,7 @@ func (c *Client) GetPublicGlobals() (*PublicGlobals, error) {
 	var payload struct {
 		Globals PublicGlobals
 	}
-	if err := c.request(route, &payload); err != nil {
+	if err := c.get(route, &payload); err != nil {
 		return nil, err
 	}
 	return &payload.Globals, nil
@@ -104,7 +104,7 @@ func (c *Client) GetSuggestions(sOpts ...SuggestOption) ([]HtInfo, error) {
 	var payload struct {
 		Aux suggestions `json:"aux"`
 	}
-	if err := c.request(route, &payload); err != nil {
+	if err := c.get(route, &payload); err != nil {
 		return nil, err
 	}
 	var res []HtInfo
@@ -130,7 +130,7 @@ type PostInfo struct {
 func (c *Client) GetPosts(username string, pOpts ...PostsOption) ([]PostInfo, error) {
 	opts := MakePostsOptions(pOpts...)
 	offset := or.Int(opts.Offset(), 0)
-	max := or.Int(opts.Max(), offset+20)
+	max := or.Int(opts.Max(), 20)
 	dir := or.String(opts.Dir(), "fwd")
 	incl := or.String(strings.Join(opts.Incl(), "|"), "posts|stats|userinfo|shared|liked")
 	fp := or.String(opts.Fp(), "f_uo")
@@ -142,7 +142,7 @@ func (c *Client) GetPosts(username string, pOpts ...PostsOption) ([]PostInfo, er
 	var payload struct {
 		Aux posts `json:"aux"`
 	}
-	if err := c.request(route, &payload); err != nil {
+	if err := c.get(route, &payload); err != nil {
 		return nil, err
 	}
 	var res []PostInfo
@@ -168,7 +168,7 @@ type CommentInfo struct {
 func (c *Client) GetComments(post string, cOpts ...CommentsOption) ([]CommentInfo, error) {
 	opts := MakeCommentsOptions(cOpts...)
 	offset := or.Int(opts.Offset(), 0)
-	max := or.Int(opts.Max(), offset+20)
+	max := or.Int(opts.Max(), 20)
 	dir := or.String(opts.Dir(), "fwd")
 	incl := or.String(strings.Join(opts.Incl(), "|"), "posts|stats|userinfo|shared|liked")
 	route := createRoute(fmt.Sprintf("u/post/%s/comments", post),
@@ -179,7 +179,7 @@ func (c *Client) GetComments(post string, cOpts ...CommentsOption) ([]CommentInf
 	var payload struct {
 		Aux comments `json:"aux"`
 	}
-	if err := c.request(route, &payload); err != nil {
+	if err := c.get(route, &payload); err != nil {
 		return nil, err
 	}
 	var res []CommentInfo
@@ -234,7 +234,7 @@ func (c *Client) GetPost(post string, pOpts ...PostOption) (PostDetails, error) 
 		Aux  aux      `json:"aux"`
 		Data PostInfo `json:"data"`
 	}
-	if err := c.request(route, &payload); err != nil {
+	if err := c.get(route, &payload); err != nil {
 		return PostDetails{}, err
 	}
 	res := PostDetails{
@@ -247,45 +247,126 @@ func (c *Client) GetPost(post string, pOpts ...PostOption) (PostDetails, error) 
 	return res, nil
 }
 
-type MutedInfo struct {
-	UserInfos
-	CDate IntDate
-	Udate IntDate
-	Type  string
-	ID    string
-}
-
-func (c *Client) GetMuted(username string, mOpts ...MutedOption) (MutedInfo, error) {
+func (c *Client) GetMuted(mOpts ...MutedOption) (UserInfos, error) {
 	opts := MakeMutedOptions(mOpts...)
 	offset := or.Int(opts.Offset(), 0)
-	max := or.Int(opts.Max(), offset+20)
+	max := or.Int(opts.Max(), 20)
 	incl := or.String(strings.Join(opts.Incl(), "|"), "userstats|userinfo")
-	route := createRoute(fmt.Sprintf("u/user/%s/mutes", username),
-		param{"offset", offset}, param{"max", max}, param{"incl", incl})
+	route := createRoute(fmt.Sprintf("u/user/%s/mutes", c.username), param{"offset", offset}, param{"max", max}, param{"incl", incl})
 	type aux struct {
 		Uinf map[string]UserInfo `json:"uinf"`
 	}
-	type data struct {
-		CDate IntDate `json:"cdate"`
-		Udate IntDate `json:"udate"`
-		Type  string  `json:"_t"`
-		ID    string  `json:"_id"`
-	}
 	var payload struct {
-		Aux  aux  `json:"aux"`
-		Data data `json:"data"`
+		Aux aux `json:"aux"`
 	}
-	if err := c.request(route, &payload); err != nil {
-		return MutedInfo{}, err
+	if err := c.get(route, &payload); err != nil {
+		return nil, err
 	}
-	res := MutedInfo{
-		CDate: payload.Data.CDate,
-		Udate: payload.Data.Udate,
-		Type:  payload.Data.Type,
-		ID:    payload.Data.ID,
-	}
+	var res UserInfos
 	for _, u := range payload.Aux.Uinf {
-		res.UserInfos = append(res.UserInfos, u)
+		res = append(res, u)
 	}
 	return res, nil
+}
+
+func (c *Client) GetFollowings(username string, fOpts ...FollowingsOption) (UserInfos, error) {
+	opts := MakeFollowingsOptions(fOpts...)
+	offset := or.Int(opts.Offset(), 0)
+	max := or.Int(opts.Max(), 20)
+	incl := or.String(strings.Join(opts.Incl(), "|"), "userstats|userinfo")
+	route := createRoute(fmt.Sprintf("u/user/%s/followings", username), param{"offset", offset}, param{"max", max}, param{"incl", incl})
+	type aux struct {
+		Uinf map[string]UserInfo `json:"uinf"`
+	}
+	var payload struct {
+		Aux aux `json:"aux"`
+	}
+	if err := c.get(route, &payload); err != nil {
+		return nil, err
+	}
+	var res UserInfos
+	for _, u := range payload.Aux.Uinf {
+		res = append(res, u)
+	}
+	return res, nil
+}
+
+func (c *Client) GetAllFollowings(username string, fOpts ...FollowingsOption) (UserInfos, error) {
+	var res UserInfos
+	max := 20
+	for offset := 0; ; offset += max {
+		followings, err := c.GetFollowings(username, FollowingsOffset(offset), FollowingsMax(max))
+		if err != nil {
+			return nil, err
+		}
+		if len(followings) == 0 {
+			break
+		}
+		res = append(res, followings...)
+	}
+	return res, nil
+}
+
+func (c *Client) AllFollowings(username string, f func(UserInfos) error, fOpts ...FollowingsOption) error {
+	max := 20
+	for offset := 0; ; offset += max {
+		followings, err := c.GetFollowings(username, FollowingsOffset(offset), FollowingsMax(max))
+		if err != nil {
+			return err
+		}
+		if len(followings) == 0 {
+			break
+		}
+		if err := f(followings); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Client) Follow(username string) error {
+	route := createRoute(fmt.Sprintf("u/user/%s/follows/%s", c.username, username))
+	if err := c.post(route, nil); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) GetFollowers(username string, fOpts ...FollowersOption) (UserInfos, error) {
+	opts := MakeFollowersOptions(fOpts...)
+	offset := or.Int(opts.Offset(), 0)
+	max := or.Int(opts.Max(), 20)
+	incl := or.String(strings.Join(opts.Incl(), "|"), "userstats|userinfo")
+	route := createRoute(fmt.Sprintf("u/user/%s/followers", username), param{"offset", offset}, param{"max", max}, param{"incl", incl})
+	type aux struct {
+		Uinf map[string]UserInfo `json:"uinf"`
+	}
+	var payload struct {
+		Aux aux `json:"aux"`
+	}
+	if err := c.get(route, &payload); err != nil {
+		return nil, err
+	}
+	var res UserInfos
+	for _, u := range payload.Aux.Uinf {
+		res = append(res, u)
+	}
+	return res, nil
+}
+
+func (c *Client) AllFollowers(username string, f func(UserInfos) error, fOpts ...FollowersOption) error {
+	max := 20
+	for offset := 0; ; offset += max {
+		followings, err := c.GetFollowers(username, FollowersOffset(offset), FollowersMax(max))
+		if err != nil {
+			return err
+		}
+		if len(followings) == 0 {
+			break
+		}
+		if err := f(followings); err != nil {
+			return err
+		}
+	}
+	return nil
 }
