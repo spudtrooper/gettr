@@ -28,6 +28,7 @@ var (
 	cacheDir      = flag.String("cache_dir", ".cache", "cache directory")
 	max           = flag.Int("max", 0, "max to calls")
 	threads       = flag.Int("threads", 0, "threads to calls")
+	force         = flag.Bool("force", false, "force things")
 )
 
 func realMain() error {
@@ -224,8 +225,8 @@ func realMain() error {
 	if should("Persist") {
 		cache := model.MakeCache(*cacheDir)
 		factory := model.MakeFactory(cache, c)
-		user := factory.MakeUser(*user)
-		if err := user.Persist(model.UserPersistMax(*max), model.UserPersistThreads(*threads)); err != nil {
+		user := factory.MakeUser(*other)
+		if err := user.Persist(model.UserPersistMax(*max), model.UserPersistThreads(*threads), model.UserPersistForce(*force)); err != nil {
 			return err
 		}
 	}
@@ -233,7 +234,7 @@ func realMain() error {
 	if should("Read") {
 		cache := model.MakeCache(*cacheDir)
 		factory := model.MakeFactory(cache, c)
-		u := factory.MakeCachedUser(*user)
+		u := factory.MakeCachedUser(*other)
 
 		{
 			c := make(chan model.User)
@@ -265,6 +266,45 @@ func realMain() error {
 			for f := range c {
 				log.Printf("following[%d]: %s", i, f.Username())
 				i++
+			}
+		}
+	}
+
+	if should("PersistAll") {
+		cache := model.MakeCache(*cacheDir)
+		factory := model.MakeFactory(cache, c)
+		u := factory.MakeCachedUser(*other)
+
+		{
+			c := make(chan model.User)
+			go func() {
+				users, _ := u.Followers(api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
+				for u := range users {
+					c <- u
+				}
+				close(c)
+			}()
+
+			for f := range c {
+				if err := f.Persist(); err != nil {
+					return err
+				}
+			}
+		}
+		{
+			c := make(chan model.User)
+			go func() {
+				users, _ := u.Following(api.AllFollowingsMax(*max), api.AllFollowingsMax(*threads))
+				for u := range users {
+					c <- u
+				}
+				close(c)
+			}()
+
+			for f := range c {
+				if err := f.Persist(); err != nil {
+					return err
+				}
 			}
 		}
 	}

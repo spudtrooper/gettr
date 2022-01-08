@@ -2,6 +2,7 @@
 package model
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -9,6 +10,10 @@ import (
 	"path"
 	"strconv"
 	"strings"
+)
+
+var (
+	cacheVerbose = flag.Bool("cache_verbose", false, "verbose cache messages")
 )
 
 type Cache interface {
@@ -62,7 +67,9 @@ func (c *cacheImpl) writeFile(f string, b []byte) error {
 	if err := os.MkdirAll(path.Dir(f), 0755); err != nil {
 		return err
 	}
-	log.Printf("writing %d bytes to %s", len(b), f)
+	if *cacheVerbose {
+		log.Printf("writing %d bytes to %s", len(b), f)
+	}
 	if err := ioutil.WriteFile(f, b, 0755); err != nil {
 		return err
 	}
@@ -107,7 +114,9 @@ func (c *cacheImpl) get(parts ...string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("read %d bytes from %s", len(b), f)
+	if *cacheVerbose {
+		log.Printf("read %d bytes from %s", len(b), f)
+	}
 	return b, nil
 }
 

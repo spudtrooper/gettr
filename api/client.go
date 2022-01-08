@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -10,6 +11,10 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+)
+
+var (
+	clientVerbose = flag.Bool("client_verbose", false, "verbose client messages")
 )
 
 type Client struct {
@@ -55,6 +60,9 @@ func (c *Client) post(route string, result interface{}) error {
 
 func (c *Client) request(method, route string, result interface{}) error {
 	url := fmt.Sprintf("https://api.gettr.com/%s", route)
+	if *clientVerbose {
+		log.Printf("requesting %s", url)
+	}
 	client := &http.Client{}
 	req, err := http.NewRequest(method, url, nil)
 	req.Header.Set("x-app-auth", c.xAppAuth)

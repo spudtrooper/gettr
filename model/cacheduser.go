@@ -68,7 +68,7 @@ func (u *cachedUser) Followers(fOpts ...api.AllFollowersOption) (chan User, chan
 			go func() {
 				defer wg.Done()
 				for f := range followers {
-					users <- u.MakeCachedUser(f)
+					users <- u.MakeUser(f)
 				}
 			}()
 		}
@@ -114,7 +114,7 @@ func (u *cachedUser) Following(fOpts ...api.AllFollowingsOption) (chan User, cha
 			go func() {
 				defer wg.Done()
 				for f := range following {
-					users <- u.MakeCachedUser(f)
+					users <- u.MakeUser(f)
 				}
 			}()
 		}
