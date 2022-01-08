@@ -1,12 +1,17 @@
 package model
 
-import "github.com/spudtrooper/gettr/api"
+import (
+	"encoding/json"
+
+	"github.com/spudtrooper/gettr/api"
+)
 
 type User interface {
 	Username() string
-	Followers(func(u User) error) error
-	Following(func(u User) error) error
+	Followers(fOpts ...api.AllFollowersOption) (chan User, chan error)
+	Following(fOpts ...api.AllFollowingsOption) (chan User, chan error)
 	UserInfo() (api.UserInfo, error)
+	Persist(pOpts ...UserPersistOption) error
 }
 
 type user struct {
@@ -28,34 +33,109 @@ func (u *user) UserInfo() (api.UserInfo, error) {
 	return u.userInfo, nil
 }
 
-func (u *user) Followers(process func(u User) error) error {
-	if err := u.client.AllFollowers(u.username, func(offset int, us api.UserInfos) error {
-		for _, userInfo := range us {
+func (u *user) Followers(fOpts ...api.AllFollowersOption) (chan User, chan error) {
+	users := make(chan User)
+
+	userInfos, errs := u.client.AllFollowersParallel(u.username, fOpts...)
+
+	go func() {
+		for userInfo := range userInfos {
 			follower := u.MakeUser(userInfo.Username)
 			follower.(*user).userInfo = userInfo
-			if err := process(follower); err != nil {
-				return err
-			}
+			users <- follower
 		}
-		return nil
-	}); err != nil {
-		return err
-	}
-	return nil
+		close(users)
+	}()
+
+	return users, errs
 }
 
-func (u *user) Following(process func(u User) error) error {
-	if err := u.client.AllFollowings(u.username, func(offset int, us api.UserInfos) error {
-		for _, userInfo := range us {
+func (u *user) Following(fOpts ...api.AllFollowingsOption) (chan User, chan error) {
+	users := make(chan User)
+
+	userInfos, errs := u.client.AllFollowingsParallel(u.username, fOpts...)
+
+	go func() {
+		for userInfo := range userInfos {
 			follower := u.MakeUser(userInfo.Username)
 			follower.(*user).userInfo = userInfo
-			if err := process(follower); err != nil {
+			users <- follower
+		}
+		close(users)
+	}()
+
+	return users, errs
+}
+
+func (u *user) Persist(pOpts ...UserPersistOption) error {
+	opts := MakeUserPersistOptions(pOpts...)
+
+	followers := make(chan User)
+	following := make(chan User)
+
+	cache := u.cache
+
+	setBytes := func(val interface{}, parts ...string) error {
+		bytes, err := json.Marshal(val)
+		if err != nil {
+			return err
+		}
+		if err := cache.SetBytes(bytes, parts...); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	go func() {
+		users, _ := u.Followers(api.AllFollowersMax(opts.Max()), api.AllFollowersMax(opts.Threads()))
+		for u := range users {
+			followers <- u
+		}
+		close(followers)
+	}()
+	go func() {
+		users, _ := u.Following(api.AllFollowingsMax(opts.Max()), api.AllFollowingsMax(opts.Threads()))
+		for u := range users {
+			following <- u
+		}
+		close(following)
+	}()
+
+	{
+		var arr []string
+		for u := range followers {
+			arr = append(arr, u.Username())
+			userInfo, err := u.UserInfo()
+			if err != nil {
+				return err
+			}
+			if err := setBytes(userInfo, "users", u.Username(), "userInfo"); err != nil {
 				return err
 			}
 		}
-		return nil
-	}); err != nil {
+		if err := setBytes(arr, "users", u.username, "followers"); err != nil {
+			return err
+		}
+	}
+	{
+		var arr []string
+		for u := range following {
+			arr = append(arr, u.Username())
+			userInfo, err := u.UserInfo()
+			if err != nil {
+				return err
+			}
+			if err := setBytes(userInfo, "users", u.Username(), "userInfo"); err != nil {
+				return err
+			}
+		}
+		if err := setBytes(arr, "users", u.username, "following"); err != nil {
+			return err
+		}
+	}
+	if err := setBytes(u.userInfo, "users", u.username, "userInfo"); err != nil {
 		return err
 	}
+
 	return nil
 }

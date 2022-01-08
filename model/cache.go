@@ -4,6 +4,7 @@ package model
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"strconv"
@@ -14,9 +15,10 @@ type Cache interface {
 	Has(parts ...string) (bool, error)
 	Set(parts ...string) error
 	SetWithValue(val string, parts ...string) error
+	SetBytes(val []byte, parts ...string) error
 	SetInt(v int, parts ...string) error
 	GetInt(parts ...string) (int, error)
-	Get(parts ...string) (string, error)
+	Get(parts ...string) ([]byte, error)
 }
 
 func MakeCache(dir string) Cache {
@@ -60,6 +62,7 @@ func (c *cacheImpl) writeFile(f string, b []byte) error {
 	if err := os.MkdirAll(path.Dir(f), 0755); err != nil {
 		return err
 	}
+	log.Printf("writing %d bytes to %s", len(b), f)
 	if err := ioutil.WriteFile(f, b, 0755); err != nil {
 		return err
 	}
@@ -80,38 +83,44 @@ func (c *cacheImpl) Set(parts ...string) error {
 }
 
 func (c *cacheImpl) SetWithValue(val string, parts ...string) error {
+	return c.SetBytes([]byte(val), parts...)
+}
+
+func (c *cacheImpl) SetBytes(val []byte, parts ...string) error {
 	f := c.file(parts...)
-	if err := c.writeFile(f, []byte(val)); err != nil {
+	if err := c.writeFile(f, val); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *cacheImpl) get(parts ...string) (string, error) {
+func (c *cacheImpl) get(parts ...string) ([]byte, error) {
 	f := c.file(parts...)
 	exists, err := c.fileExists(f)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if !exists {
-		return "", nil
+		return nil, nil
 	}
 	b, err := ioutil.ReadFile(f)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return string(b), nil
+	log.Printf("read %d bytes from %s", len(b), f)
+	return b, nil
 }
 
-func (c *cacheImpl) Get(parts ...string) (string, error) {
+func (c *cacheImpl) Get(parts ...string) ([]byte, error) {
 	return c.get(parts...)
 }
 
 func (c *cacheImpl) GetInt(parts ...string) (int, error) {
-	s, err := c.get(parts...)
+	b, err := c.get(parts...)
 	if err != nil {
 		return 0, nil
 	}
+	s := string(b)
 	if s == "" {
 		return 0, nil
 	}
@@ -140,11 +149,15 @@ func (c *emptyCache) Set(_ ...string) error {
 	return nil
 }
 
-func (c *emptyCache) Get(_ ...string) (string, error) {
-	return "", nil
+func (c *emptyCache) Get(_ ...string) ([]byte, error) {
+	return nil, nil
 }
 
 func (c *emptyCache) SetWithValue(_ string, _ ...string) error {
+	return nil
+}
+
+func (c *emptyCache) SetBytes(val []byte, parts ...string) error {
 	return nil
 }
 

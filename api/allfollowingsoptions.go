@@ -1,6 +1,6 @@
 package api
 
-// genopts --opt_type=AllFollowingsOption --prefix=AllFollowings --outfile=api/allfollowingsoptions.go 'offset:int' 'max:int' 'incl:[]string' 'start:int'
+// genopts --opt_type=AllFollowingsOption --prefix=AllFollowings --outfile=api/allfollowingsoptions.go 'offset:int' 'max:int' 'incl:[]string' 'start:int' 'threads:int'
 
 type AllFollowingsOption func(*allFollowingsOptionImpl)
 
@@ -9,6 +9,7 @@ type AllFollowingsOptions interface {
 	Max() int
 	Incl() []string
 	Start() int
+	Threads() int
 }
 
 func AllFollowingsOffset(offset int) AllFollowingsOption {
@@ -35,17 +36,25 @@ func AllFollowingsStart(start int) AllFollowingsOption {
 	}
 }
 
+func AllFollowingsThreads(threads int) AllFollowingsOption {
+	return func(opts *allFollowingsOptionImpl) {
+		opts.threads = threads
+	}
+}
+
 type allFollowingsOptionImpl struct {
-	offset int
-	max    int
-	incl   []string
-	start  int
+	offset  int
+	max     int
+	incl    []string
+	start   int
+	threads int
 }
 
 func (a *allFollowingsOptionImpl) Offset() int    { return a.offset }
 func (a *allFollowingsOptionImpl) Max() int       { return a.max }
 func (a *allFollowingsOptionImpl) Incl() []string { return a.incl }
 func (a *allFollowingsOptionImpl) Start() int     { return a.start }
+func (a *allFollowingsOptionImpl) Threads() int   { return a.threads }
 
 func makeAllFollowingsOptionImpl(opts ...AllFollowingsOption) *allFollowingsOptionImpl {
 	res := &allFollowingsOptionImpl{}

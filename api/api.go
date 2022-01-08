@@ -2,8 +2,10 @@ package api
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -333,6 +335,52 @@ func (c *Client) AllFollowings(username string, f func(offset int, us UserInfos)
 	return nil
 }
 
+func (c *Client) AllFollowingsParallel(username string, fOpts ...AllFollowingsOption) (chan UserInfo, chan error) {
+	opts := MakeAllFollowingsOptions(fOpts...)
+	max := or.Int(opts.Max(), defaultMax)
+	start := or.Int(opts.Start(), 0)
+	threads := or.Int(opts.Threads(), 100)
+
+	userInfos := make(chan UserInfo)
+	offsets := make(chan int)
+	errs := make(chan error)
+
+	go func() {
+		for offset := start; offset < math.MaxInt; offset += max {
+			offsets <- offset
+		}
+		close(offsets)
+	}()
+
+	go func() {
+		var wg sync.WaitGroup
+		for i := 0; i < threads; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for offset := range offsets {
+					fs, err := c.GetFollowings(username, FollowingsOffset(offset), FollowingsMax(max))
+					if err != nil {
+						errs <- err
+						break
+					}
+					if len(fs) == 0 {
+						break
+					}
+					for _, u := range fs {
+						userInfos <- u
+					}
+				}
+			}()
+		}
+		wg.Wait()
+		close(userInfos)
+		close(errs)
+	}()
+
+	return userInfos, errs
+}
+
 func (c *Client) Follow(username string) error {
 	route := createRoute(fmt.Sprintf("u/user/%s/follows/%s", c.username, username))
 	if err := c.post(route, nil); err != nil {
@@ -361,6 +409,52 @@ func (c *Client) GetFollowers(username string, fOpts ...FollowersOption) (UserIn
 		res = append(res, u)
 	}
 	return res, nil
+}
+
+func (c *Client) AllFollowersParallel(username string, fOpts ...AllFollowersOption) (chan UserInfo, chan error) {
+	opts := MakeAllFollowersOptions(fOpts...)
+	max := or.Int(opts.Max(), defaultMax)
+	start := or.Int(opts.Start(), 0)
+	threads := or.Int(opts.Threads(), 100)
+
+	userInfos := make(chan UserInfo)
+	offsets := make(chan int)
+	errs := make(chan error)
+
+	go func() {
+		for offset := start; offset < math.MaxInt; offset += max {
+			offsets <- offset
+		}
+		close(offsets)
+	}()
+
+	go func() {
+		var wg sync.WaitGroup
+		for i := 0; i < threads; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for offset := range offsets {
+					fs, err := c.GetFollowers(username, FollowersOffset(offset), FollowersMax(max))
+					if err != nil {
+						errs <- err
+						break
+					}
+					if len(fs) == 0 {
+						break
+					}
+					for _, u := range fs {
+						userInfos <- u
+					}
+				}
+			}()
+		}
+		wg.Wait()
+		close(userInfos)
+		close(errs)
+	}()
+
+	return userInfos, errs
 }
 
 func (c *Client) AllFollowers(username string, f func(offset int, userInfos UserInfos) error, fOpts ...AllFollowersOption) error {

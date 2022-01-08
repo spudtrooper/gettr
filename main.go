@@ -26,6 +26,8 @@ var (
 	other         = flag.String("other", "mtg4america", "other username")
 	usernamesFile = flag.String("usernames_file", "", "file containing usernames")
 	cacheDir      = flag.String("cache_dir", ".cache", "cache directory")
+	max           = flag.Int("max", 0, "max to calls")
+	threads       = flag.Int("threads", 0, "threads to calls")
 )
 
 func realMain() error {
@@ -219,26 +221,54 @@ func realMain() error {
 		}
 	}
 
-	if should("UserTest") {
+	if should("Persist") {
 		cache := model.MakeCache(*cacheDir)
 		factory := model.MakeFactory(cache, c)
 		user := factory.MakeUser(*user)
-		userInfo, err := user.UserInfo()
-		check.Err(err)
-		log.Printf("userInfo: %v", userInfo)
-		var followerCount int
-		check.Err(user.Followers(func(u model.User) error {
-			log.Printf("Followers[%d]: %v", followerCount, u.Username())
-			followerCount++
-			return nil
-		}))
-		var followingCount int
-		check.Err(user.Following(func(u model.User) error {
-			log.Printf("Following[%d]: %v", followingCount, u.Username())
-			followingCount++
-			return nil
-		}))
+		if err := user.Persist(model.UserPersistMax(*max), model.UserPersistThreads(*threads)); err != nil {
+			return err
+		}
 	}
+
+	if should("Read") {
+		cache := model.MakeCache(*cacheDir)
+		factory := model.MakeFactory(cache, c)
+		u := factory.MakeCachedUser(*user)
+
+		{
+			c := make(chan model.User)
+			go func() {
+				users, _ := u.Followers(api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
+				for u := range users {
+					c <- u
+				}
+				close(c)
+			}()
+
+			i := 0
+			for f := range c {
+				log.Printf("followers[%d]: %s", i, f.Username())
+				i++
+			}
+		}
+		{
+			c := make(chan model.User)
+			go func() {
+				users, _ := u.Following(api.AllFollowingsMax(*max), api.AllFollowingsMax(*threads))
+				for u := range users {
+					c <- u
+				}
+				close(c)
+			}()
+
+			i := 0
+			for f := range c {
+				log.Printf("following[%d]: %s", i, f.Username())
+				i++
+			}
+		}
+	}
+
 	return nil
 }
 
