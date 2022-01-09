@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spudtrooper/gettr/api"
-	"github.com/spudtrooper/gettr/html"
+	html "github.com/spudtrooper/gettr/htmlgen"
 	"github.com/spudtrooper/gettr/model"
 	"github.com/spudtrooper/goutil/check"
 )

@@ -1,4 +1,4 @@
-package html
+package htmlgen
 
 import (
 	"encoding/csv"
@@ -22,11 +22,11 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 
 	limit := opts.Limit()
 
-	var users []model.User
+	var users []*model.CachedUser
 
 	factory := model.MakeFactory(cache, client)
 	u := factory.MakeCachedUser(other)
-	followers := make(chan model.User)
+	followers := make(chan *model.User)
 	go func() {
 		users, _ := u.Followers()
 		for u := range users {
@@ -35,7 +35,7 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 		close(followers)
 	}()
 
-	var cachedFollowers []model.User
+	var cachedFollowers []*model.CachedUser
 	for f := range followers {
 		cachedFollowers = append(cachedFollowers, factory.MakeCachedUser(f.Username()))
 	}
@@ -60,7 +60,7 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 
 	var wg sync.WaitGroup
 
-	if opts.WriteCSV() {
+	if opts.All() || opts.WriteCSV() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -221,7 +221,7 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 		return html
 	}
 
-	if opts.WriteSimpleHTML() {
+	if opts.All() || opts.WriteSimpleHTML() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -243,7 +243,7 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 		}()
 	}
 
-	if opts.WriteDescriptionsHTML() {
+	if opts.All() || opts.WriteDescriptionsHTML() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -285,7 +285,7 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 		}()
 	}
 
-	if opts.WriteTwitterFollowersHTML() {
+	if opts.All() || opts.WriteTwitterFollowersHTML() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -327,7 +327,7 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 		}()
 	}
 
-	if opts.WriteHTML() {
+	if opts.All() || opts.WriteHTML() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

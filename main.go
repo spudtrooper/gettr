@@ -258,7 +258,7 @@ func realMain() error {
 		u := factory.MakeCachedUser(*other)
 
 		{
-			c := make(chan model.User)
+			c := make(chan *model.User)
 			go func() {
 				users, _ := u.Followers(api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
 				for u := range users {
@@ -274,7 +274,7 @@ func realMain() error {
 			}
 		}
 		{
-			c := make(chan model.User)
+			c := make(chan *model.User)
 			go func() {
 				users, _ := u.Following(api.AllFollowingsMax(*max), api.AllFollowingsMax(*threads))
 				for u := range users {
@@ -297,7 +297,7 @@ func realMain() error {
 		u := factory.MakeCachedUser(*other)
 
 		{
-			c := make(chan model.User)
+			c := make(chan *model.User)
 			go func() {
 				users, _ := u.Followers(api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
 				for u := range users {
@@ -313,7 +313,7 @@ func realMain() error {
 			}
 		}
 		{
-			c := make(chan model.User)
+			c := make(chan *model.User)
 			go func() {
 				users, _ := u.Following(api.AllFollowingsMax(*max), api.AllFollowingsMax(*threads))
 				for u := range users {

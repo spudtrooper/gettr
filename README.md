@@ -14,4 +14,4 @@ To generate HTML for user `repmattgaetz`.
 2. Find followers and generate HTML:
 
         go run main.go --other repmattgaetz Persist PersistAll
-        go run html.go --other repmattgaetz --write_twitter_followers_html  --write_desc_html --write_simple_html --write_html --write_csv
+        go run html.go --other repmattgaetz --all

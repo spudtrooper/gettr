@@ -2,13 +2,14 @@ package model
 
 import (
 	"encoding/json"
+	"strings"
 	"sync"
 
 	"github.com/spudtrooper/gettr/api"
 	"github.com/spudtrooper/goutil/or"
 )
 
-type cachedUser struct {
+type CachedUser struct {
 	*factory
 	username  string
 	userInfo  api.UserInfo
@@ -16,12 +17,15 @@ type cachedUser struct {
 	following []string
 }
 
-func (u *cachedUser) Username() string { return u.username }
+func (u *CachedUser) Username() string { return u.username }
 
-func (u *cachedUser) UserInfo() (api.UserInfo, error) {
+func (u *CachedUser) UserInfo() (api.UserInfo, error) {
 	if u.userInfo.Username == "" {
 		bytes, err := u.cache.Get("users", u.username, "userInfo")
 		if err != nil {
+			if strings.HasPrefix(err.Error(), "response error") {
+				return api.UserInfo{}, nil
+			}
 			return api.UserInfo{}, err
 		}
 		var v api.UserInfo
@@ -33,11 +37,11 @@ func (u *cachedUser) UserInfo() (api.UserInfo, error) {
 	return u.userInfo, nil
 }
 
-func (u *cachedUser) Followers(fOpts ...api.AllFollowersOption) (chan User, chan error) {
+func (u *CachedUser) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan error) {
 	opts := api.MakeAllFollowersOptions(fOpts...)
 
 	followers := make(chan string)
-	users := make(chan User)
+	users := make(chan *User)
 	errs := make(chan error)
 	threads := or.Int(opts.Threads(), 100)
 
@@ -79,11 +83,11 @@ func (u *cachedUser) Followers(fOpts ...api.AllFollowersOption) (chan User, chan
 	return users, errs
 }
 
-func (u *cachedUser) Following(fOpts ...api.AllFollowingsOption) (chan User, chan error) {
+func (u *CachedUser) Following(fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
 	opts := api.MakeAllFollowingsOptions(fOpts...)
 
 	following := make(chan string)
-	users := make(chan User)
+	users := make(chan *User)
 	errs := make(chan error)
 	threads := or.Int(opts.Threads(), 100)
 
@@ -123,8 +127,4 @@ func (u *cachedUser) Following(fOpts ...api.AllFollowingsOption) (chan User, cha
 	}()
 
 	return users, errs
-}
-
-func (u *cachedUser) Persist(pOpts ...UserPersistOption) error {
-	return nil
 }

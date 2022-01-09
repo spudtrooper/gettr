@@ -1,23 +1,17 @@
-package html
+package htmlgen
 
-// genopts --opt_type=GeneratOption --prefix=Generate --outfile=html/generateoptions.go 'writeCSV' 'writeSimpleHTML' 'writeDescriptionsHTML' 'writeTwitterFollowersHTML' 'writeHTML' 'limit:int'
+// genopts --opt_type=GeneratOption --prefix=Generate --outfile=htmlgen/generateoptions.go 'writeCSV' 'writeSimpleHTML' 'writeDescriptionsHTML' 'writeTwitterFollowersHTML' 'writeHTML' 'limit:int' 'all'
 
 type GeneratOption func(*generatOptionImpl)
 
 type GeneratOptions interface {
-	ReadCache() bool
 	WriteCSV() bool
 	WriteSimpleHTML() bool
 	WriteDescriptionsHTML() bool
 	WriteTwitterFollowersHTML() bool
 	WriteHTML() bool
 	Limit() int
-}
-
-func GenerateReadCache(readCache bool) GeneratOption {
-	return func(opts *generatOptionImpl) {
-		opts.readCache = readCache
-	}
+	All() bool
 }
 
 func GenerateWriteCSV(writeCSV bool) GeneratOption {
@@ -56,23 +50,29 @@ func GenerateLimit(limit int) GeneratOption {
 	}
 }
 
+func GenerateAll(all bool) GeneratOption {
+	return func(opts *generatOptionImpl) {
+		opts.all = all
+	}
+}
+
 type generatOptionImpl struct {
-	readCache                 bool
 	writeCSV                  bool
 	writeSimpleHTML           bool
 	writeDescriptionsHTML     bool
 	writeTwitterFollowersHTML bool
 	writeHTML                 bool
 	limit                     int
+	all                       bool
 }
 
-func (g *generatOptionImpl) ReadCache() bool                 { return g.readCache }
 func (g *generatOptionImpl) WriteCSV() bool                  { return g.writeCSV }
 func (g *generatOptionImpl) WriteSimpleHTML() bool           { return g.writeSimpleHTML }
 func (g *generatOptionImpl) WriteDescriptionsHTML() bool     { return g.writeDescriptionsHTML }
 func (g *generatOptionImpl) WriteTwitterFollowersHTML() bool { return g.writeTwitterFollowersHTML }
 func (g *generatOptionImpl) WriteHTML() bool                 { return g.writeHTML }
 func (g *generatOptionImpl) Limit() int                      { return g.limit }
+func (g *generatOptionImpl) All() bool                       { return g.all }
 
 func makeGeneratOptionImpl(opts ...GeneratOption) *generatOptionImpl {
 	res := &generatOptionImpl{}
