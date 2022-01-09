@@ -8,7 +8,9 @@ You need to supply the user and token. You can find your token from the dev cons
 console.log(JSON.parse(localStorage.LS_SESSION_INFO).userinfo.token)
 ```
 
-To generate HTML for user `repmattgaetz`
+To generate HTML for user `repmattgaetz`.
+
+Create a config by copying [user_creds_example.json](user_creds_example.json) to `.user_creds.json` and filling in the TODOs and then:
 
 ```bash
 go run main.go --other repmattgaetz Persist PersistAll
