@@ -209,6 +209,18 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 		return head, rows, nil
 	}
 
+	render := func(htmlData html.Data) string {
+		html, err := html.Render(htmlData, html.RenderNoFormat(true))
+		check.Err(err)
+		return html
+	}
+
+	renderSimple := func(htmlData html.Data) string {
+		html, err := html.RenderSimple(htmlData, html.RenderNoFormat(true))
+		check.Err(err)
+		return html
+	}
+
 	if opts.WriteSimpleHTML() {
 		wg.Add(1)
 		go func() {
@@ -225,8 +237,7 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 						Rows: rows,
 					}),
 				}}
-			html, err := html.RenderSimple(htmlData)
-			check.Err(err)
+			html := renderSimple(htmlData)
 			check.Err(ioutil.WriteFile(htmlOutFile, []byte(html), 0755))
 			log.Printf("wrote simple HTML to %s", htmlOutFile)
 		}()
@@ -242,22 +253,6 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 			check.Err(err)
 
 			{
-				htmlOutFile := path.Join(outDir, other+"_desc_simple.html")
-				log.Printf("writing desc simple HTML to %s...", htmlOutFile)
-
-				htmlData := html.Data{
-					Entities: []html.DataEntity{
-						html.MakeSimpleDataEntityFromTable(html.TableData{
-							Head: head,
-							Rows: rows,
-						}),
-					}}
-				html, err := html.RenderSimple(htmlData)
-				check.Err(err)
-				check.Err(ioutil.WriteFile(htmlOutFile, []byte(html), 0755))
-				log.Printf("wrote desc simple HTML to %s", htmlOutFile)
-			}
-			{
 				htmlOutFile := path.Join(outDir, other+"_desc.html")
 				log.Printf("writing desc HTML to %s...", htmlOutFile)
 
@@ -268,10 +263,24 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 							Rows: rows,
 						}),
 					}}
-				html, err := html.Render(htmlData)
-				check.Err(err)
+				html := render(htmlData)
 				check.Err(ioutil.WriteFile(htmlOutFile, []byte(html), 0755))
 				log.Printf("wrote desc HTML to %s", htmlOutFile)
+			}
+			{
+				htmlOutFile := path.Join(outDir, other+"_desc_simple.html")
+				log.Printf("writing desc simple HTML to %s...", htmlOutFile)
+
+				htmlData := html.Data{
+					Entities: []html.DataEntity{
+						html.MakeSimpleDataEntityFromTable(html.TableData{
+							Head: head,
+							Rows: rows,
+						}),
+					}}
+				html := renderSimple(htmlData)
+				check.Err(ioutil.WriteFile(htmlOutFile, []byte(html), 0755))
+				log.Printf("wrote desc simple HTML to %s", htmlOutFile)
 			}
 		}()
 	}
@@ -296,8 +305,7 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 							Rows: rows,
 						}),
 					}}
-				html, err := html.Render(htmlData)
-				check.Err(err)
+				html := render(htmlData)
 				check.Err(ioutil.WriteFile(htmlOutFile, []byte(html), 0755))
 				log.Printf("wrote twitter followers HTML to %s", htmlOutFile)
 			}
@@ -312,8 +320,7 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 							Rows: rows,
 						}),
 					}}
-				html, err := html.RenderSimple(htmlData)
-				check.Err(err)
+				html := renderSimple(htmlData)
 				check.Err(ioutil.WriteFile(htmlOutFile, []byte(html), 0755))
 				log.Printf("wrote twitter followers simple HTML to %s", htmlOutFile)
 			}
@@ -336,8 +343,7 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 						Rows: rows,
 					}),
 				}}
-			html, err := html.Render(htmlData)
-			check.Err(err)
+			html := render(htmlData)
 			check.Err(ioutil.WriteFile(htmlOutFile, []byte(html), 0755))
 			log.Printf("wrote HTML to %s", htmlOutFile)
 		}()
