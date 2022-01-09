@@ -1,6 +1,6 @@
 package html
 
-// genopts --opt_type=GeneratOption --prefix=Generate --outfile=html/generateoptions.go 'readCache' 'writeCSV' 'writeSimpleHTML' 'writeDescriptionsHTML' 'writeTwitterFollowersHTML' 'writeHTML' 'limit:int'
+// genopts --opt_type=GeneratOption --prefix=Generate --outfile=html/generateoptions.go 'writeCSV' 'writeSimpleHTML' 'writeDescriptionsHTML' 'writeTwitterFollowersHTML' 'writeHTML' 'limit:int'
 
 type GeneratOption func(*generatOptionImpl)
 

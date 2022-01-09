@@ -23,7 +23,6 @@ var (
 	writeSimpleHTML           = flag.Bool("write_simple_html", false, "write HTML file")
 	writeDescriptionsHTML     = flag.Bool("write_desc_html", false, "write HTML file for entries with descriptions")
 	writeTwitterFollowersHTML = flag.Bool("write_twitter_followers_html", false, "write HTML file for entries with twitter followers")
-	readCache                 = flag.Bool("read_cache", false, "read sorted users from cache")
 )
 
 func realMain() error {
@@ -44,7 +43,6 @@ func realMain() error {
 
 	if err := html.Generate(client, cache, *other,
 		html.GenerateLimit(*limit),
-		html.GenerateReadCache(*readCache),
 		html.GenerateWriteCSV(*writeCSV),
 		html.GenerateWriteDescriptionsHTML(*writeDescriptionsHTML),
 		html.GenerateWriteHTML(*writeHTML),

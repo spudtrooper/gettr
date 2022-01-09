@@ -38,7 +38,9 @@ func realMain() error {
 		client = api.MakeClient(*user, *token, api.MakeClientDebug(*debug))
 	} else if *userCreds != "" {
 		c, err := api.MakeClientFromFile(*userCreds, api.MakeClientDebug(*debug))
-		check.Err(err)
+		if err != nil {
+			return err
+		}
 		client = c
 	} else {
 		return errors.Errorf("Must set --user & --token or --creds_file")
