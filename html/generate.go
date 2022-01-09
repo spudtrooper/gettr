@@ -166,13 +166,6 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 			}
 
 			username := f.Username()
-			var ico string
-			if userInfo.ICO != "" {
-				src := fmt.Sprintf("https://media.gettr.com/%s", userInfo.ICO)
-				ico = fmt.Sprintf(`<img style="width:30px; height:30px" src="%s">`, src)
-			} else {
-				ico = `<div style="width:30px; height:30px"></div>`
-			}
 			followers := userInfo.Followers()
 			following := userInfo.Following()
 			twitterFollowing := userInfo.TwitterFollowing()
@@ -192,6 +185,12 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 					userLinks += " | " + twitterLink
 				}
 				userLinks += ")"
+
+				ico := `<div style="width:30px; height:30px"></div>`
+				if userInfo.ICO != "" {
+					src := fmt.Sprintf("https://media.gettr.com/%s", userInfo.ICO)
+					ico = fmt.Sprintf(`<img style="width:30px; height:30px" src="%s">`, src)
+				}
 
 				user += "<table border=0>"
 				user += "<tr>"
