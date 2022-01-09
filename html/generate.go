@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"sort"
+	"sync"
 
 	"github.com/spudtrooper/gettr/api"
 	"github.com/spudtrooper/gettr/model"
@@ -57,83 +58,86 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 		return err
 	}
 
+	var wg sync.WaitGroup
+
 	if opts.WriteCSV() {
-		csvOutFile := path.Join(outDir, other+".csv")
-		log.Printf("writing CSV to %s...", csvOutFile)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			csvOutFile := path.Join(outDir, other+".csv")
+			log.Printf("writing CSV to %s...", csvOutFile)
 
-		csvFile, err := os.Create(csvOutFile)
-		check.Err(err)
-		defer csvFile.Close()
-		w := csv.NewWriter(csvFile)
-		w.Write([]string{
-			"ICO",
-			"USER",
-			"DESCRIPTION",
-			"FOLLOWERS",
-			"FOLLOWING",
-			"TWITTER FOLLOWERS",
-			"TWITTER FOLLOWING",
-			"FAKE FOLLOWERS",
-			"FOLLOWERS % DIFF",
-			"GETTR",
-			"TWITTER",
-		})
-		for i, f := range users {
-			if limit > 0 && i > limit {
-				break
-			}
-			username := f.Username()
-			userInfo, err := f.UserInfo()
-			if err != nil {
-				return err
-			}
-
-			var ico string
-			if userInfo.ICO != "" {
-				src := fmt.Sprintf("https://media.gettr.com/%s", userInfo.ICO)
-				ico = fmt.Sprintf(`<img style="width:30px; height:30px" src="%s">`, src)
-			}
-			desc := userInfo.Desc
-			followers := userInfo.Followers()
-			following := userInfo.Following()
-			twitterFollowers := userInfo.TwitterFollowers()
-			twitterFollowing := userInfo.TwitterFollowing()
-			fakeFollowers := followers + twitterFollowers
-			var fakeFollowersPercDiff float64
-			if followers > 0 {
-				fakeFollowersPercDiff = float64(fakeFollowers-followers) / float64(followers) * 100.0
-			}
-			gettrURI := fmt.Sprintf("https://gettr.com/user/%s", username)
-			twitterURI := fmt.Sprintf("https://twitter.com/%s", username)
-
+			csvFile, err := os.Create(csvOutFile)
+			check.Err(err)
+			defer csvFile.Close()
+			w := csv.NewWriter(csvFile)
 			w.Write([]string{
-				ico,
-				username,
-				desc,
-				fmt.Sprintf("%d", followers),
-				fmt.Sprintf("%d", following),
-				fmt.Sprintf("%d", twitterFollowers),
-				fmt.Sprintf("%d", twitterFollowing),
-				fmt.Sprintf("%d", fakeFollowers),
-				fmt.Sprintf("%f", fakeFollowersPercDiff),
-				gettrURI,
-				twitterURI,
+				"ICO",
+				"BG",
+				"USER",
+				"DESCRIPTION",
+				"GETTR FOLLOWERS",
+				"GETTR FOLLOWING",
+				"TWITTER FOLLOWERS",
+				"TWITTER FOLLOWING",
+				"GETTR+TWITTER FOLLOWERS",
+				"FOLLOWERS % DIFF",
+				"GETTR",
+				"TWITTER",
 			})
-		}
-		w.Flush()
+			for i, f := range users {
+				if limit > 0 && i > limit {
+					break
+				}
+				username := f.Username()
+				userInfo, err := f.UserInfo()
+				check.Err(err)
 
-		log.Printf("wrote CSV to %s", csvOutFile)
+				ico := userInfo.ICO
+				bg := userInfo.BGImg
+				desc := userInfo.Desc
+				followers := userInfo.Followers()
+				following := userInfo.Following()
+				twitterFollowers := userInfo.TwitterFollowers()
+				twitterFollowing := userInfo.TwitterFollowing()
+				fakeFollowers := followers + twitterFollowers
+				var fakeFollowersPercDiff float64
+				if followers > 0 {
+					fakeFollowersPercDiff = float64(fakeFollowers-followers) / float64(followers) * 100.0
+				}
+				gettrURI := fmt.Sprintf("https://gettr.com/user/%s", username)
+				twitterURI := fmt.Sprintf("https://twitter.com/%s", username)
+
+				w.Write([]string{
+					ico,
+					bg,
+					username,
+					desc,
+					fmt.Sprintf("%d", followers),
+					fmt.Sprintf("%d", following),
+					fmt.Sprintf("%d", twitterFollowers),
+					fmt.Sprintf("%d", twitterFollowing),
+					fmt.Sprintf("%d", fakeFollowers),
+					fmt.Sprintf("%f", fakeFollowersPercDiff),
+					gettrURI,
+					twitterURI,
+				})
+			}
+			w.Flush()
+
+			log.Printf("wrote CSV to %s", csvOutFile)
+		}()
 	}
 
 	createHTMLData := func(onlyNonEmptyDescs bool, onlyTwitterFollowers bool) (html.TableRowData, []html.TableRowData, error) {
 		head := html.TableRowData{
 			"USER",
 			"DESCRIPTION",
-			"FOLLOWERS",
-			"FOLLOWING",
+			"GETTR FOLLOWERS",
+			"GETTR FOLLOWING",
 			"TWITTER FOLLOWERS",
 			"TWITTER FOLLOWING",
-			"FAKE FOLLOWERS",
+			"GETTR+TWITTER FOLLOWERS",
 			"FOLLOWERS % DIFF",
 		}
 		var rows []html.TableRowData
@@ -206,95 +210,125 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 	}
 
 	if opts.WriteSimpleHTML() {
-		htmlOutFile := path.Join(outDir, other+"_simple.html")
-		log.Printf("writing simple HTML to %s...", htmlOutFile)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			htmlOutFile := path.Join(outDir, other+"_simple.html")
+			log.Printf("writing simple HTML to %s...", htmlOutFile)
 
-		head, rows, err := createHTMLData(false, false)
-		if err != nil {
-			return err
-		}
-		htmlData := html.Data{
-			Entities: []html.DataEntity{
-				html.MakeSimpleDataEntityFromTable(html.TableData{
-					Head: head,
-					Rows: rows,
-				}),
-			}}
-		html, err := html.RenderSimple(htmlData)
-		if err != nil {
-			return err
-		}
-
-		if err := ioutil.WriteFile(htmlOutFile, []byte(html), 0755); err != nil {
-			return err
-		}
-		log.Printf("wrote simple HTML to %s", htmlOutFile)
+			head, rows, err := createHTMLData(false, false)
+			check.Err(err)
+			htmlData := html.Data{
+				Entities: []html.DataEntity{
+					html.MakeSimpleDataEntityFromTable(html.TableData{
+						Head: head,
+						Rows: rows,
+					}),
+				}}
+			html, err := html.RenderSimple(htmlData)
+			check.Err(err)
+			check.Err(ioutil.WriteFile(htmlOutFile, []byte(html), 0755))
+			log.Printf("wrote simple HTML to %s", htmlOutFile)
+		}()
 	}
 
 	if opts.WriteDescriptionsHTML() {
-		log.Printf("creating desc HTML...")
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			log.Printf("creating desc HTML...")
 
-		head, rows, err := createHTMLData(true, false)
-		if err != nil {
-			return err
-		}
+			head, rows, err := createHTMLData(true, false)
+			check.Err(err)
 
-		{
-			htmlOutFile := path.Join(outDir, other+"_desc_simple.html")
-			log.Printf("writing desc simple HTML to %s...", htmlOutFile)
+			{
+				htmlOutFile := path.Join(outDir, other+"_desc_simple.html")
+				log.Printf("writing desc simple HTML to %s...", htmlOutFile)
 
-			htmlData := html.Data{
-				Entities: []html.DataEntity{
-					html.MakeSimpleDataEntityFromTable(html.TableData{
-						Head: head,
-						Rows: rows,
-					}),
-				}}
-			html, err := html.RenderSimple(htmlData)
-			if err != nil {
-				return err
+				htmlData := html.Data{
+					Entities: []html.DataEntity{
+						html.MakeSimpleDataEntityFromTable(html.TableData{
+							Head: head,
+							Rows: rows,
+						}),
+					}}
+				html, err := html.RenderSimple(htmlData)
+				check.Err(err)
+				check.Err(ioutil.WriteFile(htmlOutFile, []byte(html), 0755))
+				log.Printf("wrote desc simple HTML to %s", htmlOutFile)
 			}
+			{
+				htmlOutFile := path.Join(outDir, other+"_desc.html")
+				log.Printf("writing desc HTML to %s...", htmlOutFile)
 
-			if err := ioutil.WriteFile(htmlOutFile, []byte(html), 0755); err != nil {
-				return err
+				htmlData := html.Data{
+					Entities: []html.DataEntity{
+						html.MakeDataEntityFromTable(html.TableData{
+							Head: head,
+							Rows: rows,
+						}),
+					}}
+				html, err := html.Render(htmlData)
+				check.Err(err)
+				check.Err(ioutil.WriteFile(htmlOutFile, []byte(html), 0755))
+				log.Printf("wrote desc HTML to %s", htmlOutFile)
 			}
-			log.Printf("wrote desc simple HTML to %s", htmlOutFile)
-		}
-		{
-			htmlOutFile := path.Join(outDir, other+"_desc.html")
-			log.Printf("writing desc HTML to %s...", htmlOutFile)
-
-			htmlData := html.Data{
-				Entities: []html.DataEntity{
-					html.MakeDataEntityFromTable(html.TableData{
-						Head: head,
-						Rows: rows,
-					}),
-				}}
-			html, err := html.Render(htmlData)
-			if err != nil {
-				return err
-			}
-
-			if err := ioutil.WriteFile(htmlOutFile, []byte(html), 0755); err != nil {
-				return err
-			}
-			log.Printf("wrote desc HTML to %s", htmlOutFile)
-		}
+		}()
 	}
 
 	if opts.WriteTwitterFollowersHTML() {
-		log.Printf("creating twitter followers HTML...")
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			log.Printf("creating twitter followers HTML...")
 
-		head, rows, err := createHTMLData(false, true)
-		if err != nil {
-			return err
-		}
+			head, rows, err := createHTMLData(false, true)
+			check.Err(err)
 
-		{
-			htmlOutFile := path.Join(outDir, other+"_twitter_followers.html")
-			log.Printf("writing twitter followers HTML to %s...", htmlOutFile)
+			{
+				htmlOutFile := path.Join(outDir, other+"_twitter_followers.html")
+				log.Printf("writing twitter followers HTML to %s...", htmlOutFile)
 
+				htmlData := html.Data{
+					Entities: []html.DataEntity{
+						html.MakeDataEntityFromTable(html.TableData{
+							Head: head,
+							Rows: rows,
+						}),
+					}}
+				html, err := html.Render(htmlData)
+				check.Err(err)
+				check.Err(ioutil.WriteFile(htmlOutFile, []byte(html), 0755))
+				log.Printf("wrote twitter followers HTML to %s", htmlOutFile)
+			}
+			{
+				htmlOutFile := path.Join(outDir, other+"_twitter_followers_simple.html")
+				log.Printf("writing twitter followers simple HTML to %s...", htmlOutFile)
+
+				htmlData := html.Data{
+					Entities: []html.DataEntity{
+						html.MakeSimpleDataEntityFromTable(html.TableData{
+							Head: head,
+							Rows: rows,
+						}),
+					}}
+				html, err := html.RenderSimple(htmlData)
+				check.Err(err)
+				check.Err(ioutil.WriteFile(htmlOutFile, []byte(html), 0755))
+				log.Printf("wrote twitter followers simple HTML to %s", htmlOutFile)
+			}
+		}()
+	}
+
+	if opts.WriteHTML() {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			htmlOutFile := path.Join(outDir, other+".html")
+			log.Printf("writing HTML to %s...", htmlOutFile)
+
+			head, rows, err := createHTMLData(false, false)
+			check.Err(err)
 			htmlData := html.Data{
 				Entities: []html.DataEntity{
 					html.MakeDataEntityFromTable(html.TableData{
@@ -303,63 +337,15 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 					}),
 				}}
 			html, err := html.Render(htmlData)
-			if err != nil {
-				return err
-			}
-
-			if err := ioutil.WriteFile(htmlOutFile, []byte(html), 0755); err != nil {
-				return err
-			}
-			log.Printf("wrote twitter followers HTML to %s", htmlOutFile)
-		}
-		{
-			htmlOutFile := path.Join(outDir, other+"_twitter_followers_simple.html")
-			log.Printf("writing twitter followers simple HTML to %s...", htmlOutFile)
-
-			htmlData := html.Data{
-				Entities: []html.DataEntity{
-					html.MakeSimpleDataEntityFromTable(html.TableData{
-						Head: head,
-						Rows: rows,
-					}),
-				}}
-			html, err := html.RenderSimple(htmlData)
-			if err != nil {
-				return err
-			}
-
-			if err := ioutil.WriteFile(htmlOutFile, []byte(html), 0755); err != nil {
-				return err
-			}
-			log.Printf("wrote twitter followers simple HTML to %s", htmlOutFile)
-		}
+			check.Err(err)
+			check.Err(ioutil.WriteFile(htmlOutFile, []byte(html), 0755))
+			log.Printf("wrote HTML to %s", htmlOutFile)
+		}()
 	}
 
-	if opts.WriteHTML() {
-		htmlOutFile := path.Join(outDir, other+".html")
-		log.Printf("writing HTML to %s...", htmlOutFile)
+	wg.Wait()
 
-		head, rows, err := createHTMLData(false, false)
-		if err != nil {
-			return err
-		}
-		htmlData := html.Data{
-			Entities: []html.DataEntity{
-				html.MakeDataEntityFromTable(html.TableData{
-					Head: head,
-					Rows: rows,
-				}),
-			}}
-		html, err := html.Render(htmlData)
-		if err != nil {
-			return err
-		}
-
-		if err := ioutil.WriteFile(htmlOutFile, []byte(html), 0755); err != nil {
-			return err
-		}
-		log.Printf("wrote HTML to %s", htmlOutFile)
-	}
+	log.Println("done")
 
 	return nil
 }
