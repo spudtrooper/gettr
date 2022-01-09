@@ -99,12 +99,14 @@ func (u *user) Persist(pOpts ...UserPersistOption) error {
 		var usernames []string
 		for u := range followers {
 			usernames = append(usernames, u.Username())
-			userInfo, err := u.UserInfo()
-			if err != nil {
-				return err
-			}
-			if err := setBytes(userInfo, "users", u.Username(), "userInfo"); err != nil {
-				return err
+			if should("users", u.Username(), "userInfo") {
+				userInfo, err := u.UserInfo()
+				if err != nil {
+					return err
+				}
+				if err := setBytes(userInfo, "users", u.Username(), "userInfo"); err != nil {
+					return err
+				}
 			}
 		}
 		log.Printf("persisted %d followers of %s", len(usernames), u.username)
@@ -128,12 +130,14 @@ func (u *user) Persist(pOpts ...UserPersistOption) error {
 		var usernames []string
 		for u := range following {
 			usernames = append(usernames, u.Username())
-			userInfo, err := u.UserInfo()
-			if err != nil {
-				return err
-			}
-			if err := setBytes(userInfo, "users", u.Username(), "userInfo"); err != nil {
-				return err
+			if should("users", u.Username(), "userInfo") {
+				userInfo, err := u.UserInfo()
+				if err != nil {
+					return err
+				}
+				if err := setBytes(userInfo, "users", u.Username(), "userInfo"); err != nil {
+					return err
+				}
 			}
 		}
 		log.Printf("persisted %d following of %s", len(usernames), u.username)

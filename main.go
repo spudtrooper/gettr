@@ -30,6 +30,7 @@ var (
 	threads       = flag.Int("threads", 0, "threads to calls")
 	force         = flag.Bool("force", false, "force things")
 	userCreds     = flag.String("user_creds", ".user_creds.json", "file with user credentials")
+	text          = flag.String("text", "", "text for posting")
 )
 
 func realMain() error {
@@ -327,6 +328,14 @@ func realMain() error {
 				}
 			}
 		}
+	}
+
+	if should("CreatePost") {
+		info, err := client.CreatePost(*text)
+		if err != nil {
+			return err
+		}
+		log.Printf("CreatePost: %+v", info)
 	}
 
 	return nil

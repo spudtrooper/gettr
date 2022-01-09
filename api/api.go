@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"math"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -398,7 +399,7 @@ func (c *Client) AllFollowingsParallel(username string, fOpts ...AllFollowingsOp
 
 func (c *Client) Follow(username string) error {
 	route := createRoute(fmt.Sprintf("u/user/%s/follows/%s", c.username, username))
-	if err := c.post(route, nil); err != nil {
+	if err := c.post(route, nil, nil); err != nil {
 		return err
 	}
 	return nil
@@ -489,4 +490,30 @@ func (c *Client) AllFollowers(username string, f func(offset int, userInfos User
 		}
 	}
 	return nil
+}
+
+type CreatePostInfo struct {
+	CDate IntDate `json:"cdate"`
+	UDate IntDate `json:"udate"`
+	UID   string  `json:"uid"`
+	Type  string  `json:"_t"`
+	ID    string  `json:"_id"`
+	Text  string  `json:"txt"`
+}
+
+func (c *Client) CreatePost(text string) (CreatePostInfo, error) {
+	date := int(time.Now().UnixMilli())
+	content := fmt.Sprintf(
+		`{"data":{"acl":{"_t":"acl"},"_t":"post","txt":"%s","udate":%d,"cdate":%d,"uid":"%s"},"aux":null,"serial":"post"}`,
+		text, date, date, c.username)
+	data := url.Values{}
+	data.Set("content", content)
+	route := "u/post"
+	var payload struct {
+		Data CreatePostInfo `json:"data"`
+	}
+	if err := c.post(route, &payload, strings.NewReader(data.Encode())); err != nil {
+		return CreatePostInfo{}, err
+	}
+	return payload.Data, nil
 }

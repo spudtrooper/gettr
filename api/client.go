@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -66,28 +68,31 @@ func createRoute(base string, ps ...param) string {
 	}
 	var ss []string
 	for _, p := range ps {
-		s := fmt.Sprintf("%s=%v", p.key, p.val)
+		s := fmt.Sprintf("%s=%s", p.key, url.QueryEscape(fmt.Sprintf("%v", p.val)))
 		ss = append(ss, s)
 	}
 	return fmt.Sprintf("%s?%s", base, strings.Join(ss, "&"))
 }
 
 func (c *Client) get(route string, result interface{}) error {
-	return c.request("GET", route, result)
+	return c.request("GET", route, result, nil)
 }
 
-func (c *Client) post(route string, result interface{}) error {
-	return c.request("POST", route, result)
+func (c *Client) post(route string, result interface{}, body io.Reader) error {
+	return c.request("POST", route, result, body)
 }
 
-func (c *Client) request(method, route string, result interface{}) error {
+func (c *Client) request(method, route string, result interface{}, body io.Reader) error {
 	url := fmt.Sprintf("https://api.gettr.com/%s", route)
 	if *clientVerbose {
 		log.Printf("requesting %s", url)
 	}
 	client := &http.Client{}
-	req, err := http.NewRequest(method, url, nil)
+	req, err := http.NewRequest(method, url, body)
 	req.Header.Set("x-app-auth", c.xAppAuth)
+	if body != nil {
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	}
 	if err != nil {
 		return err
 	}

@@ -3,12 +3,10 @@ package model
 
 import (
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
-	"strconv"
 	"strings"
 )
 
@@ -19,10 +17,7 @@ var (
 type Cache interface {
 	Has(parts ...string) (bool, error)
 	Set(parts ...string) error
-	SetWithValue(val string, parts ...string) error
 	SetBytes(val []byte, parts ...string) error
-	SetInt(v int, parts ...string) error
-	GetInt(parts ...string) (int, error)
 	Get(parts ...string) ([]byte, error)
 }
 
@@ -86,11 +81,7 @@ func (c *cacheImpl) Has(parts ...string) (bool, error) {
 }
 
 func (c *cacheImpl) Set(parts ...string) error {
-	return c.SetWithValue("", parts...)
-}
-
-func (c *cacheImpl) SetWithValue(val string, parts ...string) error {
-	return c.SetBytes([]byte(val), parts...)
+	return c.SetBytes(nil, parts...)
 }
 
 func (c *cacheImpl) SetBytes(val []byte, parts ...string) error {
@@ -124,56 +115,9 @@ func (c *cacheImpl) Get(parts ...string) ([]byte, error) {
 	return c.get(parts...)
 }
 
-func (c *cacheImpl) GetInt(parts ...string) (int, error) {
-	b, err := c.get(parts...)
-	if err != nil {
-		return 0, nil
-	}
-	s := string(b)
-	if s == "" {
-		return 0, nil
-	}
-	v, err := strconv.Atoi(s)
-	if err != nil {
-		return 0, err
-	}
-	return v, nil
-}
-
-func (c *cacheImpl) SetInt(v int, parts ...string) error {
-	f := c.file(parts...)
-	if err := c.writeFile(f, []byte(fmt.Sprintf("%d", v))); err != nil {
-		return err
-	}
-	return nil
-}
-
 type emptyCache struct{}
 
-func (c *emptyCache) Has(_ ...string) (bool, error) {
-	return false, nil
-}
-
-func (c *emptyCache) Set(_ ...string) error {
-	return nil
-}
-
-func (c *emptyCache) Get(_ ...string) ([]byte, error) {
-	return nil, nil
-}
-
-func (c *emptyCache) SetWithValue(_ string, _ ...string) error {
-	return nil
-}
-
-func (c *emptyCache) SetBytes(val []byte, parts ...string) error {
-	return nil
-}
-
-func (c *emptyCache) GetInt(_ ...string) (int, error) {
-	return 0, nil
-}
-
-func (c *emptyCache) SetInt(_ int, _ ...string) error {
-	return nil
-}
+func (c *emptyCache) Has(_ ...string) (bool, error)              { return false, nil }
+func (c *emptyCache) Set(_ ...string) error                      { return nil }
+func (c *emptyCache) Get(_ ...string) ([]byte, error)            { return nil, nil }
+func (c *emptyCache) SetBytes(val []byte, parts ...string) error { return nil }
