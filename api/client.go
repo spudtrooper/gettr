@@ -33,6 +33,28 @@ func MakeClient(user, token string, mOpts ...MakeClientOption) *Client {
 	}
 }
 
+func MakeClientFromFile(credsFile string, mOpts ...MakeClientOption) (*Client, error) {
+	opts := MakeMakeClientOptions(mOpts...)
+	credsBytes, err := ioutil.ReadFile(credsFile)
+	if err != nil {
+		return nil, err
+	}
+	var creds struct {
+		User  string `json:"user"`
+		Token string `json:"token"`
+	}
+	if err := json.Unmarshal(credsBytes, &creds); err != nil {
+		return nil, err
+	}
+	user, token := creds.User, creds.Token
+	xAppAuth := fmt.Sprintf(`{"user": "%s", "token": "%s"}`, user, token)
+	return &Client{
+		username: user,
+		xAppAuth: xAppAuth,
+		debug:    opts.Debug(),
+	}, nil
+}
+
 type param struct {
 	key string
 	val interface{}

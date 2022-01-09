@@ -20,7 +20,7 @@ var (
 	user          = flag.String("user", "", "auth username")
 	token         = flag.String("token", "", "auth token")
 	debug         = flag.Bool("debug", false, "whether to debug requests")
-	calls         = flag.String("calls", "", "comma-delimited list of calls to make")
+	actions       = flag.String("actions", "", "comma-delimited list of calls to make")
 	pause         = flag.Duration("pause", 0, "pause amount between follows")
 	offset        = flag.Int("offset", 0, "offset for calls that take offsets")
 	other         = flag.String("other", "mtg4america", "other username")
@@ -29,107 +29,118 @@ var (
 	max           = flag.Int("max", 0, "max to calls")
 	threads       = flag.Int("threads", 0, "threads to calls")
 	force         = flag.Bool("force", false, "force things")
+	userCreds     = flag.String("user_creds", ".user_creds.json", "file with user credentials")
 )
 
 func realMain() error {
-	if *user == "" {
-		return errors.Errorf("--user required")
-	}
-	if *token == "" {
-		return errors.Errorf("--token required")
+	var client *api.Client
+	if *user != "" && *token != "" {
+		client = api.MakeClient(*user, *token, api.MakeClientDebug(*debug))
+	} else if *userCreds != "" {
+		c, err := api.MakeClientFromFile(*userCreds, api.MakeClientDebug(*debug))
+		check.Err(err)
+		client = c
+	} else {
+		return errors.Errorf("Must set --user & --token or --creds_file")
 	}
 
-	callMap := map[string]bool{}
-	if *calls != "" {
-		for _, c := range strings.Split(*calls, ",") {
-			callMap[strings.ToLower(c)] = true
+	actionMap := map[string]bool{}
+	if *actions != "" {
+		for _, c := range strings.Split(*actions, ",") {
+			actionMap[strings.ToLower(c)] = true
 		}
 	}
 	for _, c := range flag.Args() {
-		callMap[strings.ToLower(c)] = true
+		actionMap[strings.ToLower(c)] = true
 	}
 	should := func(s string) bool {
-		for k := range callMap {
+		for k := range actionMap {
 			if k == "all" {
 				return true
 			}
 			if s == k {
-				return callMap[s]
+				return actionMap[s]
 			}
 		}
-		return callMap[strings.ToLower(s)]
+		return actionMap[strings.ToLower(s)]
 	}
 
-	if len(callMap) == 0 {
+	if len(actionMap) == 0 {
 		return errors.Errorf("you need to specify at least one call")
 	}
 
-	c := api.MakeClient(*user, *token, api.MakeClientDebug(*debug))
-
 	if should("GetUserInfo") {
-		info, err := c.GetUserInfo("spudtrooper")
+		info, err := client.GetUserInfo(*other)
 		if err != nil {
 			return err
 		}
 		log.Printf("GetUserInfo: %+v", info)
 	}
+
 	if should("GetPublicGlobals") {
-		info, err := c.GetPublicGlobals()
+		info, err := client.GetPublicGlobals()
 		if err != nil {
 			return err
 		}
 		log.Printf("GetPublicGlobals: %+v", info)
 	}
+
 	if should("GetSuggestions") {
-		info, err := c.GetSuggestions()
+		info, err := client.GetSuggestions()
 		if err != nil {
 			return err
 		}
 		log.Printf("GetSuggestions: %+v", info)
 	}
+
 	if should("GetPosts") {
-		info, err := c.GetPosts("mikepompeo")
+		info, err := client.GetPosts(*other)
 		if err != nil {
 			return err
 		}
 		log.Printf("GetPosts: %+v", info)
 	}
+
 	if should("GetComments") {
-		info, err := c.GetComments("pmyaf4548d")
+		info, err := client.GetComments("pmyaf4548d")
 		if err != nil {
 			return err
 		}
 		log.Printf("GetComments: %+v", info)
 	}
+
 	if should("GetPost") {
-		info, err := c.GetPost("pmyaf4548d")
+		info, err := client.GetPost("pmyaf4548d")
 		if err != nil {
 			return err
 		}
 		log.Printf("GetPost: %+v", info)
 	}
+
 	if should("GetMuted") {
-		info, err := c.GetMuted()
+		info, err := client.GetMuted()
 		if err != nil {
 			return err
 		}
 		log.Printf("GetMuted: %+v", info)
 	}
+
 	if should("GetFollowings") {
-		info, err := c.GetFollowings("repmattgaetz")
+		info, err := client.GetFollowings(*other, api.FollowingsOffset(*offset), api.FollowingsMax(*max))
 		if err != nil {
 			return err
 		}
 		log.Printf("GetFollowings: %+v", info)
 	}
+
 	if should("GetAllFollowings") {
-		info, err := c.GetAllFollowings("mtg4america")
+		info, err := client.GetAllFollowings(*other)
 		if err != nil {
 			return err
 		}
 		log.Printf("GetAllFollowings: %+v", info)
 		for _, u := range info {
-			if err := c.Follow(u.Username); err != nil {
+			if err := client.Follow(u.Username); err != nil {
 				return err
 			}
 			if *pause > 0 {
@@ -137,19 +148,24 @@ func realMain() error {
 			}
 		}
 	}
+
 	if should("GetFollowers") {
-		info, err := c.GetFollowers("repmattgaetz", api.FollowersOffset(*offset))
+		info, err := client.GetFollowers(*other, api.FollowersOffset(*offset), api.FollowersMax(*max))
 		if err != nil {
 			return err
 		}
 		log.Printf("GetFollowers: %+v", info)
+		for _, f := range info {
+			log.Println(f.Username)
+		}
 	}
+
 	if should("AllFollowers") {
 		username := *other
-		if err := c.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
+		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
 			log.Printf("following users[%d] of %s", offset, username)
 			for _, u := range userInfos {
-				if err := c.Follow(u.Username); err != nil {
+				if err := client.Follow(u.Username); err != nil {
 					return err
 				}
 				if *pause > 0 {
@@ -161,9 +177,10 @@ func realMain() error {
 			return err
 		}
 	}
+
 	if should("PrintAllFollowers") {
 		username := *other
-		if err := c.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
+		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
 			log.Printf("following users[%d] of %s", offset, username)
 			for _, u := range userInfos {
 				fmt.Println(u.Username)
@@ -173,6 +190,7 @@ func realMain() error {
 			return err
 		}
 	}
+
 	if should("AllFollowersFromFile") {
 		usernames := make(chan string)
 		errs := make(chan error)
@@ -201,7 +219,7 @@ func realMain() error {
 				go func() {
 					defer wg.Done()
 					for u := range usernames {
-						if err := c.Follow(u); err != nil {
+						if err := client.Follow(u); err != nil {
 							errs <- err
 						} else {
 							out <- u
@@ -224,7 +242,7 @@ func realMain() error {
 
 	if should("Persist") {
 		cache := model.MakeCache(*cacheDir)
-		factory := model.MakeFactory(cache, c)
+		factory := model.MakeFactory(cache, client)
 		user := factory.MakeUser(*other)
 		if err := user.Persist(model.UserPersistMax(*max), model.UserPersistThreads(*threads), model.UserPersistForce(*force)); err != nil {
 			return err
@@ -233,7 +251,7 @@ func realMain() error {
 
 	if should("Read") {
 		cache := model.MakeCache(*cacheDir)
-		factory := model.MakeFactory(cache, c)
+		factory := model.MakeFactory(cache, client)
 		u := factory.MakeCachedUser(*other)
 
 		{
@@ -272,7 +290,7 @@ func realMain() error {
 
 	if should("PersistAll") {
 		cache := model.MakeCache(*cacheDir)
-		factory := model.MakeFactory(cache, c)
+		factory := model.MakeFactory(cache, client)
 		u := factory.MakeCachedUser(*other)
 
 		{

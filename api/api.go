@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spudtrooper/goutil/check"
+	"github.com/spudtrooper/goutil/must"
 	"github.com/spudtrooper/goutil/or"
 )
 
@@ -38,6 +39,15 @@ func (s StringDate) String() string {
 	t, err := s.Time()
 	check.Err(err)
 	return fmt.Sprintf("%s@%v", string(s), t)
+}
+
+type StringInt string
+
+func (s StringInt) Int() int {
+	if s == "" {
+		return 0
+	}
+	return must.Atoi(string(s))
 }
 
 type IntDate int
@@ -212,15 +222,20 @@ type UserInfo struct {
 	OUsername string     `json:"ousername"`
 	Username  string     `json:"username"`
 	Website   string     `json:"website"`
-	TwtFlg    string     `json:"twt_flg"`
-	TwtFlw    string     `json:"twt_flw"`
-	Flg       string     `json:"flg"`
-	Flw       string     `json:"flw"`
+	TwtFlg    StringInt  `json:"twt_flg"`
+	TwtFlw    StringInt  `json:"twt_flw"`
+	Flg       StringInt  `json:"flg"`
+	Flw       StringInt  `json:"flw"`
 	CDate     StringDate `json:"cdate"`
 	UDate     StringDate `json:"udate"`
 	Type      string     `json:"_t"`
 	ID        string     `json:"_id"`
 }
+
+func (u UserInfo) Following() int        { return u.Flw.Int() }
+func (u UserInfo) Followers() int        { return u.Flg.Int() }
+func (u UserInfo) TwitterFollowing() int { return u.TwtFlw.Int() }
+func (u UserInfo) TwitterFollowers() int { return u.TwtFlg.Int() }
 
 type UserInfos []UserInfo
 

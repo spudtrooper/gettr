@@ -3,3 +3,4 @@ data
 data/*
 .cache
 .cache/*
+.user_creds.json
