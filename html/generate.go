@@ -2,7 +2,6 @@ package html
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -52,14 +51,6 @@ func Generate(client *api.Client, cache model.Cache, other string, gOpts ...Gene
 	// Put the other user first
 	users = append(users, factory.MakeCachedUser(other))
 	users = append(users, cachedFollowers...)
-
-	bytes, err := json.Marshal(users)
-	if err != nil {
-		return err
-	}
-	if err := cache.SetBytes(bytes, "users", other, "sortedFollowers"); err != nil {
-		return err
-	}
 
 	outDir, err := io.MkdirAll("data")
 	if err != nil {
