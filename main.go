@@ -17,34 +17,26 @@ import (
 )
 
 var (
-	user          = flag.String("user", "", "auth username")
-	token         = flag.String("token", "", "auth token")
-	debug         = flag.Bool("debug", false, "whether to debug requests")
 	actions       = flag.String("actions", "", "comma-delimited list of calls to make")
 	pause         = flag.Duration("pause", 0, "pause amount between follows")
 	offset        = flag.Int("offset", 0, "offset for calls that take offsets")
 	other         = flag.String("other", "mtg4america", "other username")
 	usernamesFile = flag.String("usernames_file", "", "file containing usernames")
-	cacheDir      = flag.String("cache_dir", "../gettrdata/data", "cache directory")
 	max           = flag.Int("max", 0, "max to calls")
 	threads       = flag.Int("threads", 0, "threads to calls")
 	force         = flag.Bool("force", false, "force things")
-	userCreds     = flag.String("user_creds", ".user_creds.json", "file with user credentials")
 	text          = flag.String("text", "", "text for posting")
+	postID        = flag.String("post_id", "", "post ID for deletion")
 )
 
 func realMain() error {
-	var client *api.Client
-	if *user != "" && *token != "" {
-		client = api.MakeClient(*user, *token, api.MakeClientDebug(*debug))
-	} else if *userCreds != "" {
-		c, err := api.MakeClientFromFile(*userCreds, api.MakeClientDebug(*debug))
-		if err != nil {
-			return err
-		}
-		client = c
-	} else {
-		return errors.Errorf("Must set --user & --token or --creds_file")
+	client, err := api.MakeClientFromFlags()
+	if err != nil {
+		return err
+	}
+	cache, err := model.MakeCacheFromFlags()
+	if err != nil {
+		return err
 	}
 
 	actionMap := map[string]bool{}
@@ -56,6 +48,7 @@ func realMain() error {
 	for _, c := range flag.Args() {
 		actionMap[strings.ToLower(c)] = true
 	}
+	shouldReturnedTrueOnce := false
 	should := func(s string) bool {
 		for k := range actionMap {
 			if k == "all" {
@@ -65,7 +58,11 @@ func realMain() error {
 				return actionMap[s]
 			}
 		}
-		return actionMap[strings.ToLower(s)]
+		res := actionMap[strings.ToLower(s)]
+		if res {
+			shouldReturnedTrueOnce = true
+		}
+		return res
 	}
 
 	if len(actionMap) == 0 {
@@ -163,6 +160,22 @@ func realMain() error {
 		}
 	}
 
+	if should("GetAllFollowers") {
+		username := *other
+		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
+			log.Printf("following users[%d] of %s", offset, username)
+			for i, u := range userInfos {
+				log.Printf("users[%d][%d]: %v", offset, i, u)
+				if *pause > 0 {
+					time.Sleep(*pause)
+				}
+			}
+			return nil
+		}, api.AllFollowersOffset(*offset)); err != nil {
+			return err
+		}
+	}
+
 	if should("AllFollowers") {
 		username := *other
 		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
@@ -244,7 +257,6 @@ func realMain() error {
 	}
 
 	if should("Persist") {
-		cache := model.MakeCache(*cacheDir)
 		factory := model.MakeFactory(cache, client)
 		user := factory.MakeUser(*other)
 		if err := user.Persist(model.UserPersistMax(*max), model.UserPersistThreads(*threads), model.UserPersistForce(*force)); err != nil {
@@ -253,7 +265,6 @@ func realMain() error {
 	}
 
 	if should("Read") {
-		cache := model.MakeCache(*cacheDir)
 		factory := model.MakeFactory(cache, client)
 		u := factory.MakeUser(*other)
 
@@ -292,7 +303,6 @@ func realMain() error {
 	}
 
 	if should("PersistAll") {
-		cache := model.MakeCache(*cacheDir)
 		factory := model.MakeFactory(cache, client)
 		u := factory.MakeUser(*other)
 
@@ -336,6 +346,18 @@ func realMain() error {
 			return err
 		}
 		log.Printf("CreatePost: %+v", info)
+	}
+
+	if should("DeletePost") {
+		info, err := client.DeletePost(*postID)
+		if err != nil {
+			return err
+		}
+		log.Printf("DeletePost: %+v", info)
+	}
+
+	if !shouldReturnedTrueOnce {
+		return errors.Errorf("no valid actions in %+v", actionMap)
 	}
 
 	return nil

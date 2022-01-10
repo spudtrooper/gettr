@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 
-	"github.com/pkg/errors"
 	"github.com/spudtrooper/gettr/api"
 	html "github.com/spudtrooper/gettr/htmlgen"
 	"github.com/spudtrooper/gettr/model"
@@ -11,12 +10,7 @@ import (
 )
 
 var (
-	user                      = flag.String("user", "", "auth username")
-	debug                     = flag.Bool("debug", false, "whether to debug requests")
-	token                     = flag.String("token", "", "auth token")
 	other                     = flag.String("other", "mtg4america", "other username")
-	cacheDir                  = flag.String("cache_dir", "../gettrdata/data", "cache directory")
-	userCreds                 = flag.String("user_creds", ".user_creds.json", "file with user credentials")
 	limit                     = flag.Int("limit", 0, "only include this many rows")
 	threads                   = flag.Int("threads", 0, "threads to calls")
 	all                       = flag.Bool("all", false, "write all files and override inidividual flags")
@@ -29,20 +23,14 @@ var (
 )
 
 func realMain() error {
-	var client *api.Client
-	if *user != "" && *token != "" {
-		client = api.MakeClient(*user, *token, api.MakeClientDebug(*debug))
-	} else if *userCreds != "" {
-		c, err := api.MakeClientFromFile(*userCreds, api.MakeClientDebug(*debug))
-		if err != nil {
-			return err
-		}
-		client = c
-	} else {
-		return errors.Errorf("Must set --user & --token or --creds_file")
+	client, err := api.MakeClientFromFlags()
+	if err != nil {
+		return err
 	}
-
-	cache := model.MakeCache(*cacheDir)
+	cache, err := model.MakeCacheFromFlags()
+	if err != nil {
+		return err
+	}
 
 	if err := html.Generate(*outputDir, client, cache, *other,
 		html.GenerateLimit(*limit),

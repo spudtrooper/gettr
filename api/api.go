@@ -519,3 +519,21 @@ func (c *Client) CreatePost(text string) (CreatePostInfo, error) {
 	}
 	return payload.Data, nil
 }
+
+type DeletePostInfo struct {
+	CDate IntDate `json:"cdate"`
+	UDate IntDate `json:"udate"`
+	UID   string  `json:"uid"`
+	Type  string  `json:"_t"`
+	ID    string  `json:"_id"`
+	Text  string  `json:"txt"`
+}
+
+func (c *Client) DeletePost(postID string) (bool, error) {
+	route := fmt.Sprintf("u/post/%s", postID)
+	var payload bool
+	if err := c.delete(route, &payload); err != nil {
+		return false, err
+	}
+	return payload, nil
+}

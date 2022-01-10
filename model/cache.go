@@ -8,10 +8,13 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 var (
 	cacheVerbose = flag.Bool("cache_verbose", false, "verbose cache messages")
+	cacheDir     = flag.String("cache_dir", "../gettrdata/data", "cache directory")
 )
 
 type Cache interface {
@@ -21,20 +24,22 @@ type Cache interface {
 	Get(parts ...string) ([]byte, error)
 }
 
-func MakeCache(dir string) Cache {
+func MakeCacheFromFlags() (Cache, error) {
+	if *cacheDir == "" {
+		return nil, errors.Errorf("must set --cache_dir")
+	}
+	cache := makeCache(*cacheDir)
+	return cache, nil
+
+}
+
+func makeCache(dir string) Cache {
 	if dir == "" {
 		return &emptyCache{}
 	}
 	return &cacheImpl{
 		dir: dir,
 	}
-}
-
-func NonEmptyCache(c Cache) Cache {
-	if c != nil {
-		return c
-	}
-	return &emptyCache{}
 }
 
 type cacheImpl struct {

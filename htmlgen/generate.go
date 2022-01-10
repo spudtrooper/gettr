@@ -27,7 +27,9 @@ func Generate(outputDirName string, client *api.Client, cache model.Cache, other
 	opts := MakeGeneratOptions(gOpts...)
 
 	limit := opts.Limit()
-	threads := or.Int(opts.Threads(), 1)
+	threads := or.Int(opts.Threads(), 100)
+
+	log.Printf("using %d threads for HTML generation", threads)
 
 	var users []*model.User
 

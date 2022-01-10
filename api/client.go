@@ -10,19 +10,40 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/spudtrooper/goutil/must"
 )
 
 var (
 	clientVerbose = flag.Bool("client_verbose", false, "verbose client messages")
+	user          = flag.String("user", "", "auth username")
+	token         = flag.String("token", "", "auth token")
+	userCreds     = flag.String("user_creds", ".user_creds.json", "file with user credentials")
+	clientDebug   = flag.Bool("client_debug", false, "whether to debug requests")
 )
 
 type Client struct {
 	username string
 	xAppAuth string
 	debug    bool
+}
+
+func MakeClientFromFlags() (*Client, error) {
+	if *user != "" && *token != "" {
+		client := MakeClient(*user, *token, MakeClientDebug(*clientDebug))
+		return client, nil
+	}
+	if *userCreds != "" {
+		client, err := MakeClientFromFile(*userCreds, MakeClientDebug(*clientDebug))
+		if err != nil {
+			return nil, err
+		}
+		return client, nil
+	}
+	return nil, errors.Errorf("Must set --user & --token or --creds_file")
 }
 
 func MakeClient(user, token string, mOpts ...MakeClientOption) *Client {
@@ -92,10 +113,24 @@ func (c *Client) post(route string, result interface{}, body io.Reader) error {
 	return c.request("POST", route, result, body)
 }
 
+func (c *Client) delete(route string, result interface{}) error {
+	return c.request("DELETE", route, result, nil)
+}
+
 func (c *Client) request(method, route string, result interface{}, body io.Reader) error {
 	url := fmt.Sprintf("https://api.gettr.com/%s", route)
 	if *clientVerbose {
-		log.Printf("requesting %s", url)
+		var largeNumbers []string
+		re := regexp.MustCompile(`(\d+)`)
+		for _, m := range re.FindAllStringSubmatch(url, -1) {
+			n := must.Atoi(m[1])
+			if n < 1000 {
+				continue
+			}
+			d := formatNumber(n)
+			largeNumbers = append(largeNumbers, d)
+		}
+		log.Printf("requesting %s %s", url, strings.Join(largeNumbers, " "))
 	}
 	client := &http.Client{}
 	req, err := http.NewRequest(method, url, body)

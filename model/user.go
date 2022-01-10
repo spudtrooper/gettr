@@ -14,6 +14,11 @@ import (
 
 var (
 	verboseCacheHits = flag.Bool("verbose_cache_hits", false, "log cache hits verbosely")
+	verbosePersist   = flag.Bool("verbose_persist", false, "log persisting verbosely")
+)
+
+const (
+	defaultThreads = 200
 )
 
 type User struct {
@@ -27,23 +32,18 @@ type User struct {
 func (u *User) Username() string { return u.username }
 
 func (u *User) UserInfo() (api.UserInfo, error) {
-	if u.userInfo.Username == "" {
-		has, err := u.cache.Has("users", u.username, "userInfo")
+	if u.userInfo.Username == "" && u.has("users", u.username, "userInfo") {
+		bytes, err := u.cache.Get("users", u.username, "userInfo")
 		if err != nil {
 			return api.UserInfo{}, err
 		}
-		if has {
-			bytes, err := u.cache.Get("users", u.username, "userInfo")
-			if err != nil {
-				return api.UserInfo{}, err
-			}
-			var v api.UserInfo
-			if err := json.Unmarshal(bytes, &v); err != nil {
-				return api.UserInfo{}, err
-			}
-			u.userInfo = v
+		var v api.UserInfo
+		if err := json.Unmarshal(bytes, &v); err != nil {
+			return api.UserInfo{}, err
 		}
+		u.userInfo = v
 	}
+
 	if u.userInfo.Username == "" {
 		uinfo, err := u.client.GetUserInfo(u.username)
 		if err != nil {
@@ -57,30 +57,26 @@ func (u *User) UserInfo() (api.UserInfo, error) {
 
 		// Cache it.
 		go func() {
-			if err := u.setBytes(u.userInfo, "users", u.Username(), "userInfo"); err != nil {
+			if err := u.cacheBytes(u.userInfo, cacheKeyUserInfo); err != nil {
 				log.Printf("error caching userInfo for %s: %v", u.Username(), err)
 			}
 		}()
 	}
+
 	return u.userInfo, nil
 }
 
 func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan error) {
-	cached, err := u.cache.Has("users", u.Username(), "followers")
-	if err != nil {
-		log.Printf("error checking for %s followers: %v", u.Username(), err)
-		cached = false
-	}
-	if cached {
+	if u.has("users", u.Username(), "followers") {
 		if *verboseCacheHits {
-			log.Printf("cache hit for followings of %s", u.Username())
+			log.Printf("cache hit for followers of %s", u.Username())
 		}
 		lenBefore := len(u.followers)
 		users, errs := cachedFollowers(u.username, u.cache, u.factory, &u.followers, fOpts...)
 
 		if lenBefore != len(u.followers) {
 			go func() {
-				if err := u.setBytes(u.followers, "users", u.Username(), "followers"); err != nil {
+				if err := u.cacheBytes(u.followers, cacheKeyFollowers); err != nil {
 					log.Printf("error caching followers for %s: %v", u.Username(), err)
 				}
 			}()
@@ -107,13 +103,12 @@ func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan erro
 
 	// Cache it
 	go func() {
-		log.Printf("caching followers for %s", u.Username())
 		var followers []string
 		for f := range usernames {
 			followers = append(followers, f)
 		}
 		u.followers = followers
-		if err := u.setBytes(u.followers, "users", u.Username(), "followers"); err != nil {
+		if err := u.cacheBytes(u.followers, cacheKeyFollowers); err != nil {
 			log.Printf("error caching followers for %s: %v", u.Username(), err)
 		}
 	}()
@@ -122,12 +117,7 @@ func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan erro
 }
 
 func (u *User) Following(fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
-	cached, err := u.cache.Has("users", u.Username(), "following")
-	if err != nil {
-		log.Printf("error checking for %s followings: %v", u.Username(), err)
-		cached = false
-	}
-	if cached {
+	if u.has("users", u.Username(), "following") {
 		if *verboseCacheHits {
 			log.Printf("cache hit for followings of %s", u.Username())
 		}
@@ -136,7 +126,7 @@ func (u *User) Following(fOpts ...api.AllFollowingsOption) (chan *User, chan err
 
 		if lenBefore != len(u.following) {
 			go func() {
-				if err := u.setBytes(u.following, "users", u.Username(), "following"); err != nil {
+				if err := u.cacheBytes(u.following, cacheKeyFollowing); err != nil {
 					log.Printf("error caching followings for %s: %v", u.Username(), err)
 				}
 			}()
@@ -163,13 +153,12 @@ func (u *User) Following(fOpts ...api.AllFollowingsOption) (chan *User, chan err
 
 	// Cache it
 	go func() {
-		log.Printf("caching following for %s", u.Username())
 		var following []string
 		for f := range usernames {
 			following = append(following, f)
 		}
 		u.following = following
-		if err := u.setBytes(u.following, "users", u.Username(), "following"); err != nil {
+		if err := u.cacheBytes(u.following, cacheKeyFollowing); err != nil {
 			log.Printf("error caching following for %s: %v", u.Username(), err)
 		}
 	}()
@@ -179,23 +168,39 @@ func (u *User) Following(fOpts ...api.AllFollowingsOption) (chan *User, chan err
 
 func (u *User) has(parts ...string) bool {
 	ok, err := u.cache.Has(parts...)
-	return !ok || err != nil
+	if err != nil {
+		log.Printf("has: ignoring error: %v", err)
+		return false
+	}
+	return ok
+}
+
+func setBytes(cache Cache, val interface{}, parts ...string) error {
+	bytes, err := json.Marshal(val)
+	if err != nil {
+		return err
+	}
+	if err := cache.SetBytes(bytes, parts...); err != nil {
+		return err
+	}
+	return nil
+}
+
+type cacheKey string
+
+const (
+	cacheKeyUserInfo  cacheKey = "userInfo"
+	cacheKeyFollowing cacheKey = "following"
+	cacheKeyFollowers cacheKey = "followers"
+)
+
+func (u *User) cacheBytes(val interface{}, part cacheKey) error {
+	return setBytes(u.cache, val, "users", u.Username(), string(part))
 }
 
 var (
 	persistDisallow = sets.String([]string{"hectorfbara84"})
 )
-
-func (u *User) setBytes(val interface{}, parts ...string) error {
-	bytes, err := json.Marshal(val)
-	if err != nil {
-		return err
-	}
-	if err := u.cache.SetBytes(bytes, parts...); err != nil {
-		return err
-	}
-	return nil
-}
 
 func (u *User) Persist(pOpts ...UserPersistOption) error {
 	if persistDisallow[u.Username()] {
@@ -214,7 +219,7 @@ func (u *User) Persist(pOpts ...UserPersistOption) error {
 			if err != nil {
 				return err
 			}
-			if err := u.setBytes(userInfo, "users", u.Username(), "userInfo"); err != nil {
+			if err := u.cacheBytes(userInfo, cacheKeyUserInfo); err != nil {
 				return err
 			}
 		}
@@ -222,7 +227,9 @@ func (u *User) Persist(pOpts ...UserPersistOption) error {
 	}
 
 	if should("users", u.username, "followers") {
-		log.Printf("persisting followers of %s", u.username)
+		if *verbosePersist {
+			log.Printf("persisting followers of %s", u.username)
+		}
 
 		followers := make(chan *User)
 		go func() {
@@ -241,15 +248,19 @@ func (u *User) Persist(pOpts ...UserPersistOption) error {
 			}
 		}
 		log.Printf("persisted %d followers of %s", len(usernames), u.username)
-		if err := u.setBytes(usernames, "users", u.username, "followers"); err != nil {
+		if err := u.cacheBytes(usernames, cacheKeyFollowers); err != nil {
 			return err
 		}
 	} else {
-		log.Printf("SKIP persisting followers of %s", u.username)
+		if *verbosePersist {
+			log.Printf("SKIP persisting followers of %s", u.username)
+		}
 	}
 
 	if should("users", u.username, "following") {
-		log.Printf("persisting following of %s", u.username)
+		if *verbosePersist {
+			log.Printf("persisting following of %s", u.username)
+		}
 
 		following := make(chan *User)
 		go func() {
@@ -268,11 +279,13 @@ func (u *User) Persist(pOpts ...UserPersistOption) error {
 			}
 		}
 		log.Printf("persisted %d following of %s", len(usernames), u.username)
-		if err := u.setBytes(usernames, "users", u.username, "following"); err != nil {
+		if err := u.cacheBytes(usernames, cacheKeyFollowing); err != nil {
 			return err
 		}
 	} else {
-		log.Printf("SKIP persisting following of %s", u.username)
+		if *verbosePersist {
+			log.Printf("SKIP persisting following of %s", u.username)
+		}
 	}
 	if err := persistUserInfo(u); err != nil {
 		return err
@@ -287,7 +300,7 @@ func cachedFollowers(username string, cache Cache, factory Factory, existingFoll
 	followers := make(chan string)
 	users := make(chan *User)
 	errs := make(chan error)
-	threads := or.Int(opts.Threads(), 100)
+	threads := or.Int(opts.Threads(), defaultThreads)
 
 	go func() {
 		if len(*existingFollowers) == 0 {
@@ -333,7 +346,7 @@ func cachedFollowing(username string, cache Cache, factory Factory, existingFoll
 	following := make(chan string)
 	users := make(chan *User)
 	errs := make(chan error)
-	threads := or.Int(opts.Threads(), 100)
+	threads := or.Int(opts.Threads(), defaultThreads)
 
 	go func() {
 		if len(*existingFollowers) == 0 {
