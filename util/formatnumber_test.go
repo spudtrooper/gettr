@@ -75,6 +75,22 @@ func TestFormatNumber(t *testing.T) {
 			input: 1234567891234567,
 			want:  "1234.6T",
 		},
+		{
+			input: 1000,
+			want:  "1K",
+		},
+		{
+			input: 1000000,
+			want:  "1M",
+		},
+		{
+			input: 1000000000,
+			want:  "1B",
+		},
+		{
+			input: 1000000000000,
+			want:  "1T",
+		},
 	}
 	for _, test := range tests {
 		name := test.name
