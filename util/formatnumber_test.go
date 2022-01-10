@@ -1,4 +1,4 @@
-package api
+package util
 
 import (
 	"fmt"
@@ -82,7 +82,7 @@ func TestFormatNumber(t *testing.T) {
 			name = fmt.Sprintf("%d", test.input)
 		}
 		t.Run(name, func(t *testing.T) {
-			formatted := formatNumber(test.input)
+			formatted := FormatNumber(test.input)
 			if got, want := formatted, test.want; got != want {
 				t.Errorf("got(%q) != want(%q)", got, want)
 			}

@@ -13,7 +13,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/pkg/errors"
+	"github.com/spudtrooper/gettr/util"
 	"github.com/spudtrooper/goutil/must"
 )
 
@@ -120,6 +122,7 @@ func (c *Client) delete(route string, result interface{}) error {
 func (c *Client) request(method, route string, result interface{}, body io.Reader) error {
 	url := fmt.Sprintf("https://api.gettr.com/%s", route)
 	if *clientVerbose {
+		// This is to pull off the offsets for debugging and show them to the right of the URL
 		var largeNumbers []string
 		re := regexp.MustCompile(`(\d+)`)
 		for _, m := range re.FindAllStringSubmatch(url, -1) {
@@ -127,8 +130,8 @@ func (c *Client) request(method, route string, result interface{}, body io.Reade
 			if n < 1000 {
 				continue
 			}
-			d := formatNumber(n)
-			largeNumbers = append(largeNumbers, d)
+			d := util.FormatNumber(n)
+			largeNumbers = append(largeNumbers, color.YellowString(d))
 		}
 		log.Printf("requesting %s %s", url, strings.Join(largeNumbers, " "))
 	}

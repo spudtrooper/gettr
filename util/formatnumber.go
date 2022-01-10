@@ -1,8 +1,8 @@
-package api
+package util
 
 import "fmt"
 
-func formatNumber(n int) string {
+func FormatNumber(n int) string {
 	if n > 1e12 {
 		d := float64(n) / float64(1e12)
 		return fmt.Sprintf("%.1fT", d)
