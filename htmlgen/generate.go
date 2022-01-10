@@ -15,12 +15,14 @@ import (
 	"github.com/spudtrooper/goutil/check"
 	"github.com/spudtrooper/goutil/html"
 	"github.com/spudtrooper/goutil/io"
+	"github.com/spudtrooper/goutil/or"
 )
 
 func Generate(outputDirName string, client *api.Client, cache model.Cache, other string, gOpts ...GeneratOption) error {
 	opts := MakeGeneratOptions(gOpts...)
 
 	limit := opts.Limit()
+	threads := or.Int(opts.Threads(), 1)
 
 	var users []*model.User
 
@@ -29,7 +31,7 @@ func Generate(outputDirName string, client *api.Client, cache model.Cache, other
 	followers := make(chan *model.User)
 	followersForResolution := make(chan *model.User)
 	go func() {
-		users, _ := u.Followers(api.AllFollowersThreads(opts.Threads()))
+		users, _ := u.Followers(api.AllFollowersThreads(threads))
 		for u := range users {
 			followers <- u
 			followersForResolution <- u
@@ -43,7 +45,7 @@ func Generate(outputDirName string, client *api.Client, cache model.Cache, other
 		log.Printf("resolving user info...")
 		go func() {
 			var wg sync.WaitGroup
-			for i := 0; i < opts.Threads(); i++ {
+			for i := 0; i < threads; i++ {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
