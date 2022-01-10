@@ -16,8 +16,10 @@ var (
 
 type User struct {
 	*factory
-	username string
-	userInfo api.UserInfo
+	username  string
+	userInfo  api.UserInfo
+	followers []string
+	following []string
 }
 
 func (u *User) Username() string { return u.username }
@@ -71,15 +73,16 @@ func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan erro
 		if *verboseCacheHits {
 			log.Printf("cache hit for followings of %s", u.Username())
 		}
-		var followers []string
-		users, errs := cachedFollowers(u.username, u.cache, u.factory, &followers, fOpts...)
+		lenBefore := len(u.followers)
+		users, errs := cachedFollowers(u.username, u.cache, u.factory, &u.followers, fOpts...)
 
-		// Cache it.
-		go func() {
-			if err := u.setBytes(followers, "users", u.Username(), "followers"); err != nil {
-				log.Printf("error caching followers for %s: %v", u.Username(), err)
-			}
-		}()
+		if lenBefore != len(u.followers) {
+			go func() {
+				if err := u.setBytes(u.followers, "users", u.Username(), "followers"); err != nil {
+					log.Printf("error caching followers for %s: %v", u.Username(), err)
+				}
+			}()
+		}
 
 		return users, errs
 	}
@@ -110,15 +113,16 @@ func (u *User) Following(fOpts ...api.AllFollowingsOption) (chan *User, chan err
 		if *verboseCacheHits {
 			log.Printf("cache hit for followings of %s", u.Username())
 		}
-		var following []string
-		users, errs := cachedFollowing(u.username, u.cache, u.factory, &following, fOpts...)
+		lenBefore := len(u.following)
+		users, errs := cachedFollowing(u.username, u.cache, u.factory, &u.following, fOpts...)
 
-		// Cache it.
-		go func() {
-			if err := u.setBytes(following, "users", u.Username(), "following"); err != nil {
-				log.Printf("error caching followings for %s: %v", u.Username(), err)
-			}
-		}()
+		if lenBefore != len(u.following) {
+			go func() {
+				if err := u.setBytes(u.following, "users", u.Username(), "following"); err != nil {
+					log.Printf("error caching followings for %s: %v", u.Username(), err)
+				}
+			}()
+		}
 
 		return users, errs
 	}
