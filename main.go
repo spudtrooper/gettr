@@ -25,7 +25,7 @@ var (
 	offset        = flag.Int("offset", 0, "offset for calls that take offsets")
 	other         = flag.String("other", "mtg4america", "other username")
 	usernamesFile = flag.String("usernames_file", "", "file containing usernames")
-	cacheDir      = flag.String("cache_dir", ".cache", "cache directory")
+	cacheDir      = flag.String("cache_dir", "../gettrdata/data", "cache directory")
 	max           = flag.Int("max", 0, "max to calls")
 	threads       = flag.Int("threads", 0, "threads to calls")
 	force         = flag.Bool("force", false, "force things")

@@ -35,20 +35,30 @@ func MakeClient(user, token string, mOpts ...MakeClientOption) *Client {
 	}
 }
 
-func MakeClientFromFile(credsFile string, mOpts ...MakeClientOption) (*Client, error) {
-	opts := MakeMakeClientOptions(mOpts...)
+func readCreds(credsFile string) (user string, token string, ret error) {
 	credsBytes, err := ioutil.ReadFile(credsFile)
 	if err != nil {
-		return nil, err
+		ret = err
+		return
 	}
 	var creds struct {
 		User  string `json:"user"`
 		Token string `json:"token"`
 	}
 	if err := json.Unmarshal(credsBytes, &creds); err != nil {
+		ret = err
+		return
+	}
+	user, token = creds.User, creds.Token
+	return
+}
+
+func MakeClientFromFile(credsFile string, mOpts ...MakeClientOption) (*Client, error) {
+	opts := MakeMakeClientOptions(mOpts...)
+	user, token, err := readCreds(credsFile)
+	if err != nil {
 		return nil, err
 	}
-	user, token := creds.User, creds.Token
 	xAppAuth := fmt.Sprintf(`{"user": "%s", "token": "%s"}`, user, token)
 	return &Client{
 		username: user,

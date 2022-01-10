@@ -15,14 +15,17 @@ var (
 	debug                     = flag.Bool("debug", false, "whether to debug requests")
 	token                     = flag.String("token", "", "auth token")
 	other                     = flag.String("other", "mtg4america", "other username")
-	cacheDir                  = flag.String("cache_dir", ".cache", "cache directory")
+	cacheDir                  = flag.String("cache_dir", "../gettrdata/data", "cache directory")
 	userCreds                 = flag.String("user_creds", ".user_creds.json", "file with user credentials")
 	limit                     = flag.Int("limit", 0, "only include this many rows")
+	threads                   = flag.Int("threads", 0, "threads to calls")
+	all                       = flag.Bool("all", false, "write all files and override inidividual flags")
 	writeCSV                  = flag.Bool("write_csv", false, "write CSV file")
 	writeHTML                 = flag.Bool("write_html", false, "write HTML file")
 	writeSimpleHTML           = flag.Bool("write_simple_html", false, "write HTML file")
 	writeDescriptionsHTML     = flag.Bool("write_desc_html", false, "write HTML file for entries with descriptions")
 	writeTwitterFollowersHTML = flag.Bool("write_twitter_followers_html", false, "write HTML file for entries with twitter followers")
+	outputDir                 = flag.String("output_dir", "../gettrdata/output", "output directory for files")
 )
 
 func realMain() error {
@@ -41,8 +44,10 @@ func realMain() error {
 
 	cache := model.MakeCache(*cacheDir)
 
-	if err := html.Generate(client, cache, *other,
+	if err := html.Generate(*outputDir, client, cache, *other,
 		html.GenerateLimit(*limit),
+		html.GenerateAll(*all),
+		html.GenerateThreads(*threads),
 		html.GenerateWriteCSV(*writeCSV),
 		html.GenerateWriteDescriptionsHTML(*writeDescriptionsHTML),
 		html.GenerateWriteHTML(*writeHTML),

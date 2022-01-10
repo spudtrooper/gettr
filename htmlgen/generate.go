@@ -17,43 +17,70 @@ import (
 	"github.com/spudtrooper/goutil/io"
 )
 
-func Generate(client *api.Client, cache model.Cache, other string, gOpts ...GeneratOption) error {
+func Generate(outputDirName string, client *api.Client, cache model.Cache, other string, gOpts ...GeneratOption) error {
 	opts := MakeGeneratOptions(gOpts...)
 
 	limit := opts.Limit()
 
-	var users []*model.CachedUser
+	var users []*model.User
 
 	factory := model.MakeFactory(cache, client)
 	u := factory.MakeCachedUser(other)
 	followers := make(chan *model.User)
+	followersForResolution := make(chan *model.User)
 	go func() {
-		users, _ := u.Followers()
+		users, _ := u.Followers(api.AllFollowersThreads(opts.Threads()))
 		for u := range users {
 			followers <- u
+			followersForResolution <- u
 		}
 		close(followers)
+		close(followersForResolution)
 	}()
 
-	var cachedFollowers []*model.CachedUser
-	for f := range followers {
-		cachedFollowers = append(cachedFollowers, factory.MakeCachedUser(f.Username()))
+	// Resolve the user info in multiple threads rather than doing it syncronously in the sort.
+	{
+		log.Printf("resolving user info...")
+		go func() {
+			var wg sync.WaitGroup
+			for i := 0; i < opts.Threads(); i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for f := range followersForResolution {
+						f.UserInfo()
+					}
+				}()
+			}
+			wg.Wait()
+		}()
 	}
-	log.Printf("Sorting %d users...", len(cachedFollowers))
+
+	var cachedFollowers []*model.User
+	for f := range followers {
+		cachedFollowers = append(cachedFollowers, f) //factory.MakeCachedUser(f.Username()))
+	}
+	log.Printf("sorting %d users...", len(cachedFollowers))
 	sort.Slice(cachedFollowers, func(i, j int) bool {
 		a, b := cachedFollowers[i], cachedFollowers[j]
 		ai, err := a.UserInfo()
+		// if err != nil {
+		// 	log.Printf("a: %v", a.Username())
+		// }
 		check.Err(err)
 		bi, err := b.UserInfo()
+		// if err != nil {
+		// 	log.Printf("b: %v", b.Username())
+		// }
 		check.Err(err)
 		return ai.Followers() > bi.Followers()
 	})
 
 	// Put the other user first
-	users = append(users, factory.MakeCachedUser(other))
+	users = append(users, factory.MakeUser(other))
 	users = append(users, cachedFollowers...)
 
-	outDir, err := io.MkdirAll("data")
+	outDir, err := io.MkdirAll(outputDirName)
 	if err != nil {
 		return err
 	}

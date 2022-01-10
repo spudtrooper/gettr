@@ -2,7 +2,6 @@ package model
 
 import (
 	"encoding/json"
-	"strings"
 	"sync"
 
 	"github.com/spudtrooper/gettr/api"
@@ -23,9 +22,6 @@ func (u *CachedUser) UserInfo() (api.UserInfo, error) {
 	if u.userInfo.Username == "" {
 		bytes, err := u.cache.Get("users", u.username, "userInfo")
 		if err != nil {
-			if strings.HasPrefix(err.Error(), "response error") {
-				return api.UserInfo{}, nil
-			}
 			return api.UserInfo{}, err
 		}
 		var v api.UserInfo
@@ -38,6 +34,10 @@ func (u *CachedUser) UserInfo() (api.UserInfo, error) {
 }
 
 func (u *CachedUser) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan error) {
+	return cachedFollowers(u.username, u.cache, u.factory, &u.followers, fOpts...)
+}
+
+func cachedFollowers(username string, cache Cache, factory Factory, existingFollowers *[]string, fOpts ...api.AllFollowersOption) (chan *User, chan error) {
 	opts := api.MakeAllFollowersOptions(fOpts...)
 
 	followers := make(chan string)
@@ -46,8 +46,8 @@ func (u *CachedUser) Followers(fOpts ...api.AllFollowersOption) (chan *User, cha
 	threads := or.Int(opts.Threads(), 100)
 
 	go func() {
-		if len(u.followers) == 0 {
-			bytes, err := u.cache.Get("users", u.username, "followers")
+		if len(*existingFollowers) == 0 {
+			bytes, err := cache.Get("users", username, "followers")
 			if err != nil {
 				errs <- err
 				return
@@ -57,9 +57,9 @@ func (u *CachedUser) Followers(fOpts ...api.AllFollowersOption) (chan *User, cha
 				errs <- err
 				return
 			}
-			u.followers = v
+			*existingFollowers = v
 		}
-		for _, f := range u.followers {
+		for _, f := range *existingFollowers {
 			followers <- f
 		}
 		close(followers)
@@ -72,7 +72,7 @@ func (u *CachedUser) Followers(fOpts ...api.AllFollowersOption) (chan *User, cha
 			go func() {
 				defer wg.Done()
 				for f := range followers {
-					users <- u.MakeUser(f)
+					users <- factory.MakeUser(f)
 				}
 			}()
 		}
@@ -84,6 +84,10 @@ func (u *CachedUser) Followers(fOpts ...api.AllFollowersOption) (chan *User, cha
 }
 
 func (u *CachedUser) Following(fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
+	return cachedFollowing(u.username, u.cache, u.factory, &u.followers, fOpts...)
+}
+
+func cachedFollowing(username string, cache Cache, factory Factory, existingFollowers *[]string, fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
 	opts := api.MakeAllFollowingsOptions(fOpts...)
 
 	following := make(chan string)
@@ -92,8 +96,8 @@ func (u *CachedUser) Following(fOpts ...api.AllFollowingsOption) (chan *User, ch
 	threads := or.Int(opts.Threads(), 100)
 
 	go func() {
-		if len(u.following) == 0 {
-			bytes, err := u.cache.Get("users", u.username, "following")
+		if len(*existingFollowers) == 0 {
+			bytes, err := cache.Get("users", username, "following")
 			if err != nil {
 				errs <- err
 				return
@@ -103,9 +107,9 @@ func (u *CachedUser) Following(fOpts ...api.AllFollowingsOption) (chan *User, ch
 				errs <- err
 				return
 			}
-			u.following = v
+			*existingFollowers = v
 		}
-		for _, f := range u.following {
+		for _, f := range *existingFollowers {
 			following <- f
 		}
 		close(following)
@@ -118,7 +122,7 @@ func (u *CachedUser) Following(fOpts ...api.AllFollowingsOption) (chan *User, ch
 			go func() {
 				defer wg.Done()
 				for f := range following {
-					users <- u.MakeUser(f)
+					users <- factory.MakeUser(f)
 				}
 			}()
 		}

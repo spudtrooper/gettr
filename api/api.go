@@ -231,6 +231,8 @@ type UserInfo struct {
 	UDate     StringDate `json:"udate"`
 	Type      string     `json:"_t"`
 	ID        string     `json:"_id"`
+	Nickname  string     `json:"nickname"`
+	Status    string     `json:"status"`
 }
 
 func (u UserInfo) Following() int        { return u.Flw.Int() }

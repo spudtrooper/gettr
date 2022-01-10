@@ -2,10 +2,16 @@ package model
 
 import (
 	"encoding/json"
+	"flag"
 	"log"
 	"strings"
 
 	"github.com/spudtrooper/gettr/api"
+	"github.com/spudtrooper/goutil/sets"
+)
+
+var (
+	verboseCacheHits = flag.Bool("verbose_cache_hits", false, "log cache hits verbosely")
 )
 
 type User struct {
@@ -18,19 +24,65 @@ func (u *User) Username() string { return u.username }
 
 func (u *User) UserInfo() (api.UserInfo, error) {
 	if u.userInfo.Username == "" {
+		has, err := u.cache.Has("users", u.username, "userInfo")
+		if err != nil {
+			return api.UserInfo{}, err
+		}
+		if has {
+			bytes, err := u.cache.Get("users", u.username, "userInfo")
+			if err != nil {
+				return api.UserInfo{}, err
+			}
+			var v api.UserInfo
+			if err := json.Unmarshal(bytes, &v); err != nil {
+				return api.UserInfo{}, err
+			}
+			u.userInfo = v
+		}
+	}
+	if u.userInfo.Username == "" {
 		uinfo, err := u.client.GetUserInfo(u.username)
 		if err != nil {
 			if strings.HasPrefix(err.Error(), "response error") {
+				log.Printf("ignoring response error: %v", err)
 				return api.UserInfo{}, nil
 			}
 			return api.UserInfo{}, err
 		}
 		u.userInfo = uinfo
+
+		// Cache it.
+		go func() {
+			if err := u.setBytes(u.userInfo, "users", u.Username(), "userInfo"); err != nil {
+				log.Printf("error caching userInfo for %s: %v", u.Username(), err)
+			}
+		}()
 	}
 	return u.userInfo, nil
 }
 
 func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan error) {
+	cached, err := u.cache.Has("users", u.Username(), "followers")
+	if err != nil {
+		log.Printf("error checking for %s followers: %v", u.Username(), err)
+		cached = false
+	}
+	if cached {
+		if *verboseCacheHits {
+			log.Printf("cache hit for followings of %s", u.Username())
+		}
+		var followers []string
+		users, errs := cachedFollowers(u.username, u.cache, u.factory, &followers, fOpts...)
+
+		// Cache it.
+		go func() {
+			if err := u.setBytes(followers, "users", u.Username(), "followers"); err != nil {
+				log.Printf("error caching followers for %s: %v", u.Username(), err)
+			}
+		}()
+
+		return users, errs
+	}
 
 	userInfos, errs := u.client.AllFollowersParallel(u.username, fOpts...)
 
@@ -49,6 +101,28 @@ func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan erro
 }
 
 func (u *User) Following(fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
+	cached, err := u.cache.Has("users", u.Username(), "following")
+	if err != nil {
+		log.Printf("error checking for %s followings: %v", u.Username(), err)
+		cached = false
+	}
+	if cached {
+		if *verboseCacheHits {
+			log.Printf("cache hit for followings of %s", u.Username())
+		}
+		var following []string
+		users, errs := cachedFollowing(u.username, u.cache, u.factory, &following, fOpts...)
+
+		// Cache it.
+		go func() {
+			if err := u.setBytes(following, "users", u.Username(), "following"); err != nil {
+				log.Printf("error caching followings for %s: %v", u.Username(), err)
+			}
+		}()
+
+		return users, errs
+	}
+
 	userInfos, errs := u.client.AllFollowingsParallel(u.username, fOpts...)
 
 	users := make(chan *User)
@@ -70,19 +144,27 @@ func (u *User) has(parts ...string) bool {
 	return !ok || err != nil
 }
 
-func (u *User) Persist(pOpts ...UserPersistOption) error {
-	opts := MakeUserPersistOptions(pOpts...)
+var (
+	persistDisallow = sets.String([]string{"hectorfbara84"})
+)
 
-	setBytes := func(val interface{}, parts ...string) error {
-		bytes, err := json.Marshal(val)
-		if err != nil {
-			return err
-		}
-		if err := u.cache.SetBytes(bytes, parts...); err != nil {
-			return err
-		}
+func (u *User) setBytes(val interface{}, parts ...string) error {
+	bytes, err := json.Marshal(val)
+	if err != nil {
+		return err
+	}
+	if err := u.cache.SetBytes(bytes, parts...); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (u *User) Persist(pOpts ...UserPersistOption) error {
+	if persistDisallow[u.Username()] {
 		return nil
 	}
+
+	opts := MakeUserPersistOptions(pOpts...)
 
 	should := func(parts ...string) bool {
 		return opts.Force() || !u.has(parts...)
@@ -94,7 +176,7 @@ func (u *User) Persist(pOpts ...UserPersistOption) error {
 			if err != nil {
 				return err
 			}
-			if err := setBytes(userInfo, "users", u.Username(), "userInfo"); err != nil {
+			if err := u.setBytes(userInfo, "users", u.Username(), "userInfo"); err != nil {
 				return err
 			}
 		}
@@ -121,7 +203,7 @@ func (u *User) Persist(pOpts ...UserPersistOption) error {
 			}
 		}
 		log.Printf("persisted %d followers of %s", len(usernames), u.username)
-		if err := setBytes(usernames, "users", u.username, "followers"); err != nil {
+		if err := u.setBytes(usernames, "users", u.username, "followers"); err != nil {
 			return err
 		}
 	} else {
@@ -148,7 +230,7 @@ func (u *User) Persist(pOpts ...UserPersistOption) error {
 			}
 		}
 		log.Printf("persisted %d following of %s", len(usernames), u.username)
-		if err := setBytes(usernames, "users", u.username, "following"); err != nil {
+		if err := u.setBytes(usernames, "users", u.username, "following"); err != nil {
 			return err
 		}
 	} else {
