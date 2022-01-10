@@ -58,20 +58,14 @@ func Generate(outputDirName string, client *api.Client, cache model.Cache, other
 
 	var cachedFollowers []*model.User
 	for f := range followers {
-		cachedFollowers = append(cachedFollowers, f) //factory.MakeCachedUser(f.Username()))
+		cachedFollowers = append(cachedFollowers, f)
 	}
 	log.Printf("sorting %d users...", len(cachedFollowers))
 	sort.Slice(cachedFollowers, func(i, j int) bool {
 		a, b := cachedFollowers[i], cachedFollowers[j]
 		ai, err := a.UserInfo()
-		// if err != nil {
-		// 	log.Printf("a: %v", a.Username())
-		// }
 		check.Err(err)
 		bi, err := b.UserInfo()
-		// if err != nil {
-		// 	log.Printf("b: %v", b.Username())
-		// }
 		check.Err(err)
 		return ai.Followers() > bi.Followers()
 	})
