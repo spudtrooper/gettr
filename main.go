@@ -255,7 +255,7 @@ func realMain() error {
 	if should("Read") {
 		cache := model.MakeCache(*cacheDir)
 		factory := model.MakeFactory(cache, client)
-		u := factory.MakeCachedUser(*other)
+		u := factory.MakeUser(*other)
 
 		{
 			c := make(chan *model.User)
@@ -294,7 +294,7 @@ func realMain() error {
 	if should("PersistAll") {
 		cache := model.MakeCache(*cacheDir)
 		factory := model.MakeFactory(cache, client)
-		u := factory.MakeCachedUser(*other)
+		u := factory.MakeUser(*other)
 
 		{
 			c := make(chan *model.User)

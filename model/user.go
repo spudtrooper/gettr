@@ -5,8 +5,10 @@ import (
 	"flag"
 	"log"
 	"strings"
+	"sync"
 
 	"github.com/spudtrooper/gettr/api"
+	"github.com/spudtrooper/goutil/or"
 	"github.com/spudtrooper/goutil/sets"
 )
 
@@ -90,14 +92,30 @@ func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan erro
 	userInfos, errs := u.client.AllFollowersParallel(u.username, fOpts...)
 
 	users := make(chan *User)
+	usernames := make(chan string)
 
 	go func() {
 		for userInfo := range userInfos {
 			follower := u.MakeUser(userInfo.Username)
 			follower.userInfo = userInfo
 			users <- follower
+			usernames <- userInfo.Username
 		}
 		close(users)
+		close(usernames)
+	}()
+
+	// Cache it
+	go func() {
+		log.Printf("caching followers for %s", u.Username())
+		var followers []string
+		for f := range usernames {
+			followers = append(followers, f)
+		}
+		u.followers = followers
+		if err := u.setBytes(u.followers, "users", u.Username(), "followers"); err != nil {
+			log.Printf("error caching followers for %s: %v", u.Username(), err)
+		}
 	}()
 
 	return users, errs
@@ -130,14 +148,30 @@ func (u *User) Following(fOpts ...api.AllFollowingsOption) (chan *User, chan err
 	userInfos, errs := u.client.AllFollowingsParallel(u.username, fOpts...)
 
 	users := make(chan *User)
+	usernames := make(chan string)
 
 	go func() {
 		for userInfo := range userInfos {
 			follower := u.MakeUser(userInfo.Username)
 			follower.userInfo = userInfo
 			users <- follower
+			usernames <- userInfo.Username
 		}
 		close(users)
+		close(usernames)
+	}()
+
+	// Cache it
+	go func() {
+		log.Printf("caching following for %s", u.Username())
+		var following []string
+		for f := range usernames {
+			following = append(following, f)
+		}
+		u.following = following
+		if err := u.setBytes(u.following, "users", u.Username(), "following"); err != nil {
+			log.Printf("error caching following for %s: %v", u.Username(), err)
+		}
 	}()
 
 	return users, errs
@@ -245,4 +279,96 @@ func (u *User) Persist(pOpts ...UserPersistOption) error {
 	}
 
 	return nil
+}
+
+func cachedFollowers(username string, cache Cache, factory Factory, existingFollowers *[]string, fOpts ...api.AllFollowersOption) (chan *User, chan error) {
+	opts := api.MakeAllFollowersOptions(fOpts...)
+
+	followers := make(chan string)
+	users := make(chan *User)
+	errs := make(chan error)
+	threads := or.Int(opts.Threads(), 100)
+
+	go func() {
+		if len(*existingFollowers) == 0 {
+			bytes, err := cache.Get("users", username, "followers")
+			if err != nil {
+				errs <- err
+				return
+			}
+			var v []string
+			if err := json.Unmarshal(bytes, &v); err != nil {
+				errs <- err
+				return
+			}
+			*existingFollowers = v
+		}
+		for _, f := range *existingFollowers {
+			followers <- f
+		}
+		close(followers)
+	}()
+
+	go func() {
+		var wg sync.WaitGroup
+		for i := 0; i < threads; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for f := range followers {
+					users <- factory.MakeUser(f)
+				}
+			}()
+		}
+		wg.Wait()
+		close(users)
+	}()
+
+	return users, errs
+}
+
+func cachedFollowing(username string, cache Cache, factory Factory, existingFollowers *[]string, fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
+	opts := api.MakeAllFollowingsOptions(fOpts...)
+
+	following := make(chan string)
+	users := make(chan *User)
+	errs := make(chan error)
+	threads := or.Int(opts.Threads(), 100)
+
+	go func() {
+		if len(*existingFollowers) == 0 {
+			bytes, err := cache.Get("users", username, "following")
+			if err != nil {
+				errs <- err
+				return
+			}
+			var v []string
+			if err := json.Unmarshal(bytes, &v); err != nil {
+				errs <- err
+				return
+			}
+			*existingFollowers = v
+		}
+		for _, f := range *existingFollowers {
+			following <- f
+		}
+		close(following)
+	}()
+
+	go func() {
+		var wg sync.WaitGroup
+		for i := 0; i < threads; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for f := range following {
+					users <- factory.MakeUser(f)
+				}
+			}()
+		}
+		wg.Wait()
+		close(users)
+	}()
+
+	return users, errs
 }

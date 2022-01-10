@@ -6,7 +6,6 @@ import (
 
 type Factory interface {
 	MakeUser(username string) *User
-	MakeCachedUser(username string) *CachedUser
 }
 
 type factory struct {
@@ -20,8 +19,4 @@ func MakeFactory(cache Cache, client *api.Client) Factory {
 
 func (f *factory) MakeUser(username string) *User {
 	return &User{username: username, factory: f}
-}
-
-func (f *factory) MakeCachedUser(username string) *CachedUser {
-	return &CachedUser{username: username, factory: f}
 }

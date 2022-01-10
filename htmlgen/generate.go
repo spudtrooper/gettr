@@ -2,6 +2,7 @@ package htmlgen
 
 import (
 	"encoding/csv"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -18,6 +19,10 @@ import (
 	"github.com/spudtrooper/goutil/or"
 )
 
+var (
+	debugResolvedUserInfo = flag.Bool("debug_resolved_user_info", false, "print verbose logs for resolving user info")
+)
+
 func Generate(outputDirName string, client *api.Client, cache model.Cache, other string, gOpts ...GeneratOption) error {
 	opts := MakeGeneratOptions(gOpts...)
 
@@ -27,7 +32,7 @@ func Generate(outputDirName string, client *api.Client, cache model.Cache, other
 	var users []*model.User
 
 	factory := model.MakeFactory(cache, client)
-	u := factory.MakeCachedUser(other)
+	u := factory.MakeUser(other)
 	followers := make(chan *model.User)
 	followersForResolution := make(chan *model.User)
 	go func() {
@@ -50,7 +55,10 @@ func Generate(outputDirName string, client *api.Client, cache model.Cache, other
 				go func() {
 					defer wg.Done()
 					for f := range followersForResolution {
-						f.UserInfo()
+						u, _ := f.UserInfo()
+						if *debugResolvedUserInfo {
+							log.Printf("resolved userInfo: %v", u)
+						}
 					}
 				}()
 			}

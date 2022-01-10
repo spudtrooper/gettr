@@ -13,5 +13,4 @@ To generate HTML for user `repmattgaetz`.
 1. Create a config by copying [user_creds_example.json](user_creds_example.json) to `.user_creds.json` and filling in the TODOs, and then
 2. Find followers and generate HTML:
 
-        go run main.go --other repmattgaetz Persist PersistAll
         go run html.go --other repmattgaetz --all
