@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	defaultMax    = 20
-	defaultOffset = 0
-	defaultDir    = "fwd"
+	defaultMax     = 20
+	defaultOffset  = 0
+	defaultDir     = "fwd"
+	defaultThreads = 200
 )
 
 type Date interface {
@@ -357,7 +358,7 @@ func (c *Client) AllFollowingsParallel(username string, fOpts ...AllFollowingsOp
 	opts := MakeAllFollowingsOptions(fOpts...)
 	max := or.Int(opts.Max(), defaultMax)
 	start := or.Int(opts.Start(), 0)
-	threads := or.Int(opts.Threads(), 100)
+	threads := or.Int(opts.Threads(), defaultThreads)
 
 	userInfos := make(chan UserInfo)
 	offsets := make(chan int)
@@ -433,7 +434,7 @@ func (c *Client) AllFollowersParallel(username string, fOpts ...AllFollowersOpti
 	opts := MakeAllFollowersOptions(fOpts...)
 	max := or.Int(opts.Max(), defaultMax)
 	start := or.Int(opts.Start(), 0)
-	threads := or.Int(opts.Threads(), 100)
+	threads := or.Int(opts.Threads(), defaultThreads)
 
 	userInfos := make(chan UserInfo)
 	offsets := make(chan int)

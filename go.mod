@@ -7,7 +7,7 @@ replace github.com/spudtrooper/goutil => ../goutil
 require (
 	github.com/fatih/color v1.13.0
 	github.com/pkg/errors v0.9.1
-	github.com/spudtrooper/goutil v0.1.23
+	github.com/spudtrooper/goutil v0.1.26
 )
 
 require (

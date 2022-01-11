@@ -97,11 +97,8 @@ func realMain() {
 	if *b == "" {
 		log.Fatalf("--b required")
 	}
-	client, err := api.MakeClientFromFlags()
+	factory, err := model.MakeFactoryFromFlags()
 	check.Err(err)
-	cache, err := model.MakeCacheFromFlags()
-	check.Err(err)
-	factory := model.MakeFactory(cache, client)
 	userA := factory.MakeUser(*user)
 	userB := factory.MakeUser(*b)
 	compareUsers(userA, userB, factory)

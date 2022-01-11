@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"log"
-	"sort"
 	"strings"
 	"sync"
 
@@ -88,17 +87,22 @@ func realMain() {
 					if *maxFollowing > 0 && fs > *maxFollowing {
 						continue
 					}
-					if *printEveryUsername {
-						log.Printf("%s: %d", f.Username(), fs)
-					}
-					usernames := findFollowingUsernames(f)
-					if *maxFollowing > 0 && len(usernames) > *maxFollowing {
-						// TODO: Why?
+					desc, err := f.Desc()
+					if err != nil {
+						log.Printf("ignoring description error user for %s", f.Username())
 						continue
 					}
-					sort.Strings(usernames)
-					key := strings.Join(usernames, ":")
-					b.Add(key)
+					desc = strings.TrimSpace(desc)
+					if desc == "" {
+						continue
+					}
+					if *printEveryUsername {
+						log.Printf("%s: %s", f.Username(), desc)
+					}
+					desc = strings.ToLower(desc)
+					for _, w := range strings.Split(desc, " ") {
+						b.Add(strings.TrimSpace(w))
+					}
 				}
 			}()
 		}

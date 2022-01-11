@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 
-	"github.com/spudtrooper/gettr/api"
 	html "github.com/spudtrooper/gettr/htmlgen"
 	"github.com/spudtrooper/gettr/model"
 	"github.com/spudtrooper/goutil/check"
@@ -23,16 +22,12 @@ var (
 )
 
 func realMain() error {
-	client, err := api.MakeClientFromFlags()
-	if err != nil {
-		return err
-	}
-	cache, err := model.MakeCacheFromFlags()
+	factory, err := model.MakeFactoryFromFlags()
 	if err != nil {
 		return err
 	}
 
-	if err := html.Generate(*outputDir, client, cache, *other,
+	if err := html.Generate(*outputDir, factory, *other,
 		html.GenerateLimit(*limit),
 		html.GenerateAll(*all),
 		html.GenerateThreads(*threads),

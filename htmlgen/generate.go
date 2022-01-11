@@ -23,7 +23,7 @@ var (
 	debugResolvedUserInfo = flag.Bool("debug_resolved_user_info", false, "print verbose logs for resolving user info")
 )
 
-func Generate(outputDirName string, client *api.Client, cache model.Cache, other string, gOpts ...GeneratOption) error {
+func Generate(outputDirName string, factory model.Factory, other string, gOpts ...GeneratOption) error {
 	opts := MakeGeneratOptions(gOpts...)
 
 	limit := opts.Limit()
@@ -33,7 +33,6 @@ func Generate(outputDirName string, client *api.Client, cache model.Cache, other
 
 	var users []*model.User
 
-	factory := model.MakeFactory(cache, client)
 	u := factory.MakeUser(other)
 	followers := make(chan *model.User)
 	followersForResolution := make(chan *model.User)
