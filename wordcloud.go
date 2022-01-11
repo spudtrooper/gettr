@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -52,6 +53,10 @@ func findFollowingUsernames(u *model.User) []string {
 	return res
 }
 
+var (
+	nonAlphaNum = regexp.MustCompile(`[^a-zA-Z0-9]`)
+)
+
 func realMain() {
 	if *other == "" {
 		log.Fatalf("--other required")
@@ -90,6 +95,7 @@ func realMain() {
 					desc, err := f.Desc()
 					if err != nil {
 						log.Printf("ignoring description error user for %s", f.Username())
+						f.MarkSkipped()
 						continue
 					}
 					desc = strings.TrimSpace(desc)
@@ -101,7 +107,12 @@ func realMain() {
 					}
 					desc = strings.ToLower(desc)
 					for _, w := range strings.Split(desc, " ") {
-						b.Add(strings.TrimSpace(w))
+						s := w
+						s = strings.TrimSpace(s)
+						s = nonAlphaNum.ReplaceAllString(s, "")
+						if s != "" {
+							b.Add(s)
+						}
 					}
 				}
 			}()
