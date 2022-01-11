@@ -3,11 +3,13 @@ package model
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"strings"
 	"sync"
 
 	"github.com/spudtrooper/gettr/api"
+	"github.com/spudtrooper/goutil/check"
 	"github.com/spudtrooper/goutil/or"
 	"github.com/spudtrooper/goutil/sets"
 )
@@ -27,6 +29,21 @@ type User struct {
 	userInfo  api.UserInfo
 	followers []string
 	following []string
+}
+
+func (u *User) MustDebugString() string {
+	s, err := u.DebugString()
+	check.Err(err)
+	return s
+}
+
+func (u *User) DebugString() (string, error) {
+	userInfo, err := u.UserInfo()
+	if err != nil {
+		return "", err
+	}
+	res := fmt.Sprintf("%s(followers: %d, following: %d)", u.Username(), userInfo.Followers(), userInfo.Following())
+	return res, nil
 }
 
 func (u *User) Username() string { return u.username }
