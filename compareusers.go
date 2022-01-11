@@ -16,7 +16,7 @@ var (
 	threads = flag.Int("threads", 0, "threads to calls")
 )
 
-func users(u *model.User) []string {
+func findFollowers(u *model.User) []string {
 	c := make(chan *model.User)
 	go func() {
 		users, _ := u.Followers(api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
@@ -72,8 +72,8 @@ func union(a, b []string) []string {
 }
 
 func compareUsers(a, b *model.User, factory model.Factory) {
-	followersA := users(a)
-	followersB := users(b)
+	followersA := findFollowers(a)
+	followersB := findFollowers(b)
 
 	log.Printf("# folowersA: %d", len(followersA))
 	log.Printf("# folowersB: %d", len(followersB))
@@ -91,7 +91,7 @@ func compareUsers(a, b *model.User, factory model.Factory) {
 }
 
 func realMain() {
-	if *a == "" {
+	if *user == "" {
 		log.Fatalf("--a required")
 	}
 	if *b == "" {
@@ -102,7 +102,7 @@ func realMain() {
 	cache, err := model.MakeCacheFromFlags()
 	check.Err(err)
 	factory := model.MakeFactory(cache, client)
-	userA := factory.MakeUser(*a)
+	userA := factory.MakeUser(*user)
 	userB := factory.MakeUser(*b)
 	compareUsers(userA, userB, factory)
 }
