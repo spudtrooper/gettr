@@ -113,7 +113,6 @@ func realMain() {
 					if userInfo.Followers() > 50 {
 						continue
 					}
-					log.Printf("u: %s", f.Username())
 					usernames := findFollowerUsernames(f)
 					sort.Strings(usernames)
 					key := strings.Join(usernames, ":")
