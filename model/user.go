@@ -33,6 +33,7 @@ const (
 	cacheKeyFollowing         cacheKey = "following"
 	cacheKeyFollowers         cacheKey = "followers"
 	cacheKeyFollowersByOffset cacheKey = "followersByOffset"
+	cacheKeyFollowersDone     cacheKey = "followersDone"
 )
 
 type User struct {
@@ -137,9 +138,10 @@ func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan erro
 		}
 
 		return users, errs
-	} else if u.has("users", u.Username(), string(cacheKeyFollowersByOffset)) {
+	} else if u.has("users", u.Username(), string(cacheKeyFollowersDone)) &&
+		u.has("users", u.Username(), string(cacheKeyFollowersByOffset)) {
 		if *verboseCacheHits {
-			log.Printf("cache hit for followersByOffset of %s", u.Username())
+			log.Printf("cache hit for followersByOffset and followersDone of %s", u.Username())
 		}
 		lenBefore := len(u.followers)
 		users, errs := cachedFollowersByOffset(u.username, u.cache, u.factory, &u.followers, fOpts...)
@@ -153,6 +155,18 @@ func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan erro
 		}
 
 		return users, errs
+	} else if u.has("users", u.Username(), string(cacheKeyFollowersByOffset)) {
+		// In the case we have partially read the followers, populate the in-memory cache.
+		if *verboseCacheHits {
+			log.Printf("cache hit for followersByOffset of %s", u.Username())
+		}
+
+		v, err := u.cache.GetAllStrings("users", u.Username(), string(cacheKeyFollowersByOffset))
+		if err != nil {
+			log.Printf("ignoring GetAllStrings for %s", u.Username())
+		} else {
+			u.followers = v
+		}
 	}
 
 	lastOffset := -1
@@ -184,6 +198,12 @@ func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan erro
 	usernames := make(chan string)
 
 	go func() {
+		// Transfer the partially-populated in-memory cache to the result.
+		for _, f := range u.followers {
+			follower := u.MakeUser(f)
+			users <- follower
+		}
+		// Transfer the newly-read users to the result.
 		for userInfo := range userInfos {
 			follower := u.MakeUser(userInfo.Username)
 			follower.userInfo = userInfo
@@ -200,19 +220,19 @@ func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan erro
 				log.Printf("cacheOffsetStrings: error caching followers for %s, offset=%d: %v", u.Username(), so.Offset, err)
 			}
 		}
+		// Mark that we are complete.
+		if err := u.cacheBytes("", cacheKeyFollowersDone); err != nil {
+			log.Printf("cacheBytes: error caching cacheKeyFollowersDone for %s: %v", u.Username(), err)
+		}
 	}()
 
-	// No longer cache into "following"
-	// Cache it
+	// Cache all newly-read users in memory.
 	go func() {
 		var followers []string
 		for f := range usernames {
 			followers = append(followers, f)
 		}
-		u.followers = followers
-		if err := u.cacheBytes(u.followers, cacheKeyFollowers); err != nil {
-			log.Printf("error caching followers for %s: %v", u.Username(), err)
-		}
+		u.followers = append(u.followers, followers...)
 	}()
 
 	return users, errs
