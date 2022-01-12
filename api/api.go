@@ -430,13 +430,19 @@ func (c *Client) GetFollowers(username string, fOpts ...FollowersOption) (UserIn
 	return res, nil
 }
 
-func (c *Client) AllFollowersParallel(username string, fOpts ...AllFollowersOption) (chan UserInfo, chan error) {
+type OffsetStrings struct {
+	Offset  int
+	Strings []string
+}
+
+func (c *Client) AllFollowersParallel(username string, fOpts ...AllFollowersOption) (chan UserInfo, chan OffsetStrings, chan error) {
 	opts := MakeAllFollowersOptions(fOpts...)
 	max := or.Int(opts.Max(), defaultMax)
 	start := or.Int(opts.Start(), 0)
 	threads := or.Int(opts.Threads(), defaultThreads)
 
 	userInfos := make(chan UserInfo)
+	userNames := make(chan OffsetStrings)
 	offsets := make(chan int)
 	errs := make(chan error)
 
@@ -462,18 +468,22 @@ func (c *Client) AllFollowersParallel(username string, fOpts ...AllFollowersOpti
 					if len(fs) == 0 {
 						break
 					}
+					var us []string
 					for _, u := range fs {
 						userInfos <- u
+						us = append(us, u.Username)
 					}
+					userNames <- OffsetStrings{Strings: us, Offset: offset}
 				}
 			}()
 		}
 		wg.Wait()
 		close(userInfos)
+		close(userNames)
 		close(errs)
 	}()
 
-	return userInfos, errs
+	return userInfos, userNames, errs
 }
 
 func (c *Client) AllFollowers(username string, f func(offset int, userInfos UserInfos) error, fOpts ...AllFollowersOption) error {

@@ -2,11 +2,14 @@
 package model
 
 import (
+	"encoding/json"
 	"flag"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -22,6 +25,10 @@ type Cache interface {
 	Set(parts ...string) error
 	SetBytes(val []byte, parts ...string) error
 	Get(parts ...string) ([]byte, error)
+	SetGeneric(val interface{}, parts ...string) error
+	GetStrings(parts ...string) ([]string, error)
+	GetAllStrings(parts ...string) ([]string, error)
+	FindKeys(parts ...string) ([]string, error)
 }
 
 func MakeCacheFromFlags() (Cache, error) {
@@ -30,7 +37,6 @@ func MakeCacheFromFlags() (Cache, error) {
 	}
 	cache := makeCache(*cacheDir)
 	return cache, nil
-
 }
 
 func makeCache(dir string) Cache {
@@ -61,6 +67,18 @@ func (c *cacheImpl) fileExists(filename string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (c *cacheImpl) isDir(filename string) (bool, error) {
+	fi, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		log.Printf("%s doesn't exit", filename)
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return fi.IsDir(), nil
 }
 
 func (c *cacheImpl) writeFile(f string, b []byte) error {
@@ -120,9 +138,107 @@ func (c *cacheImpl) Get(parts ...string) ([]byte, error) {
 	return c.get(parts...)
 }
 
+func (c *cacheImpl) SetGeneric(val interface{}, parts ...string) error {
+	bytes, err := json.Marshal(val)
+	if err != nil {
+		return err
+	}
+	return c.SetBytes(bytes, parts...)
+}
+
+func (c *cacheImpl) GetStrings(parts ...string) ([]string, error) {
+	bytes, err := c.get(parts...)
+	if err != nil {
+		return nil, err
+	}
+	var res []string
+	if err := json.Unmarshal(bytes, &res); err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+// GetAllStrings returns all []string in a directory
+// Example:
+//   we have
+//     users
+//       foo
+//         followersOffsets
+//              1 = [1,2,3]
+//              2 = [4,5,6]
+//              3 = [7,8,9]
+//   GetAllStrings("user", "foo", "followersOffsets") == [1,2,3,4,5,6,7,8,9]
+func (c *cacheImpl) GetAllStrings(parts ...string) ([]string, error) {
+	dir := c.file(parts...)
+	isDir, err := c.isDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	if !isDir {
+		return nil, nil
+	}
+	set := map[string]bool{}
+	if err := filepath.WalkDir(dir, func(path string, di fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if di.IsDir() {
+			return nil
+		}
+		bytes, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		var arr []string
+		if err := json.Unmarshal(bytes, &arr); err != nil {
+			return err
+		}
+		for _, s := range arr {
+			set[s] = true
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	var res []string
+	for s := range set {
+		res = append(res, s)
+	}
+	return res, nil
+}
+
+func (c *cacheImpl) FindKeys(parts ...string) ([]string, error) {
+	dir := c.file(parts...)
+	isDir, err := c.isDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	if !isDir {
+		return nil, nil
+	}
+	var res []string
+	if err := filepath.WalkDir(dir, func(path string, di fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if di.IsDir() {
+			return nil
+		}
+		res = append(res, filepath.Base(path))
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
 type emptyCache struct{}
 
-func (c *emptyCache) Has(_ ...string) (bool, error)              { return false, nil }
-func (c *emptyCache) Set(_ ...string) error                      { return nil }
-func (c *emptyCache) Get(_ ...string) ([]byte, error)            { return nil, nil }
-func (c *emptyCache) SetBytes(val []byte, parts ...string) error { return nil }
+func (c *emptyCache) Has(_ ...string) (bool, error)                     { return false, nil }
+func (c *emptyCache) Set(_ ...string) error                             { return nil }
+func (c *emptyCache) Get(_ ...string) ([]byte, error)                   { return nil, nil }
+func (c *emptyCache) SetBytes(val []byte, parts ...string) error        { return nil }
+func (c *emptyCache) SetGeneric(val interface{}, parts ...string) error { return nil }
+func (c *emptyCache) GetStrings(parts ...string) ([]string, error)      { return nil, nil }
+func (c *emptyCache) GetAllStrings(parts ...string) ([]string, error)   { return nil, nil }
+func (c *emptyCache) FindKeys(parts ...string) ([]string, error)        { return nil, nil }
