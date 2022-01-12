@@ -37,10 +37,13 @@ func Generate(outputDirName string, factory model.Factory, other string, gOpts .
 	followers := make(chan *model.User)
 	followersForResolution := make(chan *model.User)
 	go func() {
-		users, _ := u.Followers(api.AllFollowersThreads(threads))
+		users, errs := u.Followers(api.AllFollowersThreads(threads))
 		for u := range users {
 			followers <- u
 			followersForResolution <- u
+		}
+		for e := range errs {
+			log.Printf("Followers: ignoring error: %v", e)
 		}
 		close(followers)
 		close(followersForResolution)
@@ -56,7 +59,10 @@ func Generate(outputDirName string, factory model.Factory, other string, gOpts .
 				go func() {
 					defer wg.Done()
 					for f := range followersForResolution {
-						u, _ := f.UserInfo()
+						u, err := f.UserInfo()
+						if err != nil {
+							log.Printf("UserInfo: ignoring error: %v", err)
+						}
 						if *debugResolvedUserInfo {
 							log.Printf("resolved userInfo: %v", u)
 						}
