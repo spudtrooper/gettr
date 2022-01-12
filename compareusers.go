@@ -91,7 +91,7 @@ func compareUsers(a, b *model.User, factory model.Factory) {
 }
 
 func realMain() {
-	if *user == "" {
+	if *a == "" {
 		log.Fatalf("--a required")
 	}
 	if *b == "" {
@@ -99,7 +99,7 @@ func realMain() {
 	}
 	factory, err := model.MakeFactoryFromFlags()
 	check.Err(err)
-	userA := factory.MakeUser(*user)
+	userA := factory.MakeUser(*a)
 	userB := factory.MakeUser(*b)
 	compareUsers(userA, userB, factory)
 }

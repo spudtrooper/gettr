@@ -29,6 +29,7 @@ type Cache interface {
 	GetStrings(parts ...string) ([]string, error)
 	GetAllStrings(parts ...string) ([]string, error)
 	FindKeys(parts ...string) ([]string, error)
+	FindKeysChannels(parts ...string) (chan string, chan error, error)
 }
 
 func MakeCacheFromFlags() (Cache, error) {
@@ -214,7 +215,7 @@ func (c *cacheImpl) FindKeys(parts ...string) ([]string, error) {
 		return nil, err
 	}
 	if !isDir {
-		return nil, nil
+		return nil, errors.Errorf("%s is not a directory", dir)
 	}
 	var res []string
 	if err := filepath.WalkDir(dir, func(path string, di fs.DirEntry, err error) error {
@@ -232,6 +233,47 @@ func (c *cacheImpl) FindKeys(parts ...string) ([]string, error) {
 	return res, nil
 }
 
+// TODO: This just looks do directories
+func (c *cacheImpl) FindKeysChannels(parts ...string) (chan string, chan error, error) {
+	keys := make(chan string)
+	errs := make(chan error)
+
+	dir := c.file(parts...)
+	isDir, err := c.isDir(dir)
+	if err != nil {
+		return nil, nil, err
+	}
+	if !isDir {
+		return nil, nil, errors.Errorf("%s is not a directory", dir)
+	}
+
+	go func() {
+		if err := filepath.WalkDir(dir, func(path string, di fs.DirEntry, err error) error {
+			if err != nil {
+				return nil
+			}
+			if !di.IsDir() {
+				return nil
+			}
+			if path == dir {
+				return nil
+			}
+			key := strings.Replace(path, dir+"/", "", 1)
+			if key == "" {
+				return nil
+			}
+			keys <- key
+			return nil
+		}); err != nil {
+			errs <- err
+		}
+		close(keys)
+		close(errs)
+	}()
+
+	return keys, errs, nil
+}
+
 type emptyCache struct{}
 
 func (c *emptyCache) Has(_ ...string) (bool, error)                     { return false, nil }
@@ -242,3 +284,6 @@ func (c *emptyCache) SetGeneric(val interface{}, parts ...string) error { return
 func (c *emptyCache) GetStrings(parts ...string) ([]string, error)      { return nil, nil }
 func (c *emptyCache) GetAllStrings(parts ...string) ([]string, error)   { return nil, nil }
 func (c *emptyCache) FindKeys(parts ...string) ([]string, error)        { return nil, nil }
+func (c *emptyCache) FindKeysChannels(parts ...string) (chan string, chan error, error) {
+	return nil, nil, nil
+}

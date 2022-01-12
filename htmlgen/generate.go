@@ -81,9 +81,15 @@ func Generate(outputDirName string, factory model.Factory, other string, gOpts .
 	sort.Slice(cachedFollowers, func(i, j int) bool {
 		a, b := cachedFollowers[i], cachedFollowers[j]
 		ai, err := a.UserInfo()
-		check.Err(err)
+		if err != nil {
+			log.Printf("a.UserInfo: ignoring error: %v", err)
+			return true
+		}
 		bi, err := b.UserInfo()
-		check.Err(err)
+		if err != nil {
+			log.Printf("b.UserInfo: ignoring error: %v", err)
+			return true
+		}
 		return ai.Followers() > bi.Followers()
 	})
 

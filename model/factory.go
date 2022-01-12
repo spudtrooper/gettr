@@ -6,6 +6,8 @@ import (
 
 type Factory interface {
 	MakeUser(username string) *User
+	Cache() Cache
+	Client() *api.Client
 }
 
 type factory struct {
@@ -29,6 +31,9 @@ func MakeFactoryFromFlags() (Factory, error) {
 	factory := MakeFactory(cache, client)
 	return factory, nil
 }
+
+func (f *factory) Cache() Cache        { return f.cache }
+func (f *factory) Client() *api.Client { return f.client }
 
 func (f *factory) MakeUser(username string) *User {
 	return &User{username: username, factory: f}
