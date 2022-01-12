@@ -140,21 +140,11 @@ func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan erro
 		return users, errs
 	} else if u.has("users", u.Username(), string(cacheKeyFollowersDone)) &&
 		u.has("users", u.Username(), string(cacheKeyFollowersByOffset)) {
+		// If we've completely read users and sharded them, read from the sharded directory.
 		if *verboseCacheHits {
 			log.Printf("cache hit for followersByOffset and followersDone of %s", u.Username())
 		}
-		lenBefore := len(u.followers)
-		users, errs := cachedFollowersByOffset(u.username, u.cache, u.factory, &u.followers, fOpts...)
-
-		if lenBefore != len(u.followers) {
-			go func() {
-				if err := u.cacheBytes(u.followers, cacheKeyFollowers); err != nil {
-					log.Printf("error caching followers for %s: %v", u.Username(), err)
-				}
-			}()
-		}
-
-		return users, errs
+		return cachedFollowersByOffset(u.username, u.cache, u.factory, &u.followers, fOpts...)
 	} else if u.has("users", u.Username(), string(cacheKeyFollowersByOffset)) {
 		// In the case we have partially read the followers, populate the in-memory cache.
 		if *verboseCacheHits {
