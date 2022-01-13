@@ -2,10 +2,12 @@ package log
 
 import reallog "log"
 
+const prefix = "[gettr[ "
+
 func Printf(tmpl string, args ...interface{}) {
-	reallog.Printf("[gettr] "+tmpl, args...)
+	reallog.Printf(prefix+tmpl, args...)
 }
 
 func Println(s string) {
-	reallog.Println("[gettr] " + s)
+	reallog.Println(prefix + s)
 }
