@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
+	"github.com/spudtrooper/gettr/log"
 	"github.com/spudtrooper/gettr/util"
 	"github.com/spudtrooper/goutil/must"
 )

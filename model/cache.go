@@ -6,13 +6,13 @@ import (
 	"flag"
 	"io/fs"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/spudtrooper/gettr/log"
 )
 
 var (
@@ -24,7 +24,7 @@ type Cache interface {
 	Has(parts ...string) (bool, error)
 	Set(parts ...string) error
 	SetBytes(val []byte, parts ...string) error
-	Get(parts ...string) ([]byte, error)
+	GetBytes(parts ...string) ([]byte, error)
 	SetGeneric(val interface{}, parts ...string) error
 	GetStrings(parts ...string) ([]string, error)
 	GetAllStrings(parts ...string) ([]string, error)
@@ -36,17 +36,10 @@ func MakeCacheFromFlags() (Cache, error) {
 	if *cacheDir == "" {
 		return nil, errors.Errorf("must set --cache_dir")
 	}
-	cache := makeCache(*cacheDir)
+	cache := &cacheImpl{
+		dir: *cacheDir,
+	}
 	return cache, nil
-}
-
-func makeCache(dir string) Cache {
-	if dir == "" {
-		return &emptyCache{}
-	}
-	return &cacheImpl{
-		dir: dir,
-	}
 }
 
 type cacheImpl struct {
@@ -135,7 +128,7 @@ func (c *cacheImpl) get(parts ...string) ([]byte, error) {
 	return b, nil
 }
 
-func (c *cacheImpl) Get(parts ...string) ([]byte, error) {
+func (c *cacheImpl) GetBytes(parts ...string) ([]byte, error) {
 	return c.get(parts...)
 }
 
@@ -272,18 +265,4 @@ func (c *cacheImpl) FindKeysChannels(parts ...string) (chan string, chan error, 
 	}()
 
 	return keys, errs, nil
-}
-
-type emptyCache struct{}
-
-func (c *emptyCache) Has(_ ...string) (bool, error)                     { return false, nil }
-func (c *emptyCache) Set(_ ...string) error                             { return nil }
-func (c *emptyCache) Get(_ ...string) ([]byte, error)                   { return nil, nil }
-func (c *emptyCache) SetBytes(val []byte, parts ...string) error        { return nil }
-func (c *emptyCache) SetGeneric(val interface{}, parts ...string) error { return nil }
-func (c *emptyCache) GetStrings(parts ...string) ([]string, error)      { return nil, nil }
-func (c *emptyCache) GetAllStrings(parts ...string) ([]string, error)   { return nil, nil }
-func (c *emptyCache) FindKeys(parts ...string) ([]string, error)        { return nil, nil }
-func (c *emptyCache) FindKeysChannels(parts ...string) (chan string, chan error, error) {
-	return nil, nil, nil
 }

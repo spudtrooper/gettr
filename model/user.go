@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/spudtrooper/gettr/api"
+	"github.com/spudtrooper/gettr/log"
 	"github.com/spudtrooper/goutil/check"
 	"github.com/spudtrooper/goutil/or"
 	"github.com/spudtrooper/goutil/sets"
@@ -38,10 +38,11 @@ const (
 
 type User struct {
 	*factory
-	username  string
-	userInfo  api.UserInfo
-	followers []string
-	following []string
+	username               string
+	userInfo               api.UserInfo
+	followers              []string
+	following              []string
+	cacheFollowersInMemory bool
 }
 
 func (u *User) MustDebugString() string {
@@ -74,7 +75,7 @@ func (u *User) UserInfo(uOpts ...UserInfoOption) (api.UserInfo, error) {
 	}
 
 	if u.userInfo.Username == "" && u.has("users", u.username, string(cacheKeyUserInfo)) {
-		bytes, err := u.cache.Get("users", u.username, "userInfo")
+		bytes, err := u.cache.GetBytes("users", u.username, "userInfo")
 		if err != nil {
 			return api.UserInfo{}, err
 		}
@@ -126,14 +127,22 @@ func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan erro
 		if *verboseCacheHits {
 			log.Printf("cache hit for followers of %s", u.Username())
 		}
-		return cachedFollowers(u.username, u.cache, u.factory, &u.followers, fOpts...)
+		var arr *[]string
+		if u.cacheFollowersInMemory {
+			arr = &u.followers
+		}
+		return cachedFollowers(u.username, u.cache, u.factory, arr, fOpts...)
 	} else if u.has("users", u.Username(), string(cacheKeyFollowersDone)) &&
 		u.has("users", u.Username(), string(cacheKeyFollowersByOffset)) {
 		// If we've completely read users and sharded them, read from the sharded directory.
 		if *verboseCacheHits {
 			log.Printf("cache hit for followersByOffset and followersDone of %s", u.Username())
 		}
-		return cachedFollowersByOffset(u.username, u.cache, u.factory, &u.followers, fOpts...)
+		var arr *[]string
+		if u.cacheFollowersInMemory {
+			arr = &u.followers
+		}
+		return cachedFollowersByOffset(u.username, u.cache, u.factory, arr, fOpts...)
 	} else if u.has("users", u.Username(), string(cacheKeyFollowersByOffset)) {
 		// In the case we have partially read the followers, populate the in-memory cache.
 		if *verboseCacheHits {
@@ -144,7 +153,9 @@ func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan erro
 		if err != nil {
 			log.Printf("ignoring GetAllStrings for %s", u.Username())
 		} else {
-			u.followers = v
+			if u.cacheFollowersInMemory {
+				u.followers = v
+			}
 		}
 	}
 
@@ -178,9 +189,11 @@ func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan erro
 
 	go func() {
 		// Transfer the partially-populated in-memory cache to the result.
-		for _, f := range u.followers {
-			follower := u.MakeUser(f)
-			users <- follower
+		if u.cacheFollowersInMemory {
+			for _, f := range u.followers {
+				follower := u.MakeUser(f)
+				users <- follower
+			}
 		}
 		// Transfer the newly-read users to the result.
 		for userInfo := range userInfos {
@@ -210,9 +223,13 @@ func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan erro
 	go func() {
 		var followers []string
 		for f := range usernames {
-			followers = append(followers, f)
+			if u.cacheFollowersInMemory {
+				followers = append(followers, f)
+			}
 		}
-		u.followers = append(u.followers, followers...)
+		if u.cacheFollowersInMemory {
+			u.followers = append(u.followers, followers...)
+		}
 	}()
 
 	return users, errs
@@ -499,8 +516,12 @@ func cachedFollowers(username string, cache Cache, factory Factory, existingFoll
 	threads := or.Int(opts.Threads(), defaultThreads)
 
 	go func() {
-		if len(*existingFollowers) == 0 {
-			bytes, err := cache.Get("users", username, "followers")
+		var existing []string
+		if existingFollowers != nil {
+			existing = *existingFollowers
+		}
+		if len(existing) == 0 {
+			bytes, err := cache.GetBytes("users", username, "followers")
 			if err != nil {
 				errs <- err
 				return
@@ -510,9 +531,9 @@ func cachedFollowers(username string, cache Cache, factory Factory, existingFoll
 				errs <- err
 				return
 			}
-			*existingFollowers = v
+			existing = v
 		}
-		for _, f := range *existingFollowers {
+		for _, f := range existing {
 			followers <- f
 		}
 		close(followers)
@@ -545,15 +566,19 @@ func cachedFollowersByOffset(username string, cache Cache, factory Factory, exis
 	threads := or.Int(opts.Threads(), defaultThreads)
 
 	go func() {
-		if len(*existingFollowers) == 0 {
+		var existing []string
+		if existingFollowers != nil {
+			existing = *existingFollowers
+		}
+		if len(existing) == 0 {
 			v, err := cache.GetAllStrings("users", username, string(cacheKeyFollowersByOffset))
 			if err != nil {
 				errs <- err
 				return
 			}
-			*existingFollowers = v
+			existing = v
 		}
-		for _, f := range *existingFollowers {
+		for _, f := range existing {
 			followers <- f
 		}
 		close(followers)
@@ -587,7 +612,7 @@ func cachedFollowing(username string, cache Cache, factory Factory, existingFoll
 
 	go func() {
 		if len(*existingFollowers) == 0 {
-			bytes, err := cache.Get("users", username, "following")
+			bytes, err := cache.GetBytes("users", username, "following")
 			if err != nil {
 				errs <- err
 				return
