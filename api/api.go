@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/spudtrooper/gettr/log"
 	"github.com/spudtrooper/goutil/check"
@@ -483,7 +484,11 @@ func (c *clientStatsCollector) RecordAndPrint() {
 		}
 		return sum / len(c.durs)
 	}
-	log.Printf("%s stats: len=%d median=%v mean=%v", c.tag, len(c.durs), time.Duration(median()), time.Duration(mean()))
+	log.Printf("%s stats: samples=%s median=%s mean=%s",
+		color.New(color.FgHiWhite).Sprintf("%s", c.tag),
+		color.YellowString(fmt.Sprintf("%d", len(c.durs))),
+		color.GreenString(fmt.Sprintf("%v", time.Duration(median()))),
+		color.CyanString(fmt.Sprintf("%v", time.Duration(mean()))))
 }
 
 func (c *Client) AllFollowersParallel(username string, fOpts ...AllFollowersOption) (chan UserInfo, chan OffsetStrings, chan error) {
