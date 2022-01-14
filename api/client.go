@@ -33,6 +33,8 @@ type Client struct {
 	debug    bool
 }
 
+func (c *Client) Username() string { return c.username }
+
 func MakeClientFromFlags() (*Client, error) {
 	if *user != "" && *token != "" {
 		client := MakeClient(*user, *token, MakeClientDebug(*clientDebug))

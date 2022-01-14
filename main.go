@@ -14,13 +14,15 @@ import (
 	"github.com/spudtrooper/gettr/api"
 	"github.com/spudtrooper/gettr/model"
 	"github.com/spudtrooper/goutil/check"
+	"github.com/spudtrooper/goutil/or"
+	"github.com/spudtrooper/goutil/sets"
 )
 
 var (
 	actions       = flag.String("actions", "", "comma-delimited list of calls to make")
 	pause         = flag.Duration("pause", 0, "pause amount between follows")
 	offset        = flag.Int("offset", 0, "offset for calls that take offsets")
-	other         = flag.String("other", "mtg4america", "other username")
+	other         = flag.String("other", "", "other username")
 	usernamesFile = flag.String("usernames_file", "", "file containing usernames")
 	max           = flag.Int("max", 0, "max to calls")
 	threads       = flag.Int("threads", 0, "threads to calls")
@@ -176,12 +178,36 @@ func realMain() error {
 		}
 	}
 
-	if should("AllFollowers") {
+	findFollowerUsernames := func(u *model.User) []string {
+		fs, err := u.FollowersSync(api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
+		if err != nil {
+			log.Printf("FollowersSync: igonoring: %v", err)
+			return []string{}
+		}
+		var res []string
+		for _, f := range fs {
+			if f.Username() != "" {
+				res = append(res, f.Username())
+			}
+		}
+		return res
+	}
+
+	if should("FollowAllCallback") {
+		factory := model.MakeFactory(cache, client)
+		existingFollowersSet := sets.String(findFollowerUsernames(factory.MakeUser(client.Username())))
+		log.Printf("have %d existing followers", len(existingFollowersSet))
+
 		username := *other
 		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
-			log.Printf("following users[%d] of %s", offset, username)
-			for _, u := range userInfos {
-				if err := client.Follow(u.Username); err != nil {
+			log.Printf("following %d users[%d] of %s", len(userInfos), offset, username)
+			for _, f := range userInfos {
+				if existingFollowersSet[f.Username] {
+					log.Printf("skipping %s because we already follow them", f.Username)
+					continue
+				}
+				log.Printf("trying to follow %s", f.Username)
+				if err := client.Follow(f.Username); err != nil {
 					return err
 				}
 				if *pause > 0 {
@@ -194,16 +220,114 @@ func realMain() error {
 		}
 	}
 
-	if should("PrintAllFollowers") {
-		username := *other
+	if should("FollowAll") {
+		factory := model.MakeFactory(cache, client)
+		existingFollowersSet := sets.String(findFollowerUsernames(factory.MakeUser(client.Username())))
+		log.Printf("have %d existing followers", len(existingFollowersSet))
+		u := factory.MakeUser(*other)
+
+		followers := make(chan *model.User)
+		go func() {
+			users, _ := u.Followers(api.AllFollowersMax(*max), api.AllFollowersMax(*threads), api.AllFollowersOffset(*offset))
+			for u := range users {
+				if ui, _ := u.UserInfo(); ui.Username != "" {
+					followers <- u
+				}
+			}
+			close(followers)
+		}()
+
+		for f := range followers {
+			if existingFollowersSet[f.Username()] {
+				log.Printf("skipping %s because we already follow them", f.Username())
+				continue
+			}
+			log.Printf("trying to follow %s", f.Username())
+			if err := client.Follow(f.Username()); err != nil {
+				return err
+			}
+			if *pause > 0 {
+				time.Sleep(*pause)
+			}
+		}
+	}
+
+	if should("PrintAllFollowersCallback") {
+		username := or.String(*other, client.Username())
 		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
 			log.Printf("following users[%d] of %s", offset, username)
-			for _, u := range userInfos {
-				fmt.Println(u.Username)
+			for _, f := range userInfos {
+				fmt.Println(f.Username)
 			}
 			return nil
 		}, api.AllFollowersOffset(*offset)); err != nil {
 			return err
+		}
+	}
+
+	if should("PrintAllFollowers") {
+		factory := model.MakeFactory(cache, client)
+		username := or.String(*other, client.Username())
+		u := factory.MakeUser(username)
+
+		followers := make(chan *model.User)
+		go func() {
+			users, _ := u.Followers(api.AllFollowersMax(*max), api.AllFollowersMax(*threads), api.AllFollowersOffset(*offset))
+			for u := range users {
+				if ui, _ := u.UserInfo(); ui.Username != "" {
+					followers <- u
+				}
+			}
+			close(followers)
+		}()
+
+		i := 0
+		for f := range followers {
+			fmt.Printf("followers[%d] %s\n", i, f.Username())
+			i++
+		}
+	}
+
+	if should("PrintAllFollowingCallback") {
+		username := or.String(*other, client.Username())
+		if err := client.AllFollowings(username, func(offset int, userInfos api.UserInfos) error {
+			log.Printf("following users[%d] of %s", offset, username)
+			for _, f := range userInfos {
+				fmt.Println(f.Username)
+			}
+			return nil
+		}, api.AllFollowingsOffset(*offset)); err != nil {
+			return err
+		}
+	}
+
+	if should("PrintAllFollowing") {
+		factory := model.MakeFactory(cache, client)
+		username := or.String(*other, client.Username())
+		u := factory.MakeUser(username)
+
+		following := make(chan *model.User)
+		go func() {
+			users, _ := u.Following(api.AllFollowingsMax(*max), api.AllFollowingsMax(*threads), api.AllFollowingsOffset(*offset))
+			for u := range users {
+				ui, err := u.UserInfo()
+				if err != nil {
+					log.Printf("UserInfo: skipping error %v", err)
+					continue
+				}
+				if ui.Username == "" {
+					log.Printf("UserInfo: skipping user %s", u.Username())
+					continue
+				}
+				following <- u
+			}
+			close(following)
+		}()
+
+		i := 0
+		for f := range following {
+			fmt.Printf("following[%d] %s\n", i, f.Username())
+			i++
 		}
 	}
 

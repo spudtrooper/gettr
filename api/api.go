@@ -20,6 +20,7 @@ const (
 	defaultOffset  = 0
 	defaultDir     = "fwd"
 	defaultThreads = 200
+	defaultStart   = 0
 )
 
 type Date interface {
@@ -338,7 +339,7 @@ func (c *Client) GetAllFollowings(username string, fOpts ...FollowingsOption) (U
 func (c *Client) AllFollowings(username string, f func(offset int, us UserInfos) error, fOpts ...AllFollowingsOption) error {
 	opts := MakeAllFollowingsOptions(fOpts...)
 	max := or.Int(opts.Max(), defaultMax)
-	start := or.Int(opts.Start(), 0)
+	start := or.Int(opts.Start(), defaultStart)
 	for offset := start; ; offset += max {
 		followings, err := c.GetFollowings(username, FollowingsOffset(offset), FollowingsMax(max))
 		if err != nil {
@@ -357,7 +358,7 @@ func (c *Client) AllFollowings(username string, f func(offset int, us UserInfos)
 func (c *Client) AllFollowingsParallel(username string, fOpts ...AllFollowingsOption) (chan UserInfo, chan error) {
 	opts := MakeAllFollowingsOptions(fOpts...)
 	max := or.Int(opts.Max(), defaultMax)
-	start := or.Int(opts.Start(), 0)
+	start := or.Int(opts.Start(), defaultStart)
 	threads := or.Int(opts.Threads(), defaultThreads)
 
 	userInfos := make(chan UserInfo)
@@ -438,7 +439,7 @@ type OffsetStrings struct {
 func (c *Client) AllFollowersParallel(username string, fOpts ...AllFollowersOption) (chan UserInfo, chan OffsetStrings, chan error) {
 	opts := MakeAllFollowersOptions(fOpts...)
 	max := or.Int(opts.Max(), defaultMax)
-	start := or.Int(opts.Start(), 0)
+	start := or.Int(opts.Start(), defaultStart)
 	threads := or.Int(opts.Threads(), defaultThreads)
 
 	userInfos := make(chan UserInfo)
@@ -489,7 +490,7 @@ func (c *Client) AllFollowersParallel(username string, fOpts ...AllFollowersOpti
 func (c *Client) AllFollowers(username string, f func(offset int, userInfos UserInfos) error, fOpts ...AllFollowersOption) error {
 	opts := MakeAllFollowersOptions(fOpts...)
 	max := or.Int(opts.Max(), defaultMax)
-	start := or.Int(opts.Start(), 0)
+	start := or.Int(opts.Start(), defaultStart)
 	for offset := start; ; offset += max {
 		followings, err := c.GetFollowers(username, FollowersOffset(offset), FollowersMax(max))
 		if err != nil {
@@ -503,6 +504,57 @@ func (c *Client) AllFollowers(username string, f func(offset int, userInfos User
 		}
 	}
 	return nil
+}
+
+func (c *Client) AllFollowingParallel(username string, fOpts ...AllFollowingsOption) (chan UserInfo, chan OffsetStrings, chan error) {
+	opts := MakeAllFollowingsOptions(fOpts...)
+	max := or.Int(opts.Max(), defaultMax)
+	start := or.Int(opts.Start(), defaultStart)
+	threads := or.Int(opts.Threads(), defaultThreads)
+
+	userInfos := make(chan UserInfo)
+	userNames := make(chan OffsetStrings)
+	offsets := make(chan int)
+	errs := make(chan error)
+
+	go func() {
+		for offset := start; offset < math.MaxInt; offset += max {
+			offsets <- offset
+		}
+		close(offsets)
+	}()
+
+	go func() {
+		var wg sync.WaitGroup
+		for i := 0; i < threads; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for offset := range offsets {
+					fs, err := c.GetFollowings(username, FollowingsOffset(offset), FollowingsMax(max))
+					if err != nil {
+						errs <- err
+						break
+					}
+					if len(fs) == 0 {
+						break
+					}
+					var us []string
+					for _, u := range fs {
+						userInfos <- u
+						us = append(us, u.Username)
+					}
+					userNames <- OffsetStrings{Strings: us, Offset: offset}
+				}
+			}()
+		}
+		wg.Wait()
+		close(userInfos)
+		close(userNames)
+		close(errs)
+	}()
+
+	return userInfos, userNames, errs
 }
 
 type CreatePostInfo struct {
