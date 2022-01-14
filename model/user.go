@@ -25,6 +25,16 @@ const (
 	defaultThreads = 200
 )
 
+type User struct {
+	*factory
+	username               string
+	userInfo               api.UserInfo
+	followers              []string
+	following              []string
+	cacheFollowersInMemory bool // currently always false
+	cacheFollowingInMemory bool // currently always false
+}
+
 type cacheKey string
 
 const (
@@ -37,16 +47,6 @@ const (
 	cacheKeyFollowingByOffset cacheKey = "followingByOffset"
 	cacheKeyFollowingDone     cacheKey = "followingDone"
 )
-
-type User struct {
-	*factory
-	username               string
-	userInfo               api.UserInfo
-	followers              []string
-	following              []string
-	cacheFollowersInMemory bool
-	cacheFollowingInMemory bool
-}
 
 func (u *User) MustDebugString() string {
 	s, err := u.DebugString()
@@ -66,7 +66,7 @@ func (u *User) DebugString() (string, error) {
 func (u *User) Username() string { return u.username }
 
 func (u *User) MarkSkipped() error {
-	if err := u.cache.Set("users", u.Username(), string(cacheKeySkipUserInfo)); err != nil {
+	if err := u.cache.Set(u.cacheParts(cacheKeySkipUserInfo)...); err != nil {
 		return err
 	}
 	return nil
@@ -78,7 +78,7 @@ func (u *User) UserInfo(uOpts ...UserInfoOption) (api.UserInfo, error) {
 	}
 
 	if u.userInfo.Username == "" && u.has(cacheKeyUserInfo) {
-		bytes, err := u.cache.GetBytes("users", u.username, "userInfo")
+		bytes, err := u.cache.GetBytes(u.cacheParts(cacheKeyUserInfo)...)
 		if err != nil {
 			return api.UserInfo{}, err
 		}
@@ -130,29 +130,20 @@ func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan erro
 		if *verboseCacheHits {
 			log.Printf("cache hit for followers of %s", u.Username())
 		}
-		var arr *[]string
-		if u.cacheFollowersInMemory {
-			arr = &u.followers
-		}
-		return cachedFollowers(u.username, u.cache, u.factory, arr, fOpts...)
-	} else if u.has(cacheKeyFollowersDone) &&
-		u.has(cacheKeyFollowersByOffset) {
+		return u.cachedFollowers(fOpts...)
+	} else if u.has(cacheKeyFollowersDone) && u.has(cacheKeyFollowersByOffset) {
 		// If we've completely read users and sharded them, read from the sharded directory.
 		if *verboseCacheHits {
 			log.Printf("cache hit for followersByOffset and followersDone of %s", u.Username())
 		}
-		var arr *[]string
-		if u.cacheFollowersInMemory {
-			arr = &u.followers
-		}
-		return cachedFollowersByOffset(u.username, u.cache, u.factory, arr, fOpts...)
+		return u.cachedFollowersByOffset(fOpts...)
 	} else if u.has(cacheKeyFollowersByOffset) {
 		// In the case we have partially read the followers, populate the in-memory cache.
 		if *verboseCacheHits {
 			log.Printf("cache hit for followersByOffset of %s", u.Username())
 		}
 
-		v, err := u.cache.GetAllStrings("users", u.Username(), string(cacheKeyFollowersByOffset))
+		v, err := u.cache.GetAllStrings(u.cacheParts(cacheKeyFollowersByOffset)...)
 		if err != nil {
 			log.Printf("ignoring GetAllStrings for %s", u.Username())
 		} else {
@@ -165,7 +156,7 @@ func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan erro
 	lastOffset := -1
 	{
 		if u.has(cacheKeyFollowersByOffset) {
-			keys, err := u.cache.FindKeys("users", u.Username(), string(cacheKeyFollowersByOffset))
+			keys, err := u.cache.FindKeys(u.cacheParts(cacheKeyFollowersByOffset)...)
 			if err != nil {
 				log.Printf("ignoring FindLargestKey: %v", err)
 			} else {
@@ -244,7 +235,7 @@ func (u *User) FollowersSync(fOpts ...api.AllFollowersOption) ([]*User, error) {
 			log.Printf("cache hit for followers of %s", u.Username())
 		}
 		lenBefore := len(u.followers)
-		cachedFollowers(u.username, u.cache, u.factory, &u.followers, fOpts...)
+		u.cachedFollowers(fOpts...)
 
 		if lenBefore != len(u.followers) {
 			go func() {
@@ -290,28 +281,20 @@ func (u *User) Following(fOpts ...api.AllFollowingsOption) (chan *User, chan err
 		if *verboseCacheHits {
 			log.Printf("cache hit for following of %s", u.Username())
 		}
-		var arr *[]string
-		if u.cacheFollowingInMemory {
-			arr = &u.following
-		}
-		return cachedFollowing(u.username, u.cache, u.factory, arr, fOpts...)
+		return u.cachedFollowing(fOpts...)
 	} else if u.has(cacheKeyFollowingDone) && u.has(cacheKeyFollowingByOffset) {
 		// If we've completely read users and sharded them, read from the sharded directory.
 		if *verboseCacheHits {
 			log.Printf("cache hit for followingByOffset and followingDone of %s", u.Username())
 		}
-		var arr *[]string
-		if u.cacheFollowingInMemory {
-			arr = &u.following
-		}
-		return cachedFollowingByOffset(u.username, u.cache, u.factory, arr, fOpts...)
+		return u.cachedFollowingByOffset(fOpts...)
 	} else if u.has(cacheKeyFollowingByOffset) {
 		// In the case we have partially read the following, populate the in-memory cache.
 		if *verboseCacheHits {
 			log.Printf("cache hit for followingByOffset of %s", u.Username())
 		}
 
-		v, err := u.cache.GetAllStrings("users", u.Username(), string(cacheKeyFollowingByOffset))
+		v, err := u.cache.GetAllStrings(u.cacheParts(cacheKeyFollowingByOffset)...)
 		if err != nil {
 			log.Printf("ignoring GetAllStrings for %s", u.Username())
 		} else {
@@ -324,7 +307,7 @@ func (u *User) Following(fOpts ...api.AllFollowingsOption) (chan *User, chan err
 	lastOffset := -1
 	{
 		if u.has(cacheKeyFollowingByOffset) {
-			keys, err := u.cache.FindKeys("users", u.Username(), string(cacheKeyFollowingByOffset))
+			keys, err := u.cache.FindKeys(u.cacheParts(cacheKeyFollowingByOffset)...)
 			if err != nil {
 				log.Printf("ignoring FindLargestKey: %v", err)
 			} else {
@@ -403,7 +386,7 @@ func (u *User) FollowingSync(fOpts ...api.AllFollowingsOption) ([]*User, error) 
 			log.Printf("cache hit for following of %s", u.Username())
 		}
 		lenBefore := len(u.following)
-		cachedFollowing(u.username, u.cache, u.factory, &u.following, fOpts...)
+		u.cachedFollowing(fOpts...)
 
 		if lenBefore != len(u.following) {
 			go func() {
@@ -452,6 +435,10 @@ func (u *User) has(key cacheKey) bool {
 	return ok
 }
 
+func (u *User) cacheParts(key cacheKey) []string {
+	return []string{"users", u.Username(), string(key)}
+}
+
 func setBytes(cache Cache, val interface{}, parts ...string) error {
 	bytes, err := json.Marshal(val)
 	if err != nil {
@@ -464,11 +451,13 @@ func setBytes(cache Cache, val interface{}, parts ...string) error {
 }
 
 func (u *User) cacheBytes(val interface{}, part cacheKey) error {
-	return setBytes(u.cache, val, "users", u.Username(), string(part))
+	return setBytes(u.cache, val, u.cacheParts(part)...)
 }
 
 func (u *User) cacheOffsetStrings(val []string, part cacheKey, offset int) error {
-	return setBytes(u.cache, val, "users", u.Username(), string(part), fmt.Sprintf("%d", offset))
+	parts := u.cacheParts(part)
+	parts = append(parts, fmt.Sprintf("%d", offset))
+	return setBytes(u.cache, val, parts...)
 }
 
 var (
@@ -573,7 +562,7 @@ func (u *User) Persist(pOpts ...UserPersistOption) error {
 	return nil
 }
 
-func cachedFollowers(username string, cache Cache, factory Factory, existingFollowers *[]string, fOpts ...api.AllFollowersOption) (chan *User, chan error) {
+func (u *User) cachedFollowers(fOpts ...api.AllFollowersOption) (chan *User, chan error) {
 	opts := api.MakeAllFollowersOptions(fOpts...)
 
 	followers := make(chan string)
@@ -583,17 +572,12 @@ func cachedFollowers(username string, cache Cache, factory Factory, existingFoll
 
 	go func() {
 		var existing []string
-		if existingFollowers != nil {
-			existing = *existingFollowers
+		if u.cacheFollowersInMemory {
+			existing = u.followers
 		}
 		if len(existing) == 0 {
-			bytes, err := cache.GetBytes("users", username, "followers")
+			v, err := u.cache.GetAllStrings(u.cacheParts(cacheKeyFollowersByOffset)...)
 			if err != nil {
-				errs <- err
-				return
-			}
-			var v []string
-			if err := json.Unmarshal(bytes, &v); err != nil {
 				errs <- err
 				return
 			}
@@ -601,6 +585,9 @@ func cachedFollowers(username string, cache Cache, factory Factory, existingFoll
 		}
 		for _, f := range existing {
 			followers <- f
+		}
+		if u.cacheFollowersInMemory {
+			u.followers = existing
 		}
 		close(followers)
 	}()
@@ -612,7 +599,7 @@ func cachedFollowers(username string, cache Cache, factory Factory, existingFoll
 			go func() {
 				defer wg.Done()
 				for f := range followers {
-					users <- factory.MakeUser(f)
+					users <- u.MakeUser(f)
 				}
 			}()
 		}
@@ -623,7 +610,7 @@ func cachedFollowers(username string, cache Cache, factory Factory, existingFoll
 	return users, errs
 }
 
-func cachedFollowersByOffset(username string, cache Cache, factory Factory, existingFollowers *[]string, fOpts ...api.AllFollowersOption) (chan *User, chan error) {
+func (u *User) cachedFollowersByOffset(fOpts ...api.AllFollowersOption) (chan *User, chan error) {
 	opts := api.MakeAllFollowersOptions(fOpts...)
 
 	followers := make(chan string)
@@ -633,11 +620,11 @@ func cachedFollowersByOffset(username string, cache Cache, factory Factory, exis
 
 	go func() {
 		var existing []string
-		if existingFollowers != nil {
-			existing = *existingFollowers
+		if u.cacheFollowersInMemory {
+			existing = u.followers
 		}
 		if len(existing) == 0 {
-			v, err := cache.GetAllStrings("users", username, string(cacheKeyFollowersByOffset))
+			v, err := u.cache.GetAllStrings(u.cacheParts(cacheKeyFollowersByOffset)...)
 			if err != nil {
 				errs <- err
 				return
@@ -646,6 +633,9 @@ func cachedFollowersByOffset(username string, cache Cache, factory Factory, exis
 		}
 		for _, f := range existing {
 			followers <- f
+		}
+		if u.cacheFollowersInMemory {
+			u.followers = existing
 		}
 		close(followers)
 	}()
@@ -657,7 +647,7 @@ func cachedFollowersByOffset(username string, cache Cache, factory Factory, exis
 			go func() {
 				defer wg.Done()
 				for f := range followers {
-					users <- factory.MakeUser(f)
+					users <- u.MakeUser(f)
 				}
 			}()
 		}
@@ -668,53 +658,7 @@ func cachedFollowersByOffset(username string, cache Cache, factory Factory, exis
 	return users, errs
 }
 
-func cachedFollowing(username string, cache Cache, factory Factory, existingFollowers *[]string, fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
-	opts := api.MakeAllFollowingsOptions(fOpts...)
-
-	following := make(chan string)
-	users := make(chan *User)
-	errs := make(chan error)
-	threads := or.Int(opts.Threads(), defaultThreads)
-
-	go func() {
-		if len(*existingFollowers) == 0 {
-			bytes, err := cache.GetBytes("users", username, "following")
-			if err != nil {
-				errs <- err
-				return
-			}
-			var v []string
-			if err := json.Unmarshal(bytes, &v); err != nil {
-				errs <- err
-				return
-			}
-			*existingFollowers = v
-		}
-		for _, f := range *existingFollowers {
-			following <- f
-		}
-		close(following)
-	}()
-
-	go func() {
-		var wg sync.WaitGroup
-		for i := 0; i < threads; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				for f := range following {
-					users <- factory.MakeUser(f)
-				}
-			}()
-		}
-		wg.Wait()
-		close(users)
-	}()
-
-	return users, errs
-}
-
-func cachedFollowingByOffset(username string, cache Cache, factory Factory, existingFollowing *[]string, fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
+func (u *User) cachedFollowing(fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
 	opts := api.MakeAllFollowingsOptions(fOpts...)
 
 	following := make(chan string)
@@ -724,11 +668,11 @@ func cachedFollowingByOffset(username string, cache Cache, factory Factory, exis
 
 	go func() {
 		var existing []string
-		if existingFollowing != nil {
-			existing = *existingFollowing
+		if u.cacheFollowingInMemory {
+			existing = u.following
 		}
 		if len(existing) == 0 {
-			v, err := cache.GetAllStrings("users", username, string(cacheKeyFollowingByOffset))
+			v, err := u.cache.GetAllStrings(u.cacheParts(cacheKeyFollowingByOffset)...)
 			if err != nil {
 				errs <- err
 				return
@@ -737,6 +681,9 @@ func cachedFollowingByOffset(username string, cache Cache, factory Factory, exis
 		}
 		for _, f := range existing {
 			following <- f
+		}
+		if u.cacheFollowingInMemory {
+			u.following = existing
 		}
 		close(following)
 	}()
@@ -748,7 +695,55 @@ func cachedFollowingByOffset(username string, cache Cache, factory Factory, exis
 			go func() {
 				defer wg.Done()
 				for f := range following {
-					users <- factory.MakeUser(f)
+					users <- u.MakeUser(f)
+				}
+			}()
+		}
+		wg.Wait()
+		close(users)
+	}()
+
+	return users, errs
+}
+
+func (u *User) cachedFollowingByOffset(fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
+	opts := api.MakeAllFollowingsOptions(fOpts...)
+
+	following := make(chan string)
+	users := make(chan *User)
+	errs := make(chan error)
+	threads := or.Int(opts.Threads(), defaultThreads)
+
+	go func() {
+		var existing []string
+		if u.cacheFollowingInMemory {
+			existing = u.following
+		}
+		if len(existing) == 0 {
+			v, err := u.cache.GetAllStrings(u.cacheParts(cacheKeyFollowingByOffset)...)
+			if err != nil {
+				errs <- err
+				return
+			}
+			existing = v
+		}
+		for _, f := range existing {
+			following <- f
+		}
+		if u.cacheFollowingInMemory {
+			u.following = existing
+		}
+		close(following)
+	}()
+
+	go func() {
+		var wg sync.WaitGroup
+		for i := 0; i < threads; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for f := range following {
+					users <- u.MakeUser(f)
 				}
 			}()
 		}
