@@ -4,15 +4,22 @@ import (
 	"fmt"
 	"math"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/spudtrooper/gettr/log"
 	"github.com/spudtrooper/goutil/check"
+	"github.com/spudtrooper/goutil/flags"
 	"github.com/spudtrooper/goutil/must"
 	"github.com/spudtrooper/goutil/or"
+)
+
+var (
+	clientStats = flags.Bool("client_stats", "Print client stats")
 )
 
 const (
@@ -436,6 +443,49 @@ type OffsetStrings struct {
 	Strings []string
 }
 
+type clientStatsCollector struct {
+	tag   string
+	start time.Time
+	durs  []time.Duration
+}
+
+func makeClientStatsCollector(tag string) *clientStatsCollector {
+	start := time.Now()
+	return &clientStatsCollector{tag: tag, start: start}
+}
+
+func (c *clientStatsCollector) RecordAndPrint() {
+	stop := time.Now()
+	dur := stop.Sub(c.start)
+	c.durs = append(c.durs, dur)
+	median := func() int {
+		if len(c.durs) == 0 {
+			return 0
+		}
+		var durs []int
+		for _, d := range c.durs {
+			durs = append(durs, int(d))
+		}
+		sort.Ints(durs)
+		mid := len(durs) - 1
+		if mid%2 == 1 {
+			return (durs[mid-1] + durs[mid]) / 2
+		}
+		return durs[mid]
+	}
+	mean := func() int {
+		if len(c.durs) == 0 {
+			return 0
+		}
+		var sum int
+		for _, d := range c.durs {
+			sum += int(d)
+		}
+		return sum / len(c.durs)
+	}
+	log.Printf("%s stats: len=%d median=%v mean=%v", c.tag, len(c.durs), time.Duration(median()), time.Duration(mean()))
+}
+
 func (c *Client) AllFollowersParallel(username string, fOpts ...AllFollowersOption) (chan UserInfo, chan OffsetStrings, chan error) {
 	opts := MakeAllFollowersOptions(fOpts...)
 	max := or.Int(opts.Max(), defaultMax)
@@ -460,8 +510,12 @@ func (c *Client) AllFollowersParallel(username string, fOpts ...AllFollowersOpti
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
+				col := makeClientStatsCollector("AllFollowersParallel")
 				for offset := range offsets {
 					fs, err := c.GetFollowers(username, FollowersOffset(offset), FollowersMax(max))
+					if *clientStats {
+						col.RecordAndPrint()
+					}
 					if err != nil {
 						errs <- err
 						break
@@ -530,8 +584,12 @@ func (c *Client) AllFollowingParallel(username string, fOpts ...AllFollowingsOpt
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
+				col := makeClientStatsCollector("AllFollowingParallel")
 				for offset := range offsets {
 					fs, err := c.GetFollowings(username, FollowingsOffset(offset), FollowingsMax(max))
+					if *clientStats {
+						col.RecordAndPrint()
+					}
 					if err != nil {
 						errs <- err
 						break

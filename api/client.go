@@ -11,20 +11,23 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/spudtrooper/gettr/log"
 	"github.com/spudtrooper/gettr/util"
+	"github.com/spudtrooper/goutil/flags"
 	"github.com/spudtrooper/goutil/must"
 )
 
 var (
-	clientVerbose = flag.Bool("client_verbose", false, "verbose client messages")
-	user          = flag.String("user", "", "auth username")
-	token         = flag.String("token", "", "auth token")
+	clientVerbose = flags.Bool("client_verbose", "verbose client messages")
+	user          = flags.String("user", "auth username")
+	token         = flags.String("token", "auth token")
 	userCreds     = flag.String("user_creds", ".user_creds.json", "file with user credentials")
-	clientDebug   = flag.Bool("client_debug", false, "whether to debug requests")
+	clientDebug   = flags.Bool("client_debug", "whether to debug requests")
+	requestStats  = flags.Bool("request_stats", "print verbose debugging of request timing")
 )
 
 type Client struct {
@@ -137,6 +140,9 @@ func (c *Client) request(method, route string, result interface{}, body io.Reade
 		}
 		log.Printf("requesting %s %s", url, strings.Join(largeNumbers, " "))
 	}
+
+	start := time.Now()
+
 	client := &http.Client{}
 	req, err := http.NewRequest(method, url, body)
 	req.Header.Set("x-app-auth", c.xAppAuth)
@@ -150,6 +156,7 @@ func (c *Client) request(method, route string, result interface{}, body io.Reade
 	if err != nil {
 		return err
 	}
+	reqStop := time.Now()
 
 	data, err := ioutil.ReadAll(doRes.Body)
 	if err != nil {
@@ -157,6 +164,15 @@ func (c *Client) request(method, route string, result interface{}, body io.Reade
 	}
 
 	doRes.Body.Close()
+
+	readStop := time.Now()
+
+	if *requestStats {
+		reqDur := reqStop.Sub(start)
+		readDur := readStop.Sub(reqStop)
+		totalDur := readStop.Sub(start)
+		log.Printf("request stats: total:%v request:%v read:%v", totalDur, reqDur, readDur)
+	}
 
 	if c.debug {
 		prettyJSON, err := prettyPrintJSON(data)

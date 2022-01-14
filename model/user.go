@@ -427,7 +427,7 @@ func (u *User) FollowingSync(fOpts ...api.AllFollowingsOption) ([]*User, error) 
 }
 
 func (u *User) has(key cacheKey) bool {
-	ok, err := u.cache.Has("user", u.Username(), string(key))
+	ok, err := u.cache.Has(u.cacheParts(key)...)
 	if err != nil {
 		log.Printf("has: ignoring error: %v", err)
 		return false
