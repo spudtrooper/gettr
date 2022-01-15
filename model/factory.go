@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/spudtrooper/gettr/api"
-	"github.com/spudtrooper/goutil/check"
 )
 
 type Factory interface {
@@ -22,14 +21,17 @@ type factory struct {
 	userCache   map[string]*User
 }
 
-func MakeFactory(cache Cache, client *api.Client) Factory {
-	db, err := MakeDB(context.TODO())
-	check.Err(err)
+func MakeFactory(ctx context.Context, cache Cache, client *api.Client) (Factory, error) {
+	db, err := MakeDB(ctx)
+	if err != nil {
+		return nil, err
+	}
 	userCache := map[string]*User{}
-	return &factory{cache: cache, client: client, db: db, userCache: userCache}
+	res := &factory{cache: cache, client: client, db: db, userCache: userCache}
+	return res, nil
 }
 
-func MakeFactoryFromFlags() (Factory, error) {
+func MakeFactoryFromFlags(ctx context.Context) (Factory, error) {
 	client, err := api.MakeClientFromFlags()
 	if err != nil {
 		return nil, err
@@ -38,7 +40,10 @@ func MakeFactoryFromFlags() (Factory, error) {
 	if err != nil {
 		return nil, err
 	}
-	factory := MakeFactory(cache, client)
+	factory, err := MakeFactory(ctx, cache, client)
+	if err != nil {
+		return nil, err
+	}
 	return factory, nil
 }
 

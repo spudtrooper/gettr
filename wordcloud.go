@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"regexp"
@@ -57,19 +58,19 @@ var (
 	nonAlphaNum = regexp.MustCompile(`[^a-zA-Z0-9]`)
 )
 
-func realMain() {
+func realMain(ctx context.Context) {
 	if *other == "" {
 		log.Fatalf("--other required")
 	}
 
-	factory, err := model.MakeFactoryFromFlags()
+	factory, err := model.MakeFactoryFromFlags(ctx)
 	check.Err(err)
 
 	u := factory.MakeUser(*other)
 
 	followers := make(chan *model.User)
 	go func() {
-		users, _ := u.Followers(api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
+		users, _ := u.Followers(ctx, api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
 		for u := range users {
 			followers <- u
 		}
@@ -84,7 +85,7 @@ func realMain() {
 			go func() {
 				defer wg.Done()
 				for f := range followers {
-					fs, err := f.GetFollowing(model.UserInfoDontRetry(true))
+					fs, err := f.GetFollowing(ctx, model.UserInfoDontRetry(true))
 					if err != nil {
 						log.Printf("ignoring followers error user for %s", f.Username())
 						continue
@@ -92,7 +93,7 @@ func realMain() {
 					if *maxFollowing > 0 && fs > *maxFollowing {
 						continue
 					}
-					desc, err := f.Desc()
+					desc, err := f.Desc(ctx)
 					if err != nil {
 						log.Printf("ignoring description error user for %s", f.Username())
 						f.MarkSkipped()
@@ -132,5 +133,5 @@ func realMain() {
 
 func main() {
 	flag.Parse()
-	realMain()
+	realMain(context.Background())
 }

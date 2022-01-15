@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -14,8 +15,8 @@ var (
 	threads = flag.Int("threads", 500, "number of threads to process user dirs")
 )
 
-func realMain() {
-	factory, err := model.MakeFactoryFromFlags()
+func realMain(ctx context.Context) {
+	factory, err := model.MakeFactoryFromFlags(ctx)
 	check.Err(err)
 
 	keys, errs, err := factory.Cache().FindKeysChannels("users")
@@ -34,7 +35,7 @@ func realMain() {
 				defer wg.Done()
 				for k := range keys {
 					u := factory.MakeUser(k)
-					f, err := u.GetFollowers()
+					f, err := u.GetFollowers(ctx)
 					if err != nil {
 						log.Printf("GetFollowers: %v", err)
 						continue
@@ -62,5 +63,5 @@ func realMain() {
 
 func main() {
 	flag.Parse()
-	realMain()
+	realMain(context.Background())
 }

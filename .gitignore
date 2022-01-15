@@ -1,7 +1,12 @@
-main
+compareusers
+commonfollowers
 html
+main
+mostfollowers
+wordclouds
 data
 data/*
 .cache
 .cache/*
 .user_creds.json
+.user_creds*.json

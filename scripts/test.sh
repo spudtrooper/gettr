@@ -1,8 +1,9 @@
 #!/bin/sh
 
 set -e
-
-go build main.go
-go build html.go
+for f in *.go; do
+    echo "=== building $f ==="
+    go build $f
+done
 go test api/*.go
 go test util/*.go

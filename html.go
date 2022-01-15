@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 
 	"github.com/pkg/errors"
@@ -24,7 +25,7 @@ var (
 	sortUsers                 = flags.Bool("sort_users", "sort users in the output (this can take a long time")
 )
 
-func realMain() error {
+func realMain(ctx context.Context) error {
 	if *other == "" {
 		return errors.Errorf("--other required")
 	}
@@ -32,12 +33,12 @@ func realMain() error {
 		return errors.Errorf("--output_dir required")
 	}
 
-	factory, err := model.MakeFactoryFromFlags()
+	factory, err := model.MakeFactoryFromFlags(ctx)
 	if err != nil {
 		return err
 	}
 
-	if err := htmlgen.Generate(*outputDir, factory, *other,
+	if err := htmlgen.Generate(ctx, *outputDir, factory, *other,
 		htmlgen.GenerateLimit(*limit),
 		htmlgen.GenerateAll(*all),
 		htmlgen.GenerateSortUsers(*sortUsers),
@@ -56,5 +57,5 @@ func realMain() error {
 
 func main() {
 	flag.Parse()
-	check.Err(realMain())
+	check.Err(realMain(context.Background()))
 }

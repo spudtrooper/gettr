@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -31,15 +32,12 @@ var (
 	postID        = flag.String("post_id", "", "post ID for deletion")
 )
 
-func realMain() error {
-	client, err := api.MakeClientFromFlags()
+func realMain(ctx context.Context) error {
+	factory, err := model.MakeFactoryFromFlags(ctx)
 	if err != nil {
 		return err
 	}
-	cache, err := model.MakeCacheFromFlags()
-	if err != nil {
-		return err
-	}
+	client := factory.Client()
 
 	actionMap := map[string]bool{}
 	if *actions != "" {
@@ -194,7 +192,6 @@ func realMain() error {
 	}
 
 	if should("FollowAllCallback") {
-		factory := model.MakeFactory(cache, client)
 		existingFollowersSet := sets.String(findFollowerUsernames(factory.MakeUser(client.Username())))
 		log.Printf("have %d existing followers", len(existingFollowersSet))
 
@@ -221,16 +218,15 @@ func realMain() error {
 	}
 
 	if should("FollowAll") {
-		factory := model.MakeFactory(cache, client)
 		existingFollowersSet := sets.String(findFollowerUsernames(factory.MakeUser(client.Username())))
 		log.Printf("have %d existing followers", len(existingFollowersSet))
 		u := factory.MakeUser(*other)
 
 		followers := make(chan *model.User)
 		go func() {
-			users, _ := u.Followers(api.AllFollowersMax(*max), api.AllFollowersMax(*threads), api.AllFollowersOffset(*offset))
+			users, _ := u.Followers(ctx, api.AllFollowersMax(*max), api.AllFollowersMax(*threads), api.AllFollowersOffset(*offset))
 			for u := range users {
-				if ui, _ := u.UserInfo(); ui.Username != "" {
+				if ui, _ := u.UserInfo(ctx); ui.Username != "" {
 					followers <- u
 				}
 			}
@@ -266,15 +262,14 @@ func realMain() error {
 	}
 
 	if should("PrintAllFollowers") {
-		factory := model.MakeFactory(cache, client)
 		username := or.String(*other, client.Username())
 		u := factory.MakeUser(username)
 
 		followers := make(chan *model.User)
 		go func() {
-			users, _ := u.Followers(api.AllFollowersMax(*max), api.AllFollowersMax(*threads), api.AllFollowersOffset(*offset))
+			users, _ := u.Followers(ctx, api.AllFollowersMax(*max), api.AllFollowersMax(*threads), api.AllFollowersOffset(*offset))
 			for u := range users {
-				if ui, _ := u.UserInfo(); ui.Username != "" {
+				if ui, _ := u.UserInfo(ctx); ui.Username != "" {
 					followers <- u
 				}
 			}
@@ -302,15 +297,14 @@ func realMain() error {
 	}
 
 	if should("PrintAllFollowing") {
-		factory := model.MakeFactory(cache, client)
 		username := or.String(*other, client.Username())
 		u := factory.MakeUser(username)
 
 		following := make(chan *model.User)
 		go func() {
-			users, _ := u.Following(api.AllFollowingsMax(*max), api.AllFollowingsMax(*threads), api.AllFollowingsOffset(*offset))
+			users, _ := u.Following(ctx, api.AllFollowingsMax(*max), api.AllFollowingsMax(*threads), api.AllFollowingsOffset(*offset))
 			for u := range users {
-				ui, err := u.UserInfo()
+				ui, err := u.UserInfo(ctx)
 				if err != nil {
 					log.Printf("UserInfo: skipping error %v", err)
 					continue
@@ -381,21 +375,19 @@ func realMain() error {
 	}
 
 	if should("Persist") {
-		factory := model.MakeFactory(cache, client)
 		user := factory.MakeUser(*other)
-		if err := user.Persist(model.UserPersistMax(*max), model.UserPersistThreads(*threads), model.UserPersistForce(*force)); err != nil {
+		if err := user.Persist(ctx, model.UserPersistMax(*max), model.UserPersistThreads(*threads), model.UserPersistForce(*force)); err != nil {
 			return err
 		}
 	}
 
 	if should("Read") {
-		factory := model.MakeFactory(cache, client)
 		u := factory.MakeUser(*other)
 
 		{
 			c := make(chan *model.User)
 			go func() {
-				users, _ := u.Followers(api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
+				users, _ := u.Followers(ctx, api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
 				for u := range users {
 					c <- u
 				}
@@ -411,7 +403,7 @@ func realMain() error {
 		{
 			c := make(chan *model.User)
 			go func() {
-				users, _ := u.Following(api.AllFollowingsMax(*max), api.AllFollowingsMax(*threads))
+				users, _ := u.Following(ctx, api.AllFollowingsMax(*max), api.AllFollowingsMax(*threads))
 				for u := range users {
 					c <- u
 				}
@@ -427,13 +419,12 @@ func realMain() error {
 	}
 
 	if should("PersistAll") {
-		factory := model.MakeFactory(cache, client)
 		u := factory.MakeUser(*other)
 
 		{
 			c := make(chan *model.User)
 			go func() {
-				users, _ := u.Followers(api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
+				users, _ := u.Followers(ctx, api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
 				for u := range users {
 					c <- u
 				}
@@ -441,7 +432,7 @@ func realMain() error {
 			}()
 
 			for f := range c {
-				if err := f.Persist(); err != nil {
+				if err := f.Persist(ctx); err != nil {
 					return err
 				}
 			}
@@ -449,7 +440,7 @@ func realMain() error {
 		{
 			c := make(chan *model.User)
 			go func() {
-				users, _ := u.Following(api.AllFollowingsMax(*max), api.AllFollowingsMax(*threads))
+				users, _ := u.Following(ctx, api.AllFollowingsMax(*max), api.AllFollowingsMax(*threads))
 				for u := range users {
 					c <- u
 				}
@@ -457,7 +448,7 @@ func realMain() error {
 			}()
 
 			for f := range c {
-				if err := f.Persist(); err != nil {
+				if err := f.Persist(ctx); err != nil {
 					return err
 				}
 			}
@@ -481,9 +472,8 @@ func realMain() error {
 	}
 
 	if should("PersistInDB") {
-		factory := model.MakeFactory(cache, client)
 		u := factory.MakeUser(*other)
-		if err := u.PersistInDB(); err != nil {
+		if err := u.PersistInDB(ctx); err != nil {
 			return err
 		}
 	}
@@ -497,5 +487,5 @@ func realMain() error {
 
 func main() {
 	flag.Parse()
-	check.Err(realMain())
+	check.Err(realMain(context.Background()))
 }

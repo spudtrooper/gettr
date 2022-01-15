@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 
@@ -16,10 +17,10 @@ var (
 	threads = flag.Int("threads", 0, "threads to calls")
 )
 
-func findFollowers(u *model.User) []string {
+func findFollowers(ctx context.Context, u *model.User) []string {
 	c := make(chan *model.User)
 	go func() {
-		users, _ := u.Followers(api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
+		users, _ := u.Followers(ctx, api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
 		for u := range users {
 			c <- u
 		}
@@ -71,9 +72,9 @@ func union(a, b []string) []string {
 	return res
 }
 
-func compareUsers(a, b *model.User, factory model.Factory) {
-	followersA := findFollowers(a)
-	followersB := findFollowers(b)
+func compareUsers(ctx context.Context, a, b *model.User, factory model.Factory) {
+	followersA := findFollowers(ctx, a)
+	followersB := findFollowers(ctx, b)
 
 	log.Printf("# folowersA: %d", len(followersA))
 	log.Printf("# folowersB: %d", len(followersB))
@@ -86,25 +87,25 @@ func compareUsers(a, b *model.User, factory model.Factory) {
 
 	for i, un := range u {
 		u := factory.MakeUser(un)
-		log.Printf("union[%d]: %s", i, u.MustDebugString())
+		log.Printf("union[%d]: %s", i, u.MustDebugString(ctx))
 	}
 }
 
-func realMain() {
+func realMain(ctx context.Context) {
 	if *a == "" {
 		log.Fatalf("--a required")
 	}
 	if *b == "" {
 		log.Fatalf("--b required")
 	}
-	factory, err := model.MakeFactoryFromFlags()
+	factory, err := model.MakeFactoryFromFlags(ctx)
 	check.Err(err)
 	userA := factory.MakeUser(*a)
 	userB := factory.MakeUser(*b)
-	compareUsers(userA, userB, factory)
+	compareUsers(ctx, userA, userB, factory)
 }
 
 func main() {
 	flag.Parse()
-	realMain()
+	realMain(context.Background())
 }

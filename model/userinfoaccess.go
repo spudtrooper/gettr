@@ -1,13 +1,14 @@
 package model
 
 import (
+	"context"
 	"time"
 
 	"github.com/pkg/errors"
 )
 
-func (u *User) BGImg(uOpts ...UserInfoOption) (string, error) {
-	ui, err := u.UserInfo(uOpts...)
+func (u *User) BGImg(ctx context.Context, uOpts ...UserInfoOption) (string, error) {
+	ui, err := u.UserInfo(ctx, uOpts...)
 	if err != nil {
 		return "", err
 	}
@@ -17,8 +18,8 @@ func (u *User) BGImg(uOpts ...UserInfoOption) (string, error) {
 	return ui.BGImg, nil
 }
 
-func (u *User) Desc(uOpts ...UserInfoOption) (string, error) {
-	ui, err := u.UserInfo(uOpts...)
+func (u *User) Desc(ctx context.Context, uOpts ...UserInfoOption) (string, error) {
+	ui, err := u.UserInfo(ctx, uOpts...)
 	if err != nil {
 		return "", err
 	}
@@ -28,8 +29,8 @@ func (u *User) Desc(uOpts ...UserInfoOption) (string, error) {
 	return ui.Desc, nil
 }
 
-func (u *User) ICO(uOpts ...UserInfoOption) (string, error) {
-	ui, err := u.UserInfo(uOpts...)
+func (u *User) ICO(ctx context.Context, uOpts ...UserInfoOption) (string, error) {
+	ui, err := u.UserInfo(ctx, uOpts...)
 	if err != nil {
 		return "", err
 	}
@@ -39,8 +40,8 @@ func (u *User) ICO(uOpts ...UserInfoOption) (string, error) {
 	return ui.ICO, nil
 }
 
-func (u *User) Infl(uOpts ...UserInfoOption) (int, error) {
-	ui, err := u.UserInfo(uOpts...)
+func (u *User) Infl(ctx context.Context, uOpts ...UserInfoOption) (int, error) {
+	ui, err := u.UserInfo(ctx, uOpts...)
 	if err != nil {
 		return 0, err
 	}
@@ -50,8 +51,8 @@ func (u *User) Infl(uOpts ...UserInfoOption) (int, error) {
 	return ui.Infl, nil
 }
 
-func (u *User) Lang(uOpts ...UserInfoOption) (string, error) {
-	ui, err := u.UserInfo(uOpts...)
+func (u *User) Lang(ctx context.Context, uOpts ...UserInfoOption) (string, error) {
+	ui, err := u.UserInfo(ctx, uOpts...)
 	if err != nil {
 		return "", err
 	}
@@ -61,8 +62,8 @@ func (u *User) Lang(uOpts ...UserInfoOption) (string, error) {
 	return ui.Lang, nil
 }
 
-func (u *User) OUsername(uOpts ...UserInfoOption) (string, error) {
-	ui, err := u.UserInfo(uOpts...)
+func (u *User) OUsername(ctx context.Context, uOpts ...UserInfoOption) (string, error) {
+	ui, err := u.UserInfo(ctx, uOpts...)
 	if err != nil {
 		return "", err
 	}
@@ -72,8 +73,8 @@ func (u *User) OUsername(uOpts ...UserInfoOption) (string, error) {
 	return ui.OUsername, nil
 }
 
-func (u *User) Website(uOpts ...UserInfoOption) (string, error) {
-	ui, err := u.UserInfo(uOpts...)
+func (u *User) Website(ctx context.Context, uOpts ...UserInfoOption) (string, error) {
+	ui, err := u.UserInfo(ctx, uOpts...)
 	if err != nil {
 		return "", err
 	}
@@ -83,8 +84,8 @@ func (u *User) Website(uOpts ...UserInfoOption) (string, error) {
 	return ui.Website, nil
 }
 
-func (u *User) TweetFollowing(uOpts ...UserInfoOption) (int, error) {
-	ui, err := u.UserInfo(uOpts...)
+func (u *User) TweetFollowing(ctx context.Context, uOpts ...UserInfoOption) (int, error) {
+	ui, err := u.UserInfo(ctx, uOpts...)
 	if err != nil {
 		return 0, err
 	}
@@ -94,8 +95,8 @@ func (u *User) TweetFollowing(uOpts ...UserInfoOption) (int, error) {
 	return ui.TwitterFollowing(), nil
 }
 
-func (u *User) TweetFollowers(uOpts ...UserInfoOption) (int, error) {
-	ui, err := u.UserInfo(uOpts...)
+func (u *User) TweetFollowers(ctx context.Context, uOpts ...UserInfoOption) (int, error) {
+	ui, err := u.UserInfo(ctx, uOpts...)
 	if err != nil {
 		return 0, err
 	}
@@ -105,8 +106,8 @@ func (u *User) TweetFollowers(uOpts ...UserInfoOption) (int, error) {
 	return ui.TwitterFollowers(), nil
 }
 
-func (u *User) GetFollowers(uOpts ...UserInfoOption) (int, error) {
-	ui, err := u.UserInfo(uOpts...)
+func (u *User) GetFollowers(ctx context.Context, uOpts ...UserInfoOption) (int, error) {
+	ui, err := u.UserInfo(ctx, uOpts...)
 	if err != nil {
 		return 0, err
 	}
@@ -116,8 +117,8 @@ func (u *User) GetFollowers(uOpts ...UserInfoOption) (int, error) {
 	return ui.Followers(), nil
 }
 
-func (u *User) GetFollowing(uOpts ...UserInfoOption) (int, error) {
-	ui, err := u.UserInfo(uOpts...)
+func (u *User) GetFollowing(ctx context.Context, uOpts ...UserInfoOption) (int, error) {
+	ui, err := u.UserInfo(ctx, uOpts...)
 	if err != nil {
 		return 0, err
 	}
@@ -127,8 +128,8 @@ func (u *User) GetFollowing(uOpts ...UserInfoOption) (int, error) {
 	return ui.Following(), nil
 }
 
-func (u *User) CDate(uOpts ...UserInfoOption) (time.Time, error) {
-	ui, err := u.UserInfo(uOpts...)
+func (u *User) CDate(ctx context.Context, uOpts ...UserInfoOption) (time.Time, error) {
+	ui, err := u.UserInfo(ctx, uOpts...)
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -138,8 +139,8 @@ func (u *User) CDate(uOpts ...UserInfoOption) (time.Time, error) {
 	return ui.CDate.Time()
 }
 
-func (u *User) UDate(uOpts ...UserInfoOption) (time.Time, error) {
-	ui, err := u.UserInfo(uOpts...)
+func (u *User) UDate(ctx context.Context, uOpts ...UserInfoOption) (time.Time, error) {
+	ui, err := u.UserInfo(ctx, uOpts...)
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -149,8 +150,8 @@ func (u *User) UDate(uOpts ...UserInfoOption) (time.Time, error) {
 	return ui.UDate.Time()
 }
 
-func (u *User) Type(uOpts ...UserInfoOption) (string, error) {
-	ui, err := u.UserInfo(uOpts...)
+func (u *User) Type(ctx context.Context, uOpts ...UserInfoOption) (string, error) {
+	ui, err := u.UserInfo(ctx, uOpts...)
 	if err != nil {
 		return "", err
 	}
@@ -160,8 +161,8 @@ func (u *User) Type(uOpts ...UserInfoOption) (string, error) {
 	return ui.Type, nil
 }
 
-func (u *User) ID(uOpts ...UserInfoOption) (string, error) {
-	ui, err := u.UserInfo(uOpts...)
+func (u *User) ID(ctx context.Context, uOpts ...UserInfoOption) (string, error) {
+	ui, err := u.UserInfo(ctx, uOpts...)
 	if err != nil {
 		return "", err
 	}
@@ -171,8 +172,8 @@ func (u *User) ID(uOpts ...UserInfoOption) (string, error) {
 	return ui.ID, nil
 }
 
-func (u *User) Nickname(uOpts ...UserInfoOption) (string, error) {
-	ui, err := u.UserInfo(uOpts...)
+func (u *User) Nickname(ctx context.Context, uOpts ...UserInfoOption) (string, error) {
+	ui, err := u.UserInfo(ctx, uOpts...)
 	if err != nil {
 		return "", err
 	}
@@ -182,8 +183,8 @@ func (u *User) Nickname(uOpts ...UserInfoOption) (string, error) {
 	return ui.Nickname, nil
 }
 
-func (u *User) Status(uOpts ...UserInfoOption) (string, error) {
-	ui, err := u.UserInfo(uOpts...)
+func (u *User) Status(ctx context.Context, uOpts ...UserInfoOption) (string, error) {
+	ui, err := u.UserInfo(ctx, uOpts...)
 	if err != nil {
 		return "", err
 	}

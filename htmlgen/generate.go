@@ -1,6 +1,7 @@
 package htmlgen
 
 import (
+	"context"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -23,7 +24,7 @@ var (
 	debugResolvedUserInfo = flag.Bool("debug_resolved_user_info", false, "print verbose logs for resolving user info")
 )
 
-func Generate(outputDirName string, factory model.Factory, other string, gOpts ...GenerateOption) error {
+func Generate(ctx context.Context, outputDirName string, factory model.Factory, other string, gOpts ...GenerateOption) error {
 	opts := MakeGenerateOptions(gOpts...)
 
 	limit := opts.Limit()
@@ -37,7 +38,7 @@ func Generate(outputDirName string, factory model.Factory, other string, gOpts .
 	followers := make(chan *model.User)
 	followersForResolution := make(chan *model.User)
 	go func() {
-		users, errs := u.Followers(api.AllFollowersThreads(threads))
+		users, errs := u.Followers(ctx, api.AllFollowersThreads(threads))
 		for u := range users {
 			followers <- u
 			followersForResolution <- u
@@ -59,7 +60,7 @@ func Generate(outputDirName string, factory model.Factory, other string, gOpts .
 				go func() {
 					defer wg.Done()
 					for f := range followersForResolution {
-						u, err := f.UserInfo()
+						u, err := f.UserInfo(ctx)
 						if err != nil {
 							log.Printf("UserInfo: ignoring error: %v", err)
 						}
@@ -81,12 +82,12 @@ func Generate(outputDirName string, factory model.Factory, other string, gOpts .
 		log.Printf("sorting %d users...", len(cachedFollowers))
 		sort.Slice(cachedFollowers, func(i, j int) bool {
 			a, b := cachedFollowers[i], cachedFollowers[j]
-			ai, err := a.UserInfo()
+			ai, err := a.UserInfo(ctx)
 			if err != nil {
 				log.Printf("a.UserInfo: ignoring error: %v", err)
 				return true
 			}
-			bi, err := b.UserInfo()
+			bi, err := b.UserInfo(ctx)
 			if err != nil {
 				log.Printf("b.UserInfo: ignoring error: %v", err)
 				return true
@@ -136,7 +137,7 @@ func Generate(outputDirName string, factory model.Factory, other string, gOpts .
 					break
 				}
 				username := f.Username()
-				userInfo, err := f.UserInfo()
+				userInfo, err := f.UserInfo(ctx)
 				check.Err(err)
 
 				ico := userInfo.ICO
@@ -191,7 +192,7 @@ func Generate(outputDirName string, factory model.Factory, other string, gOpts .
 			if limit > 0 && i > limit {
 				break
 			}
-			userInfo, err := f.UserInfo()
+			userInfo, err := f.UserInfo(ctx)
 			if err != nil {
 				return nil, nil, err
 			}
