@@ -36,10 +36,14 @@ func MakeCacheFromFlags() (Cache, error) {
 	if *cacheDir == "" {
 		return nil, errors.Errorf("must set --cache_dir")
 	}
-	cache := &cacheImpl{
+	cache := makeCache(*cacheDir)
+	return cache, nil
+}
+
+func makeCache(dir string) *cacheImpl {
+	return &cacheImpl{
 		dir: *cacheDir,
 	}
-	return cache, nil
 }
 
 type cacheImpl struct {

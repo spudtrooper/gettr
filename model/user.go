@@ -1,6 +1,7 @@
 package model
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"github.com/spudtrooper/gettr/api"
 	"github.com/spudtrooper/gettr/log"
 	"github.com/spudtrooper/goutil/check"
+	"github.com/spudtrooper/goutil/flags"
 	"github.com/spudtrooper/goutil/or"
 	"github.com/spudtrooper/goutil/sets"
 	"github.com/thomaso-mirodin/intmath/intgr"
@@ -72,7 +74,67 @@ func (u *User) MarkSkipped() error {
 	return nil
 }
 
+var userInfoUsingDiskCache = flags.Bool("user_info_using_disk_cache", "use disk cache for userInfo")
+
 func (u *User) UserInfo(uOpts ...UserInfoOption) (api.UserInfo, error) {
+	if *userInfoUsingDiskCache {
+		return u.userInfoUsingDiskCache(uOpts...)
+	}
+	return u.userInfoUsingDB(uOpts...)
+}
+
+func (u *User) userInfoUsingDB(uOpts ...UserInfoOption) (api.UserInfo, error) {
+	userOptions, err := u.db.GetUserOptions(context.TODO(), u.username)
+	if err == nil && userOptions != nil && userOptions.Skip {
+		return api.UserInfo{}, nil
+	}
+
+	if u.userInfo.Username == "" {
+		userInfo, err := u.db.GetUserInfo(context.TODO(), u.username)
+		if err == nil && userInfo != nil {
+			return *userInfo, nil
+		}
+		if userInfo != nil {
+			u.userInfo = *userInfo
+		}
+	}
+
+	if u.userInfo.Username == "" {
+		uinfo, err := u.client.GetUserInfo(u.username)
+		if err != nil {
+			if strings.HasPrefix(err.Error(), "response error") {
+				log.Printf("ignoring response error: %v", err)
+				var writeSkipFile bool
+				if strings.Contains(err.Error(), "user already deleted") {
+					writeSkipFile = true
+				} else if opts := MakeUserInfoOptions(uOpts...); opts.DontRetry() {
+					writeSkipFile = true
+				}
+				if writeSkipFile {
+					go func() {
+						if err := u.db.SetUserSkip(context.TODO(), u.Username(), true); err != nil {
+							log.Printf("SetUserSkip for %s: %v", u.Username(), err)
+						}
+					}()
+				}
+				return api.UserInfo{}, nil
+			}
+			return api.UserInfo{}, err
+		}
+		u.userInfo = uinfo
+
+		// Cache it.
+		go func() {
+			if err := u.db.SetUserInfo(context.TODO(), u.Username(), u.userInfo); err != nil {
+				log.Printf("SetUserInfo for %s: %v", u.Username(), err)
+			}
+		}()
+	}
+
+	return u.userInfo, nil
+}
+
+func (u *User) userInfoUsingDiskCache(uOpts ...UserInfoOption) (api.UserInfo, error) {
 	if u.has(cacheKeySkipUserInfo) {
 		return api.UserInfo{}, nil
 	}
@@ -124,7 +186,122 @@ func (u *User) UserInfo(uOpts ...UserInfoOption) (api.UserInfo, error) {
 	return u.userInfo, nil
 }
 
+var followersUsingDiskCache = flags.Bool("followers_using_disk_cache", "use disk cache for followers")
+
 func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan error) {
+	if *followersUsingDiskCache {
+		return u.followersUsingDiskCache(fOpts...)
+	}
+	return u.followersUsingDB(fOpts...)
+}
+
+func (u *User) followersUsingDB(fOpts ...api.AllFollowersOption) (chan *User, chan error) {
+	opts := api.MakeAllFollowersOptions(fOpts...)
+	threads := or.Int(opts.Threads(), defaultThreads)
+
+	done, err := u.db.GetUserFollowersDone(context.TODO(), u.Username())
+	check.Err(err)
+	if done {
+		users := make(chan *User)
+
+		followers, errors, err := u.db.GetFollowers(context.TODO(), u.Username())
+		check.Err(err)
+
+		go func() {
+			var wg sync.WaitGroup
+			for i := 0; i < threads; i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for f := range followers {
+						users <- u.MakeUser(f)
+					}
+				}()
+			}
+			wg.Wait()
+			close(users)
+		}()
+
+		return users, errors
+	}
+
+	lastOffset := -1
+	if false {
+		if u.has(cacheKeyFollowersByOffset) {
+			keys, err := u.cache.FindKeys(u.cacheParts(cacheKeyFollowersByOffset)...)
+			if err != nil {
+				log.Printf("ignoring FindLargestKey: %v", err)
+			} else {
+				for _, k := range keys {
+					n, err := strconv.Atoi(k)
+					if err != nil {
+						log.Printf("ignoring Atoi: %v", err)
+						continue
+					}
+					lastOffset = intgr.Max(lastOffset, n)
+				}
+			}
+		}
+	}
+	log.Printf("have last followers offset: %d", lastOffset)
+	if lastOffset > 0 {
+		fOpts = append(fOpts, api.AllFollowersStart(lastOffset))
+	}
+
+	userInfos, userNamesToCache, errs := u.client.AllFollowersParallel(u.username, fOpts...)
+
+	users := make(chan *User)
+	usernames := make(chan string)
+
+	go func() {
+		// Transfer the partially-populated in-memory cache to the result.
+		if u.cacheFollowersInMemory {
+			for _, f := range u.followers {
+				follower := u.MakeUser(f)
+				users <- follower
+			}
+		}
+		// Transfer the newly-read users to the result.
+		for userInfo := range userInfos {
+			follower := u.MakeUser(userInfo.Username)
+			follower.userInfo = userInfo
+			users <- follower
+			usernames <- userInfo.Username
+		}
+		close(users)
+		close(usernames)
+	}()
+
+	go func() {
+		// Cache by shard.
+		for so := range userNamesToCache {
+			if err := u.db.SetFollowers(context.TODO(), u.Username(), so.Offset, so.Strings); err != nil {
+				log.Printf("SetFollowers: error caching followers for %s, offset=%d: %v", u.Username(), so.Offset, err)
+			}
+		}
+		// Mark that we are complete.
+		if err := u.db.SetUserFollowersDone(context.TODO(), u.Username(), true); err != nil {
+			log.Printf("SetUserFollowersDone: error caching followers for %s: %v", u.Username(), err)
+		}
+	}()
+
+	// Cache all newly-read users in memory.
+	go func() {
+		var followers []string
+		for f := range usernames {
+			if u.cacheFollowersInMemory {
+				followers = append(followers, f)
+			}
+		}
+		if u.cacheFollowersInMemory {
+			u.followers = append(u.followers, followers...)
+		}
+	}()
+
+	return users, errs
+}
+
+func (u *User) followersUsingDiskCache(fOpts ...api.AllFollowersOption) (chan *User, chan error) {
 	// Followers are either in "followers" (legacy) or sharded into "followersByOffset"
 	if u.has(cacheKeyFollowers) {
 		if *verboseCacheHits {
@@ -275,7 +452,123 @@ func (u *User) FollowersSync(fOpts ...api.AllFollowersOption) ([]*User, error) {
 	return res, nil
 }
 
+var followingUsingDiskCache = flags.Bool("following_using_disk_cache", "use disk cache for followers")
+
 func (u *User) Following(fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
+	if *followingUsingDiskCache {
+		return u.followingUsingDiskCache(fOpts...)
+	}
+	return u.followingUsingDB(fOpts...)
+}
+
+func (u *User) followingUsingDB(fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
+	opts := api.MakeAllFollowingsOptions(fOpts...)
+	threads := or.Int(opts.Threads(), defaultThreads)
+
+	done, err := u.db.GetUserFollowingDone(context.TODO(), u.Username())
+	check.Err(err)
+	if done {
+		users := make(chan *User)
+
+		followers, errors, err := u.db.GetFollowing(context.TODO(), u.Username())
+		check.Err(err)
+
+		go func() {
+			var wg sync.WaitGroup
+			for i := 0; i < threads; i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for f := range followers {
+						users <- u.MakeUser(f)
+					}
+				}()
+			}
+			wg.Wait()
+			close(users)
+		}()
+
+		return users, errors
+	}
+
+	lastOffset := -1
+	// todo
+	if false {
+		if u.has(cacheKeyFollowersByOffset) {
+			keys, err := u.cache.FindKeys(u.cacheParts(cacheKeyFollowersByOffset)...)
+			if err != nil {
+				log.Printf("ignoring FindLargestKey: %v", err)
+			} else {
+				for _, k := range keys {
+					n, err := strconv.Atoi(k)
+					if err != nil {
+						log.Printf("ignoring Atoi: %v", err)
+						continue
+					}
+					lastOffset = intgr.Max(lastOffset, n)
+				}
+			}
+		}
+	}
+	log.Printf("have last followers offset: %d", lastOffset)
+	if lastOffset > 0 {
+		fOpts = append(fOpts, api.AllFollowingsStart(lastOffset))
+	}
+
+	userInfos, userNamesToCache, errs := u.client.AllFollowingParallel(u.username, fOpts...)
+
+	users := make(chan *User)
+	usernames := make(chan string)
+
+	go func() {
+		// Transfer the partially-populated in-memory cache to the result.
+		if u.cacheFollowersInMemory {
+			for _, f := range u.followers {
+				follower := u.MakeUser(f)
+				users <- follower
+			}
+		}
+		// Transfer the newly-read users to the result.
+		for userInfo := range userInfos {
+			following := u.MakeUser(userInfo.Username)
+			following.userInfo = userInfo
+			users <- following
+			usernames <- userInfo.Username
+		}
+		close(users)
+		close(usernames)
+	}()
+
+	go func() {
+		// Cache by shard.
+		for so := range userNamesToCache {
+			if err := u.db.SetFollowing(context.TODO(), u.Username(), so.Offset, so.Strings); err != nil {
+				log.Printf("SetFollowing: error caching following for %s, offset=%d: %v", u.Username(), so.Offset, err)
+			}
+		}
+		// Mark that we are complete.
+		if err := u.db.SetUserFollowingDone(context.TODO(), u.Username(), true); err != nil {
+			log.Printf("SetUserFollowingDone: error caching following for %s: %v", u.Username(), err)
+		}
+	}()
+
+	// Cache all newly-read users in memory.
+	go func() {
+		var following []string
+		for f := range usernames {
+			if u.cacheFollowersInMemory {
+				following = append(following, f)
+			}
+		}
+		if u.cacheFollowersInMemory {
+			u.following = append(u.following, following...)
+		}
+	}()
+
+	return users, errs
+}
+
+func (u *User) followingUsingDiskCache(fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
 	// Following are either in "following" (legacy) or sharded into "followingByOffset"
 	if u.has(cacheKeyFollowing) {
 		if *verboseCacheHits {
@@ -590,6 +883,7 @@ func (u *User) cachedFollowers(fOpts ...api.AllFollowersOption) (chan *User, cha
 			u.followers = existing
 		}
 		close(followers)
+		close(errs)
 	}()
 
 	go func() {

@@ -23,8 +23,8 @@ var (
 	debugResolvedUserInfo = flag.Bool("debug_resolved_user_info", false, "print verbose logs for resolving user info")
 )
 
-func Generate(outputDirName string, factory model.Factory, other string, gOpts ...GeneratOption) error {
-	opts := MakeGeneratOptions(gOpts...)
+func Generate(outputDirName string, factory model.Factory, other string, gOpts ...GenerateOption) error {
+	opts := MakeGenerateOptions(gOpts...)
 
 	limit := opts.Limit()
 	threads := or.Int(opts.Threads(), 100)
@@ -43,7 +43,7 @@ func Generate(outputDirName string, factory model.Factory, other string, gOpts .
 			followersForResolution <- u
 		}
 		for e := range errs {
-			log.Printf("Followers: ignoring error: %v", e)
+			log.Printf("ignoring error: %v", e)
 		}
 		close(followers)
 		close(followersForResolution)

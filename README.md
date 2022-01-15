@@ -14,3 +14,18 @@ To generate HTML for user `repmattgaetz`.
 2. Find followers and generate HTML:
 
         go run html.go --other repmattgaetz --all
+
+## Notes
+
+Installing mongodb
+
+```bash
+brew tap mongodb/brew
+brew install mongodb-community@5.0
+```
+
+Starting mongodb
+
+```bash
+brew services start mongodb-community@5.0
+```

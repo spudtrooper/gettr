@@ -1,10 +1,10 @@
 package htmlgen
 
-// genopts --opt_type=GeneratOption --prefix=Generate --outfile=htmlgen/generateoptions.go 'writeCSV' 'writeSimpleHTML' 'writeDescriptionsHTML' 'writeTwitterFollowersHTML' 'writeHTML' 'limit:int' 'all' 'threads:int'
+// genopts --opt_type=GenerateOption --prefix=Generate --outfile=htmlgen/generateoptions.go 'writeCSV' 'writeSimpleHTML' 'writeDescriptionsHTML' 'writeTwitterFollowersHTML' 'writeHTML' 'limit:int' 'all' 'threads:int'
 
-type GeneratOption func(*generatOptionImpl)
+type GenerateOption func(*generateOptionImpl)
 
-type GeneratOptions interface {
+type GenerateOptions interface {
 	WriteCSV() bool
 	WriteSimpleHTML() bool
 	WriteDescriptionsHTML() bool
@@ -15,55 +15,55 @@ type GeneratOptions interface {
 	Threads() int
 }
 
-func GenerateWriteCSV(writeCSV bool) GeneratOption {
-	return func(opts *generatOptionImpl) {
+func GenerateWriteCSV(writeCSV bool) GenerateOption {
+	return func(opts *generateOptionImpl) {
 		opts.writeCSV = writeCSV
 	}
 }
 
-func GenerateWriteSimpleHTML(writeSimpleHTML bool) GeneratOption {
-	return func(opts *generatOptionImpl) {
+func GenerateWriteSimpleHTML(writeSimpleHTML bool) GenerateOption {
+	return func(opts *generateOptionImpl) {
 		opts.writeSimpleHTML = writeSimpleHTML
 	}
 }
 
-func GenerateWriteDescriptionsHTML(writeDescriptionsHTML bool) GeneratOption {
-	return func(opts *generatOptionImpl) {
+func GenerateWriteDescriptionsHTML(writeDescriptionsHTML bool) GenerateOption {
+	return func(opts *generateOptionImpl) {
 		opts.writeDescriptionsHTML = writeDescriptionsHTML
 	}
 }
 
-func GenerateWriteTwitterFollowersHTML(writeTwitterFollowersHTML bool) GeneratOption {
-	return func(opts *generatOptionImpl) {
+func GenerateWriteTwitterFollowersHTML(writeTwitterFollowersHTML bool) GenerateOption {
+	return func(opts *generateOptionImpl) {
 		opts.writeTwitterFollowersHTML = writeTwitterFollowersHTML
 	}
 }
 
-func GenerateWriteHTML(writeHTML bool) GeneratOption {
-	return func(opts *generatOptionImpl) {
+func GenerateWriteHTML(writeHTML bool) GenerateOption {
+	return func(opts *generateOptionImpl) {
 		opts.writeHTML = writeHTML
 	}
 }
 
-func GenerateLimit(limit int) GeneratOption {
-	return func(opts *generatOptionImpl) {
+func GenerateLimit(limit int) GenerateOption {
+	return func(opts *generateOptionImpl) {
 		opts.limit = limit
 	}
 }
 
-func GenerateAll(all bool) GeneratOption {
-	return func(opts *generatOptionImpl) {
+func GenerateAll(all bool) GenerateOption {
+	return func(opts *generateOptionImpl) {
 		opts.all = all
 	}
 }
 
-func GenerateThreads(threads int) GeneratOption {
-	return func(opts *generatOptionImpl) {
+func GenerateThreads(threads int) GenerateOption {
+	return func(opts *generateOptionImpl) {
 		opts.threads = threads
 	}
 }
 
-type generatOptionImpl struct {
+type generateOptionImpl struct {
 	writeCSV                  bool
 	writeSimpleHTML           bool
 	writeDescriptionsHTML     bool
@@ -74,23 +74,23 @@ type generatOptionImpl struct {
 	threads                   int
 }
 
-func (g *generatOptionImpl) WriteCSV() bool                  { return g.writeCSV }
-func (g *generatOptionImpl) WriteSimpleHTML() bool           { return g.writeSimpleHTML }
-func (g *generatOptionImpl) WriteDescriptionsHTML() bool     { return g.writeDescriptionsHTML }
-func (g *generatOptionImpl) WriteTwitterFollowersHTML() bool { return g.writeTwitterFollowersHTML }
-func (g *generatOptionImpl) WriteHTML() bool                 { return g.writeHTML }
-func (g *generatOptionImpl) Limit() int                      { return g.limit }
-func (g *generatOptionImpl) All() bool                       { return g.all }
-func (g *generatOptionImpl) Threads() int                    { return g.threads }
+func (g *generateOptionImpl) WriteCSV() bool                  { return g.writeCSV }
+func (g *generateOptionImpl) WriteSimpleHTML() bool           { return g.writeSimpleHTML }
+func (g *generateOptionImpl) WriteDescriptionsHTML() bool     { return g.writeDescriptionsHTML }
+func (g *generateOptionImpl) WriteTwitterFollowersHTML() bool { return g.writeTwitterFollowersHTML }
+func (g *generateOptionImpl) WriteHTML() bool                 { return g.writeHTML }
+func (g *generateOptionImpl) Limit() int                      { return g.limit }
+func (g *generateOptionImpl) All() bool                       { return g.all }
+func (g *generateOptionImpl) Threads() int                    { return g.threads }
 
-func makeGeneratOptionImpl(opts ...GeneratOption) *generatOptionImpl {
-	res := &generatOptionImpl{}
+func makeGenerateOptionImpl(opts ...GenerateOption) *generateOptionImpl {
+	res := &generateOptionImpl{}
 	for _, opt := range opts {
 		opt(res)
 	}
 	return res
 }
 
-func MakeGeneratOptions(opts ...GeneratOption) GeneratOptions {
-	return makeGeneratOptionImpl(opts...)
+func MakeGenerateOptions(opts ...GenerateOption) GenerateOptions {
+	return makeGenerateOptionImpl(opts...)
 }

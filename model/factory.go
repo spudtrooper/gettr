@@ -1,7 +1,10 @@
 package model
 
 import (
+	"context"
+
 	"github.com/spudtrooper/gettr/api"
+	"github.com/spudtrooper/goutil/check"
 )
 
 type Factory interface {
@@ -13,10 +16,13 @@ type Factory interface {
 type factory struct {
 	cache  Cache
 	client *api.Client
+	db     *DB
 }
 
 func MakeFactory(cache Cache, client *api.Client) Factory {
-	return &factory{cache, client}
+	db, err := MakeDB(context.TODO())
+	check.Err(err)
+	return &factory{cache: cache, client: client, db: db}
 }
 
 func MakeFactoryFromFlags() (Factory, error) {
