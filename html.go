@@ -21,6 +21,7 @@ var (
 	writeDescriptionsHTML     = flags.Bool("write_desc_html", "write HTML file for entries with descriptions")
 	writeTwitterFollowersHTML = flags.Bool("write_twitter_followers_html", "write HTML file for entries with twitter followers")
 	outputDir                 = flag.String("output_dir", "../gettrdata/output", "output directory for files")
+	sortUsers                 = flags.Bool("sort_users", "sort users in the output (this can take a long time")
 )
 
 func realMain() error {
@@ -39,6 +40,7 @@ func realMain() error {
 	if err := htmlgen.Generate(*outputDir, factory, *other,
 		htmlgen.GenerateLimit(*limit),
 		htmlgen.GenerateAll(*all),
+		htmlgen.GenerateSortUsers(*sortUsers),
 		htmlgen.GenerateThreads(*threads),
 		htmlgen.GenerateWriteCSV(*writeCSV),
 		htmlgen.GenerateWriteDescriptionsHTML(*writeDescriptionsHTML),

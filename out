@@ -1,0 +1,2527 @@
+2022/01/15 15:57:05 [gettr] trying to connect to mongodb://localhost:27017 to create gettr
+2022/01/15 15:57:05 [gettr] connected to gettr
+2022/01/15 15:57:05 [gettr] using 200 threads for HTML generation
+2022/01/15 15:57:05 [1/5] finding followers
+2022/01/15 15:57:05 [2/5] resolving user info
+fatal error: concurrent map read and map write
+
+goroutine 331 [running]:
+runtime.throw({0x15ab9d2, 0xc0005483c8})
+	/usr/local/go/src/runtime/panic.go:1198 +0x71 fp=0xc0003d96d8 sp=0xc0003d96a8 pc=0x1034751
+runtime.mapaccess2_faststr(0x0, 0x0, {0xc0004507f0, 0xb})
+	/usr/local/go/src/runtime/map_faststr.go:116 +0x3d4 fp=0xc0003d9740 sp=0xc0003d96d8 pc=0x1013c74
+github.com/spudtrooper/gettr/model.(*factory).MakeUser(...)
+	/Users/jeff/Projects/gettr/model/factory.go:48
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xfc fp=0xc0003d97e0 sp=0xc0003d9740 pc=0x147115c
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:1581 +0x1 fp=0xc0003d97e8 sp=0xc0003d97e0 pc=0x10642a1
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 1 [runnable]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:81 +0xa0
+github.com/spudtrooper/goutil/task.(*tasks).Go(0xc000032100)
+	/Users/jeff/Projects/goutil/task/task.go:77 +0x312
+github.com/spudtrooper/gettr/htmlgen.Generate({0x15a23c1, 0x13}, {0x18206c0, 0xc00007c090}, {0x20608c8fa, 0x1}, {0xc000191f00, 0x20608c926, 0x20608c91d})
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:415 +0x582
+main.realMain({0x18224b0, 0xc000122000})
+	/Users/jeff/Projects/gettr/html.go:40 +0x2ac
+main.main()
+	/Users/jeff/Projects/gettr/html.go:58 +0x6e
+
+goroutine 19 [select]:
+go.mongodb.org/mongo-driver/x/mongo/driver/topology.(*rttMonitor).start(0xc000184180)
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/topology/rtt_monitor.go:95 +0x175
+created by go.mongodb.org/mongo-driver/x/mongo/driver/topology.(*rttMonitor).connect
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/topology/rtt_monitor.go:66 +0x6f
+
+goroutine 20 [IO wait]:
+internal/poll.runtime_pollWait(0x29a35da0, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:229 +0x89
+internal/poll.(*pollDesc).wait(0xc0002ac080, 0xc0000b8160, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0x32
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc0002ac080, {0xc0000b8160, 0x4, 0x4})
+	/usr/local/go/src/internal/poll/fd_unix.go:167 +0x25a
+net.(*netFD).Read(0xc0002ac080, {0xc0000b8160, 0x100e234, 0x29a35e80})
+	/usr/local/go/src/net/fd_posix.go:56 +0x29
+net.(*conn).Read(0xc0000a4008, {0xc0000b8160, 0x249e5b8, 0x10})
+	/usr/local/go/src/net/net.go:183 +0x45
+io.ReadAtLeast({0x29e80028, 0xc0000a4008}, {0xc0000b8160, 0x4, 0x4}, 0x4)
+	/usr/local/go/src/io/io.go:328 +0x9a
+io.ReadFull(...)
+	/usr/local/go/src/io/io.go:347
+go.mongodb.org/mongo-driver/x/mongo/driver/topology.(*connection).read(0xc0000c0000, {0x1822478, 0xc0000a8040}, {0xc00008c200, 0x10000c0003849b8, 0x100})
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/topology/connection.go:456 +0x225
+go.mongodb.org/mongo-driver/x/mongo/driver/topology.(*connection).readWireMessage(0xc0000c0000, {0x1822478, 0xc0000a8040}, {0xc00008c200, 0x0, 0x100})
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/topology/connection.go:417 +0x207
+go.mongodb.org/mongo-driver/x/mongo/driver/topology.initConnection.ReadWireMessage({0x0}, {0x1822478, 0xc0000a8040}, {0xc00008c200, 0xc000384a88, 0xc000384a98})
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/topology/connection.go:584 +0x28
+go.mongodb.org/mongo-driver/x/mongo/driver.Operation.readWireMessage({0xc0000a6190, {0x15984ce, 0x5}, {0x1820280, 0xc0000a6180}, 0xc0000a61a0, {0x0, 0x0}, 0x0, 0x0, ...}, ...)
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/operation.go:693 +0x7e
+go.mongodb.org/mongo-driver/x/mongo/driver.Operation.roundTrip({0xc0000a6190, {0x15984ce, 0x5}, {0x1820280, 0xc0000a6180}, 0xc0000a61a0, {0x0, 0x0}, 0x0, 0x0, ...}, ...)
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/operation.go:687 +0x130
+go.mongodb.org/mongo-driver/x/mongo/driver.Operation.Execute({0xc0000a6190, {0x15984ce, 0x5}, {0x1820280, 0xc0000a6180}, 0xc0000a61a0, {0x0, 0x0}, 0x0, 0x0, ...}, ...)
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/operation.go:444 +0x13a3
+go.mongodb.org/mongo-driver/x/mongo/driver/operation.(*Hello).Execute(0xc0000b4140, {0x1822478, 0xc0000a8040})
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/operation/hello.go:195 +0x18f
+go.mongodb.org/mongo-driver/x/mongo/driver/topology.(*Server).check(_)
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/topology/server.go:728 +0x477
+go.mongodb.org/mongo-driver/x/mongo/driver/topology.(*Server).update(0xc0001c5860)
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/topology/server.go:522 +0x345
+created by go.mongodb.org/mongo-driver/x/mongo/driver/topology.(*Server).Connect
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/topology/server.go:215 +0x1bb
+
+goroutine 21 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xc00015ef90, 0x1)
+	/usr/local/go/src/runtime/sema.go:513 +0x13d
+sync.(*Cond).Wait(0x0)
+	/usr/local/go/src/sync/cond.go:56 +0x8c
+go.mongodb.org/mongo-driver/x/mongo/driver/topology.(*pool).createConnections.func2()
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/topology/pool.go:616 +0xeb
+go.mongodb.org/mongo-driver/x/mongo/driver/topology.(*pool).createConnections(0xc000170c80, {0x1822478, 0xc00015efc0}, 0x0)
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/topology/pool.go:643 +0x13b
+created by go.mongodb.org/mongo-driver/x/mongo/driver/topology.(*pool).connect
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/topology/pool.go:164 +0xee
+
+goroutine 22 [sync.Cond.Wait]:
+sync.runtime_notifyListWait(0xc00015ef90, 0x2)
+	/usr/local/go/src/runtime/sema.go:513 +0x13d
+sync.(*Cond).Wait(0x10071d0)
+	/usr/local/go/src/sync/cond.go:56 +0x8c
+go.mongodb.org/mongo-driver/x/mongo/driver/topology.(*pool).createConnections.func2()
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/topology/pool.go:616 +0xeb
+go.mongodb.org/mongo-driver/x/mongo/driver/topology.(*pool).createConnections(0xc000170c80, {0x1822478, 0xc00015efc0}, 0x0)
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/topology/pool.go:643 +0x13b
+created by go.mongodb.org/mongo-driver/x/mongo/driver/topology.(*pool).connect
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/topology/pool.go:164 +0xee
+
+goroutine 23 [select]:
+go.mongodb.org/mongo-driver/x/mongo/driver/topology.(*pool).maintain(0xc000170c80, {0x1822478, 0xc00015efc0}, 0x0)
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/topology/pool.go:750 +0x286
+created by go.mongodb.org/mongo-driver/x/mongo/driver/topology.(*pool).connect
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/topology/pool.go:167 +0x253
+
+goroutine 54 [select]:
+go.mongodb.org/mongo-driver/internal.(*CancellationListener).Listen(0xc0000a60c0, {0x1822478, 0xc0000a8040}, 0xc0000a61d0)
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/internal/cancellation_listener.go:30 +0x7e
+created by go.mongodb.org/mongo-driver/x/mongo/driver/topology.(*connection).read
+	/Users/jeff/go/pkg/mod/go.mongodb.org/mongo-driver@v1.8.2/x/mongo/driver/topology/connection.go:437 +0x17b
+
+goroutine 7 [chan send]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:47 +0xe5
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:44 +0xc5
+
+goroutine 9 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 275 [semacquire]:
+sync.runtime_Semacquire(0x0)
+	/usr/local/go/src/runtime/sema.go:56 +0x25
+sync.(*WaitGroup).Wait(0xc000298180)
+	/usr/local/go/src/sync/waitgroup.go:130 +0x71
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1()
+	/Users/jeff/Projects/gettr/model/user.go:251 +0x10f
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB
+	/Users/jeff/Projects/gettr/model/user.go:240 +0x1c5
+
+goroutine 8 [semacquire]:
+sync.runtime_Semacquire(0x0)
+	/usr/local/go/src/runtime/sema.go:56 +0x25
+sync.(*WaitGroup).Wait(0x103e125)
+	/usr/local/go/src/sync/waitgroup.go:130 +0x71
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:79 +0xd2
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:62 +0x87
+
+goroutine 10 [runnable]:
+github.com/spudtrooper/gettr/model.(*DB).GetUserOptions(0xc00000e198, {0x18224b0, 0xc000122008}, {0xc0004500d0, 0xb})
+	/Users/jeff/Projects/gettr/model/db.go:227 +0x6d
+github.com/spudtrooper/gettr/model.(*User).userInfoUsingDB(_, {_, _, _})
+	/Users/jeff/Projects/gettr/model/user.go:88 +0x9c
+github.com/spudtrooper/gettr/model.(*User).UserInfo(_, {_, _, _})
+	/Users/jeff/Projects/gettr/model/user.go:84 +0x19b
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:69 +0xff
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 11 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 12 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 13 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 14 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 15 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 16 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 66 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 67 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 68 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 69 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 70 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 71 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 72 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 73 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 74 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 75 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 76 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 77 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 78 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 79 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 80 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 81 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 82 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 83 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 84 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 85 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 86 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 87 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 88 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 89 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 90 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 91 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 92 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 93 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 94 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 95 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 96 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 97 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 98 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 99 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 100 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 101 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 102 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 103 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 104 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 105 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 106 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 107 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 108 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 109 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 110 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 111 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 112 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 113 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 114 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 115 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 116 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 117 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 118 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 119 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 120 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 121 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 122 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 123 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 124 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 125 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 126 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 127 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 128 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 129 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 130 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 131 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 132 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 133 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 134 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 135 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 136 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 137 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 138 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 139 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 140 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 141 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 142 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 143 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 144 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 145 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 146 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 147 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 148 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 149 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 150 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 151 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 152 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 153 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 154 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 155 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 156 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 157 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 158 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 159 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 160 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 161 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 162 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 163 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 164 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 165 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 166 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 167 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 168 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 169 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 170 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 171 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 172 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 173 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 174 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 175 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 176 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 177 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 178 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 179 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 180 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 181 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 182 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 183 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 184 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 185 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 186 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 187 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 188 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 189 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 190 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 191 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 192 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 193 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 194 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 195 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 196 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 197 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 198 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 199 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 200 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 201 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 202 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 203 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 204 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 205 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 206 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 207 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 208 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 209 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 210 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 211 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 212 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 213 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 214 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 215 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 216 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 217 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 218 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 219 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 220 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 221 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 222 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 223 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 224 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 225 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 226 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 227 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 228 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 229 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 230 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 231 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 232 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 233 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 234 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 235 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 236 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 237 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 238 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 239 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 240 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 241 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 242 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 243 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 244 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 245 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 246 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 247 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 248 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 249 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 250 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 251 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 252 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 253 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 254 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 255 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 256 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 257 [chan receive]:
+github.com/spudtrooper/gettr/htmlgen.Generate.func2.1.1()
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:68 +0xab
+created by github.com/spudtrooper/gettr/htmlgen.Generate.func2.1
+	/Users/jeff/Projects/gettr/htmlgen/generate.go:66 +0x49
+
+goroutine 261 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 260 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 262 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 263 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0x8d
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 264 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 265 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 266 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 267 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 268 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 269 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 270 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 271 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 272 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0x8d
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 291 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 292 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 293 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 294 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 295 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 296 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 297 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 298 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 299 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 300 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 301 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 302 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 303 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 304 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 305 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 306 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 307 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 308 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 309 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 310 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 311 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 312 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 313 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 314 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 315 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 316 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 317 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 318 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 319 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 320 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 321 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 322 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 323 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 324 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 325 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 326 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 327 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 328 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 329 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 330 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 332 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 333 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 334 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 335 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 336 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 337 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 338 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 339 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 340 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 341 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 342 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 343 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 344 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 345 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 346 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 347 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 348 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 349 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 350 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 351 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 352 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 353 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 354 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 355 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 356 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 357 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 358 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 359 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 360 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 361 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 362 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 363 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 364 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 365 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 366 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 367 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 368 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 369 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 370 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 371 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 372 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 373 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 374 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 375 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 376 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 377 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 378 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 379 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 380 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 381 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 382 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 383 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 384 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 385 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 386 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 387 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 388 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 389 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 390 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 391 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 392 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 393 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 394 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 395 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 396 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 397 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 398 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 399 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 400 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 401 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 402 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 403 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 404 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 405 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 406 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 407 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 408 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 409 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 410 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 411 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 412 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 413 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 414 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 415 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 416 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 417 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 418 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 419 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 420 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 421 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 422 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 423 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 424 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 425 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 426 [chan send]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:247 +0xa5
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 427 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 428 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 429 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 430 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 431 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 432 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 433 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 434 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 435 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 436 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 437 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 438 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 439 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 440 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 441 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 442 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 443 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 444 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 445 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 446 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 447 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 448 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 449 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 450 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 451 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 452 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 453 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 454 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 455 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 456 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 457 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 458 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 459 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 460 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 461 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 462 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 463 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 464 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 465 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 466 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 467 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 468 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 469 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 470 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 471 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 472 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 473 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 474 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+
+goroutine 475 [runnable]:
+github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1.1()
+	/Users/jeff/Projects/gettr/model/user.go:246 +0xb4
+created by github.com/spudtrooper/gettr/model.(*User).followersUsingDB.func1
+	/Users/jeff/Projects/gettr/model/user.go:244 +0x5b
+exit status 2

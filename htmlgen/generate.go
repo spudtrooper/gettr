@@ -27,7 +27,7 @@ func Generate(outputDirName string, factory model.Factory, other string, gOpts .
 	opts := MakeGenerateOptions(gOpts...)
 
 	limit := opts.Limit()
-	threads := or.Int(opts.Threads(), 100)
+	threads := or.Int(opts.Threads(), 200)
 
 	log.Printf("using %d threads for HTML generation", threads)
 
@@ -77,21 +77,23 @@ func Generate(outputDirName string, factory model.Factory, other string, gOpts .
 	for f := range followers {
 		cachedFollowers = append(cachedFollowers, f)
 	}
-	log.Printf("sorting %d users...", len(cachedFollowers))
-	sort.Slice(cachedFollowers, func(i, j int) bool {
-		a, b := cachedFollowers[i], cachedFollowers[j]
-		ai, err := a.UserInfo()
-		if err != nil {
-			log.Printf("a.UserInfo: ignoring error: %v", err)
-			return true
-		}
-		bi, err := b.UserInfo()
-		if err != nil {
-			log.Printf("b.UserInfo: ignoring error: %v", err)
-			return true
-		}
-		return ai.Followers() > bi.Followers()
-	})
+	if opts.SortUsers() {
+		log.Printf("sorting %d users...", len(cachedFollowers))
+		sort.Slice(cachedFollowers, func(i, j int) bool {
+			a, b := cachedFollowers[i], cachedFollowers[j]
+			ai, err := a.UserInfo()
+			if err != nil {
+				log.Printf("a.UserInfo: ignoring error: %v", err)
+				return true
+			}
+			bi, err := b.UserInfo()
+			if err != nil {
+				log.Printf("b.UserInfo: ignoring error: %v", err)
+				return true
+			}
+			return ai.Followers() > bi.Followers()
+		})
+	}
 
 	// Put the other user first
 	users = append(users, factory.MakeUser(other))
@@ -273,7 +275,10 @@ func Generate(outputDirName string, factory model.Factory, other string, gOpts .
 			log.Printf("writing simple HTML to %s...", htmlOutFile)
 
 			head, rows, err := createHTMLData(false, false)
-			check.Err(err)
+			if err != nil {
+				check.Err(err)
+				return
+			}
 			htmlData := html.Data{
 				Entities: []html.DataEntity{
 					html.MakeSimpleDataEntityFromTable(html.TableData{
@@ -294,7 +299,10 @@ func Generate(outputDirName string, factory model.Factory, other string, gOpts .
 			log.Printf("creating desc HTML...")
 
 			head, rows, err := createHTMLData(true, false)
-			check.Err(err)
+			if err != nil {
+				check.Err(err)
+				return
+			}
 
 			{
 				htmlOutFile := path.Join(outDir, other+"_desc.html")
@@ -336,7 +344,10 @@ func Generate(outputDirName string, factory model.Factory, other string, gOpts .
 			log.Printf("creating twitter followers HTML...")
 
 			head, rows, err := createHTMLData(false, true)
-			check.Err(err)
+			if err != nil {
+				check.Err(err)
+				return
+			}
 
 			{
 				htmlOutFile := path.Join(outDir, other+"_twitter_followers.html")
@@ -379,7 +390,10 @@ func Generate(outputDirName string, factory model.Factory, other string, gOpts .
 			log.Printf("writing HTML to %s...", htmlOutFile)
 
 			head, rows, err := createHTMLData(false, false)
-			check.Err(err)
+			if err != nil {
+				check.Err(err)
+				return
+			}
 			htmlData := html.Data{
 				Entities: []html.DataEntity{
 					html.MakeDataEntityFromTable(html.TableData{

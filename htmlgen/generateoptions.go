@@ -1,6 +1,6 @@
 package htmlgen
 
-// genopts --opt_type=GenerateOption --prefix=Generate --outfile=htmlgen/generateoptions.go 'writeCSV' 'writeSimpleHTML' 'writeDescriptionsHTML' 'writeTwitterFollowersHTML' 'writeHTML' 'limit:int' 'all' 'threads:int'
+// genopts --opt_type=GenerateOption --prefix=Generate --outfile=htmlgen/generateoptions.go 'writeCSV' 'writeSimpleHTML' 'writeDescriptionsHTML' 'writeTwitterFollowersHTML' 'writeHTML' 'limit:int' 'all' 'threads:int' 'sortUsers'
 
 type GenerateOption func(*generateOptionImpl)
 
@@ -13,6 +13,7 @@ type GenerateOptions interface {
 	Limit() int
 	All() bool
 	Threads() int
+	SortUsers() bool
 }
 
 func GenerateWriteCSV(writeCSV bool) GenerateOption {
@@ -63,6 +64,12 @@ func GenerateThreads(threads int) GenerateOption {
 	}
 }
 
+func GenerateSortUsers(sortUsers bool) GenerateOption {
+	return func(opts *generateOptionImpl) {
+		opts.sortUsers = sortUsers
+	}
+}
+
 type generateOptionImpl struct {
 	writeCSV                  bool
 	writeSimpleHTML           bool
@@ -72,6 +79,7 @@ type generateOptionImpl struct {
 	limit                     int
 	all                       bool
 	threads                   int
+	sortUsers                 bool
 }
 
 func (g *generateOptionImpl) WriteCSV() bool                  { return g.writeCSV }
@@ -82,6 +90,7 @@ func (g *generateOptionImpl) WriteHTML() bool                 { return g.writeHT
 func (g *generateOptionImpl) Limit() int                      { return g.limit }
 func (g *generateOptionImpl) All() bool                       { return g.all }
 func (g *generateOptionImpl) Threads() int                    { return g.threads }
+func (g *generateOptionImpl) SortUsers() bool                 { return g.sortUsers }
 
 func makeGenerateOptionImpl(opts ...GenerateOption) *generateOptionImpl {
 	res := &generateOptionImpl{}

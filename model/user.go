@@ -37,6 +37,7 @@ type User struct {
 	following              []string
 	cacheFollowersInMemory bool // currently always false
 	cacheFollowingInMemory bool // currently always false
+	checkSkip              bool // currently always false (this is a complete waste)
 }
 
 type cacheKey string
@@ -84,22 +85,24 @@ func (u *User) UserInfo(uOpts ...UserInfoOption) (api.UserInfo, error) {
 }
 
 func (u *User) userInfoUsingDB(uOpts ...UserInfoOption) (api.UserInfo, error) {
-	userOptions, err := u.db.GetUserOptions(context.TODO(), u.username)
-	if err == nil && userOptions != nil && userOptions.Skip {
-		return api.UserInfo{}, nil
+	if u.checkSkip {
+		userOptions, err := u.db.GetUserOptions(context.TODO(), u.username)
+		if err == nil && userOptions != nil && userOptions.Skip {
+			return api.UserInfo{}, nil
+		}
 	}
 
-	if u.userInfo.Username == "" {
+	if u.userInfo.OUsername == "" {
 		userInfo, err := u.db.GetUserInfo(context.TODO(), u.username)
-		if err == nil && userInfo != nil {
-			return *userInfo, nil
+		if err != nil && !noUsers(err) {
+			return api.UserInfo{}, err
 		}
 		if userInfo != nil {
 			u.userInfo = *userInfo
 		}
 	}
 
-	if u.userInfo.Username == "" {
+	if u.userInfo.OUsername == "" {
 		uinfo, err := u.client.GetUserInfo(u.username)
 		if err != nil {
 			if strings.HasPrefix(err.Error(), "response error") {
