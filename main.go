@@ -480,6 +480,14 @@ func realMain() error {
 		log.Printf("DeletePost: %+v", info)
 	}
 
+	if should("PersistInDB") {
+		factory := model.MakeFactory(cache, client)
+		u := factory.MakeUser(*other)
+		if err := u.PersistInDB(); err != nil {
+			return err
+		}
+	}
+
 	if !shouldReturnedTrueOnce {
 		return errors.Errorf("no valid actions in %+v", actionMap)
 	}

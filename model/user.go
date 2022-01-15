@@ -3,7 +3,6 @@ package model
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"strconv"
 	"strings"
@@ -19,8 +18,11 @@ import (
 )
 
 var (
-	verboseCacheHits = flag.Bool("verbose_cache_hits", false, "log cache hits verbosely")
-	verbosePersist   = flag.Bool("verbose_persist", false, "log persisting verbosely")
+	verboseCacheHits        = flags.Bool("verbose_cache_hits", "log cache hits verbosely")
+	verbosePersist          = flags.Bool("verbose_persist", "log persisting verbosely")
+	userInfoUsingDiskCache  = flags.Bool("user_info_using_disk_cache", "use disk cache for userInfo")
+	followersUsingDiskCache = flags.Bool("followers_using_disk_cache", "use disk cache for followers")
+	followingUsingDiskCache = flags.Bool("following_using_disk_cache", "use disk cache for followers")
 )
 
 const (
@@ -73,8 +75,6 @@ func (u *User) MarkSkipped() error {
 	}
 	return nil
 }
-
-var userInfoUsingDiskCache = flags.Bool("user_info_using_disk_cache", "use disk cache for userInfo")
 
 func (u *User) UserInfo(uOpts ...UserInfoOption) (api.UserInfo, error) {
 	if *userInfoUsingDiskCache {
@@ -186,8 +186,6 @@ func (u *User) userInfoUsingDiskCache(uOpts ...UserInfoOption) (api.UserInfo, er
 	return u.userInfo, nil
 }
 
-var followersUsingDiskCache = flags.Bool("followers_using_disk_cache", "use disk cache for followers")
-
 func (u *User) Followers(fOpts ...api.AllFollowersOption) (chan *User, chan error) {
 	if *followersUsingDiskCache {
 		return u.followersUsingDiskCache(fOpts...)
@@ -225,24 +223,8 @@ func (u *User) followersUsingDB(fOpts ...api.AllFollowersOption) (chan *User, ch
 		return users, errors
 	}
 
-	lastOffset := -1
-	if false {
-		if u.has(cacheKeyFollowersByOffset) {
-			keys, err := u.cache.FindKeys(u.cacheParts(cacheKeyFollowersByOffset)...)
-			if err != nil {
-				log.Printf("ignoring FindLargestKey: %v", err)
-			} else {
-				for _, k := range keys {
-					n, err := strconv.Atoi(k)
-					if err != nil {
-						log.Printf("ignoring Atoi: %v", err)
-						continue
-					}
-					lastOffset = intgr.Max(lastOffset, n)
-				}
-			}
-		}
-	}
+	lastOffset, err := u.db.GetUserMaxFollowerOffset(context.TODO(), u.Username())
+	check.Err(err)
 	log.Printf("have last followers offset: %d", lastOffset)
 	if lastOffset > 0 {
 		fOpts = append(fOpts, api.AllFollowersStart(lastOffset))
@@ -302,13 +284,14 @@ func (u *User) followersUsingDB(fOpts ...api.AllFollowersOption) (chan *User, ch
 }
 
 func (u *User) followersUsingDiskCache(fOpts ...api.AllFollowersOption) (chan *User, chan error) {
-	// Followers are either in "followers" (legacy) or sharded into "followersByOffset"
-	if u.has(cacheKeyFollowers) {
-		if *verboseCacheHits {
-			log.Printf("cache hit for followers of %s", u.Username())
-		}
-		return u.cachedFollowers(fOpts...)
-	} else if u.has(cacheKeyFollowersDone) && u.has(cacheKeyFollowersByOffset) {
+	// // Followers are either in "followers" (legacy) or sharded into "followersByOffset"
+	// if u.has(cacheKeyFollowers) {
+	// 	if *verboseCacheHits {
+	// 		log.Printf("cache hit for followers of %s", u.Username())
+	// 	}
+	// 	return u.cachedFollowers(fOpts...)
+	// } else
+	if u.has(cacheKeyFollowersDone) && u.has(cacheKeyFollowersByOffset) {
 		// If we've completely read users and sharded them, read from the sharded directory.
 		if *verboseCacheHits {
 			log.Printf("cache hit for followersByOffset and followersDone of %s", u.Username())
@@ -325,7 +308,7 @@ func (u *User) followersUsingDiskCache(fOpts ...api.AllFollowersOption) (chan *U
 			log.Printf("ignoring GetAllStrings for %s", u.Username())
 		} else {
 			if u.cacheFollowersInMemory {
-				u.followers = v
+				u.followers = v.Strings()
 			}
 		}
 	}
@@ -353,10 +336,11 @@ func (u *User) followersUsingDiskCache(fOpts ...api.AllFollowersOption) (chan *U
 		fOpts = append(fOpts, api.AllFollowersStart(lastOffset))
 	}
 
-	userInfos, userNamesToCache, errs := u.client.AllFollowersParallel(u.username, fOpts...)
+	userInfos, userNamesToCache, followersErrs := u.client.AllFollowersParallel(u.username, fOpts...)
 
 	users := make(chan *User)
 	usernames := make(chan string)
+	errs := make(chan error)
 
 	go func() {
 		// Transfer the partially-populated in-memory cache to the result.
@@ -366,6 +350,7 @@ func (u *User) followersUsingDiskCache(fOpts ...api.AllFollowersOption) (chan *U
 				users <- follower
 			}
 		}
+
 		// Transfer the newly-read users to the result.
 		for userInfo := range userInfos {
 			follower := u.MakeUser(userInfo.Username)
@@ -373,8 +358,13 @@ func (u *User) followersUsingDiskCache(fOpts ...api.AllFollowersOption) (chan *U
 			users <- follower
 			usernames <- userInfo.Username
 		}
+		for e := range followersErrs {
+			errs <- e
+		}
+
 		close(users)
 		close(usernames)
+		close(errs)
 	}()
 
 	go func() {
@@ -390,8 +380,8 @@ func (u *User) followersUsingDiskCache(fOpts ...api.AllFollowersOption) (chan *U
 		}
 	}()
 
-	// Cache all newly-read users in memory.
 	go func() {
+		// Cache all newly-read users in memory.
 		var followers []string
 		for f := range usernames {
 			if u.cacheFollowersInMemory {
@@ -451,8 +441,6 @@ func (u *User) FollowersSync(fOpts ...api.AllFollowersOption) ([]*User, error) {
 
 	return res, nil
 }
-
-var followingUsingDiskCache = flags.Bool("following_using_disk_cache", "use disk cache for followers")
 
 func (u *User) Following(fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
 	if *followingUsingDiskCache {
@@ -592,7 +580,7 @@ func (u *User) followingUsingDiskCache(fOpts ...api.AllFollowingsOption) (chan *
 			log.Printf("ignoring GetAllStrings for %s", u.Username())
 		} else {
 			if u.cacheFollowingInMemory {
-				u.following = v
+				u.following = v.Strings()
 			}
 		}
 	}
@@ -620,9 +608,10 @@ func (u *User) followingUsingDiskCache(fOpts ...api.AllFollowingsOption) (chan *
 		fOpts = append(fOpts, api.AllFollowingsStart(lastOffset))
 	}
 
-	userInfos, userNamesToCache, errs := u.client.AllFollowingParallel(u.username, fOpts...)
+	userInfos, userNamesToCache, userErrors := u.client.AllFollowingParallel(u.username, fOpts...)
 
 	users := make(chan *User)
+	errs := make(chan error)
 	usernames := make(chan string)
 
 	go func() {
@@ -640,7 +629,11 @@ func (u *User) followingUsingDiskCache(fOpts ...api.AllFollowingsOption) (chan *
 			users <- following
 			usernames <- userInfo.Username
 		}
+		for e := range userErrors {
+			errs <- e
+		}
 		close(users)
+		close(errs)
 		close(usernames)
 	}()
 
@@ -874,7 +867,7 @@ func (u *User) cachedFollowers(fOpts ...api.AllFollowersOption) (chan *User, cha
 				errs <- err
 				return
 			}
-			existing = v
+			existing = v.Strings()
 		}
 		for _, f := range existing {
 			followers <- f
@@ -923,7 +916,8 @@ func (u *User) cachedFollowersByOffset(fOpts ...api.AllFollowersOption) (chan *U
 				errs <- err
 				return
 			}
-			existing = v
+			// TODO: Transfer shard
+			existing = v.Strings()
 		}
 		for _, f := range existing {
 			followers <- f
@@ -971,7 +965,7 @@ func (u *User) cachedFollowing(fOpts ...api.AllFollowingsOption) (chan *User, ch
 				errs <- err
 				return
 			}
-			existing = v
+			existing = v.Strings()
 		}
 		for _, f := range existing {
 			following <- f
@@ -1019,7 +1013,7 @@ func (u *User) cachedFollowingByOffset(fOpts ...api.AllFollowingsOption) (chan *
 				errs <- err
 				return
 			}
-			existing = v
+			existing = v.Strings()
 		}
 		for _, f := range existing {
 			following <- f
@@ -1046,4 +1040,87 @@ func (u *User) cachedFollowingByOffset(fOpts ...api.AllFollowingsOption) (chan *
 	}()
 
 	return users, errs
+}
+
+func (u *User) PersistInDB() error {
+	threads := 200
+
+	followers, followersErrs := u.followersUsingDiskCache(api.AllFollowersThreads(threads))
+	if false { // TODO: Why is pulling on empty/by closed channel not working?
+		for e := range followersErrs {
+			log.Printf("ignoring followersErrs %v", e)
+		}
+	}
+
+	// followerUsers := make(chan *User)
+	// go func() {
+	// 	var wg sync.WaitGroup
+	// 	for i := 0; i < threads; i++ {
+	// 		wg.Add(1)
+	// 		go func() {
+	// 			defer wg.Done()
+	// 			for f := range followers {
+	// 				_, err := f.UserInfo()
+	// 				check.Err(err)
+	// 				followerUsers <- f
+	// 			}
+	// 		}()
+	// 	}
+	// 	wg.Wait()
+	// 	close(followerUsers)
+	// }()
+
+	{
+		c := followers
+		i := 0
+		for f := range c {
+			u, err := f.UserInfo()
+			if err != nil {
+				return err
+			}
+			log.Printf("followers[%d]: %v", i, u)
+			i++
+		}
+	}
+
+	following, followingErrs := u.followingUsingDiskCache(api.AllFollowingsThreads(threads))
+	if false { // TODO: Why is pulling on empty/by closed channel not working?
+		for e := range followingErrs {
+			log.Printf("ignoring followingErr: %v", e)
+		}
+	}
+
+	// followingUsers := make(chan *User)
+	// go func() {
+	// 	var wg sync.WaitGroup
+	// 	for i := 0; i < threads; i++ {
+	// 		wg.Add(1)
+	// 		go func() {
+	// 			defer wg.Done()
+	// 			for f := range following {
+	// 				_, err := f.UserInfo()
+	// 				check.Err(err)
+	// 				followingUsers <- f
+	// 			}
+	// 		}()
+	// 	}
+	// 	wg.Wait()
+	// 	close(followingUsers)
+	// }()
+
+	{
+		c := following
+		i := 0
+		for f := range c {
+			u, err := f.UserInfo()
+			if err != nil {
+				return err
+			}
+			log.Printf("following[%d]: %v", i, u)
+			i++
+			i++
+		}
+	}
+
+	return nil
 }

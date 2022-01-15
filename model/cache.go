@@ -27,7 +27,7 @@ type Cache interface {
 	GetBytes(parts ...string) ([]byte, error)
 	SetGeneric(val interface{}, parts ...string) error
 	GetStrings(parts ...string) ([]string, error)
-	GetAllStrings(parts ...string) ([]string, error)
+	GetAllStrings(parts ...string) (SharedStrings, error)
 	FindKeys(parts ...string) ([]string, error)
 	FindKeysChannels(parts ...string) (chan string, chan error, error)
 }
@@ -166,7 +166,23 @@ func (c *cacheImpl) GetStrings(parts ...string) ([]string, error) {
 //              2 = [4,5,6]
 //              3 = [7,8,9]
 //   GetAllStrings("user", "foo", "followersOffsets") == [1,2,3,4,5,6,7,8,9]
-func (c *cacheImpl) GetAllStrings(parts ...string) ([]string, error) {
+type SharedString struct{ Val, Dir string }
+
+type SharedStrings []SharedString
+
+func (s SharedStrings) Len() int           { return len(s) }
+func (s SharedStrings) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s SharedStrings) Less(i, j int) bool { return s[i].Val < s[j].Val }
+
+func (s SharedStrings) Strings() []string {
+	var res []string
+	for _, x := range s {
+		res = append(res, x.Val)
+	}
+	return res
+}
+
+func (c *cacheImpl) GetAllStrings(parts ...string) (SharedStrings, error) {
 	dir := c.file(parts...)
 	isDir, err := c.isDir(dir)
 	if err != nil {
@@ -175,7 +191,7 @@ func (c *cacheImpl) GetAllStrings(parts ...string) ([]string, error) {
 	if !isDir {
 		return nil, nil
 	}
-	set := map[string]bool{}
+	set := map[string]string{}
 	if err := filepath.WalkDir(dir, func(path string, di fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
@@ -192,15 +208,18 @@ func (c *cacheImpl) GetAllStrings(parts ...string) ([]string, error) {
 			return err
 		}
 		for _, s := range arr {
-			set[s] = true
+			set[s] = filepath.Base(filepath.Dir(path))
 		}
 		return nil
 	}); err != nil {
 		return nil, err
 	}
-	var res []string
-	for s := range set {
-		res = append(res, s)
+	var res SharedStrings
+	for s, o := range set {
+		res = append(res, SharedString{
+			Val: s,
+			Dir: o,
+		})
 	}
 	return res, nil
 }

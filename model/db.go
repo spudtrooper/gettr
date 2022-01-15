@@ -16,6 +16,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+var (
+	dbVerboseUserInfo  = flags.Bool("db_verbose_user_info", "verbose logging for getting and setting user info")
+	dbVerboseFollowers = flags.Bool("db_verbose_followers", "verbose logging for getting and setting followers")
+	dbVerboseFollowing = flags.Bool("db_verbose_following", "verbose logging for getting and setting following")
+)
+
 type DB struct {
 	dbName string
 	client *mongo.Client
@@ -66,10 +72,6 @@ func (d *DB) collection(name string) *mongo.Collection {
 func (d *DB) Disconnect(ctx context.Context) error {
 	return d.client.Disconnect(ctx)
 }
-
-var (
-	dbVerboseUserInfo = flags.Bool("db_verbose_user_info", "verbose logging for getting and setting user info")
-)
 
 type UserOptions struct {
 	Skip          bool
@@ -282,11 +284,6 @@ func (d *DB) deleteAllUserInfo(ctx context.Context) error {
 	return nil
 }
 
-var (
-	dbVerboseFollowers = flags.Bool("db_verbose_followers", "verbose logging for getting and setting followers")
-	dbVerboseFollowing = flags.Bool("db_verbose_following", "verbose logging for getting and setting following")
-)
-
 type storedFollowish struct {
 	Username  string
 	Offset    int
@@ -294,14 +291,14 @@ type storedFollowish struct {
 }
 
 func (d *DB) SetFollowers(ctx context.Context, username string, offset int, followers []string) error {
-	return d.setFollowish(ctx, "followers", username, offset, followers)
+	return d.setFollowish(ctx, username, offset, followers, "followers")
 }
 
 func (d *DB) SetFollowing(ctx context.Context, username string, offset int, followers []string) error {
-	return d.setFollowish(ctx, "following", username, offset, followers)
+	return d.setFollowish(ctx, username, offset, followers, "following")
 }
 
-func (d *DB) setFollowish(ctx context.Context, collection, username string, offset int, usernames []string) error {
+func (d *DB) setFollowish(ctx context.Context, username string, offset int, usernames []string, collection string) error {
 	filter := bson.D{
 		{"username", username},
 		{"offset", offset},
@@ -418,6 +415,34 @@ func (d *DB) GetFollowers(ctx context.Context, username string) (chan string, ch
 
 func (d *DB) GetFollowing(ctx context.Context, username string) (chan string, chan error, error) {
 	return d.getFollowish(ctx, "following", username)
+}
+
+func (d *DB) GetUserMaxFollowerOffset(ctx context.Context, username string) (int, error) {
+	return d.getUserMaxFollowishOffset(ctx, username, "followers")
+}
+
+func (d *DB) GetUserMaxFollowIngOffset(ctx context.Context, username string) (int, error) {
+	return d.getUserMaxFollowishOffset(ctx, username, "following")
+}
+
+func (d *DB) getUserMaxFollowishOffset(ctx context.Context, username string, collection string) (int, error) {
+	filter := bson.D{{"username", username}}
+	findOpts := options.Find()
+	findOpts.SetLimit(1)
+	findOpts.SetSort(bson.D{{"offset", -1}})
+	cur, err := d.collection(collection).Find(ctx, filter, findOpts)
+	if err != nil {
+		return 0, errors.Errorf("Find: %v", err)
+	}
+
+	for cur.Next(ctx) {
+		var el storedFollowish
+		if err := cur.Decode(&el); err != nil {
+			return 0, errors.Errorf("Decode: %v", err)
+		}
+		return el.Offset, nil
+	}
+	return 0, nil
 }
 
 func (d *DB) GetFollowersSync(ctx context.Context, username string) ([]string, error) {

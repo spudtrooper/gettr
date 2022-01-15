@@ -497,11 +497,7 @@ func (c *Client) AllFollowersParallel(username string, fOpts ...AllFollowersOpti
 	start := or.Int(opts.Start(), defaultStart)
 	threads := or.Int(opts.Threads(), defaultThreads)
 
-	userInfos := make(chan UserInfo)
-	userNames := make(chan OffsetStrings)
 	offsets := make(chan int)
-	errs := make(chan error)
-
 	go func() {
 		for offset := start; offset < math.MaxInt; offset += max {
 			offsets <- offset
@@ -509,6 +505,9 @@ func (c *Client) AllFollowersParallel(username string, fOpts ...AllFollowersOpti
 		close(offsets)
 	}()
 
+	userInfos := make(chan UserInfo)
+	userNames := make(chan OffsetStrings)
+	errs := make(chan error)
 	go func() {
 		var wg sync.WaitGroup
 		for i := 0; i < threads; i++ {

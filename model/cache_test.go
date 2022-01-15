@@ -21,13 +21,13 @@ func TestGetAllStrings(t *testing.T) {
 	}
 	c := makeCache(dir)
 
-	if err := c.SetGeneric([]string{"1", "2"}, "users", "foo", "dir", "1"); err != nil {
+	if err := c.SetGeneric([]string{"1", "2"}, "users", "foo", "dir", "a"); err != nil {
 		t.Fatalf("SetGeneric: %v", err)
 	}
-	if err := c.SetGeneric([]string{"3", "4"}, "users", "foo", "dir", "2"); err != nil {
+	if err := c.SetGeneric([]string{"3", "4"}, "users", "foo", "dir", "b"); err != nil {
 		t.Fatalf("SetGeneric: %v", err)
 	}
-	if err := c.SetGeneric([]string{"5", "6"}, "users", "foo", "dir", "3"); err != nil {
+	if err := c.SetGeneric([]string{"5", "6"}, "users", "foo", "dir", "c"); err != nil {
 		t.Fatalf("SetGeneric: %v", err)
 	}
 
@@ -36,8 +36,15 @@ func TestGetAllStrings(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GetAllStrings: %v", err)
 		}
-		sort.Strings(strings)
-		if got, want := strings, []string{"1", "2", "3", "4", "5", "6"}; !reflect.DeepEqual(want, got) {
+		sort.Sort(strings)
+		if got, want := strings, []SharedString{
+			{Val: "1", Offset: "a"},
+			{Val: "2", Offset: "a"},
+			{Val: "3", Offset: "b"},
+			{Val: "4", Offset: "b"},
+			{Val: "5", Offset: "c"},
+			{Val: "6", Offset: "c"},
+		}; !reflect.DeepEqual(want, got) {
 			t.Fatalf("GetAllStrings: want != got: %v %v", want, got)
 		}
 	}
