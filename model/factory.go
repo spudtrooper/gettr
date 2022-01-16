@@ -5,6 +5,15 @@ import (
 	"sync"
 
 	"github.com/spudtrooper/gettr/api"
+	"github.com/spudtrooper/goutil/flags"
+)
+
+var (
+	userInfoUsingDiskCache  = flags.Bool("user_info_using_disk_cache", "use disk cache for userInfo")
+	followersUsingDiskCache = flags.Bool("followers_using_disk_cache", "use disk cache for followers")
+	followingUsingDiskCache = flags.Bool("following_using_disk_cache", "use disk cache for followers")
+	verboseCacheHits        = flags.Bool("verbose_cache_hits", "log cache hits verbosely")
+	verbosePersist          = flags.Bool("verbose_persist", "log persisting verbosely")
 )
 
 type Factory interface {
@@ -13,13 +22,24 @@ type Factory interface {
 	Client() *api.Client
 }
 
+type factoryOptions struct {
+	userInfoUsingDiskCache  bool
+	followersUsingDiskCache bool
+	followingUsingDiskCache bool
+	verboseCacheHits        bool
+	verbosePersist          bool
+}
+
 type factory struct {
 	cache       Cache
 	client      *api.Client
 	db          *DB
 	userCacheMu sync.Mutex
 	userCache   map[string]*User
+	factoryOptions
 }
+
+func (f *factory) opts() factoryOptions { return f.factoryOptions }
 
 func MakeFactory(ctx context.Context, cache Cache, client *api.Client) (Factory, error) {
 	db, err := MakeDB(ctx)
@@ -27,7 +47,19 @@ func MakeFactory(ctx context.Context, cache Cache, client *api.Client) (Factory,
 		return nil, err
 	}
 	userCache := map[string]*User{}
-	res := &factory{cache: cache, client: client, db: db, userCache: userCache}
+	res := &factory{
+		cache:     cache,
+		client:    client,
+		db:        db,
+		userCache: userCache,
+		factoryOptions: factoryOptions{
+			userInfoUsingDiskCache:  *userInfoUsingDiskCache,
+			followersUsingDiskCache: *followersUsingDiskCache,
+			followingUsingDiskCache: *followingUsingDiskCache,
+			verboseCacheHits:        *verboseCacheHits,
+			verbosePersist:          *verbosePersist,
+		},
+	}
 	return res, nil
 }
 

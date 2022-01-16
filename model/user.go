@@ -11,19 +11,10 @@ import (
 	"github.com/spudtrooper/gettr/api"
 	"github.com/spudtrooper/gettr/log"
 	"github.com/spudtrooper/goutil/check"
-	"github.com/spudtrooper/goutil/flags"
 	"github.com/spudtrooper/goutil/must"
 	"github.com/spudtrooper/goutil/or"
 	"github.com/spudtrooper/goutil/sets"
 	"github.com/thomaso-mirodin/intmath/intgr"
-)
-
-var (
-	verboseCacheHits        = flags.Bool("verbose_cache_hits", "log cache hits verbosely")
-	verbosePersist          = flags.Bool("verbose_persist", "log persisting verbosely")
-	userInfoUsingDiskCache  = flags.Bool("user_info_using_disk_cache", "use disk cache for userInfo")
-	followersUsingDiskCache = flags.Bool("followers_using_disk_cache", "use disk cache for followers")
-	followingUsingDiskCache = flags.Bool("following_using_disk_cache", "use disk cache for followers")
 )
 
 const (
@@ -79,7 +70,7 @@ func (u *User) MarkSkipped() error {
 }
 
 func (u *User) UserInfo(ctx context.Context, uOpts ...UserInfoOption) (api.UserInfo, error) {
-	if *userInfoUsingDiskCache {
+	if u.opts().userInfoUsingDiskCache {
 		return u.userInfoUsingDiskCache(ctx, uOpts...)
 	}
 	return u.userInfoUsingDB(ctx, uOpts...)
@@ -191,7 +182,7 @@ func (u *User) userInfoUsingDiskCache(ctx context.Context, uOpts ...UserInfoOpti
 }
 
 func (u *User) Followers(ctx context.Context, fOpts ...api.AllFollowersOption) (chan *User, chan error) {
-	if *followersUsingDiskCache {
+	if u.opts().followersUsingDiskCache {
 		return u.followersUsingDiskCache(ctx, fOpts...)
 	}
 	return u.followersUsingDB(ctx, fOpts...)
@@ -290,20 +281,20 @@ func (u *User) followersUsingDB(ctx context.Context, fOpts ...api.AllFollowersOp
 func (u *User) followersUsingDiskCache(ctx context.Context, fOpts ...api.AllFollowersOption) (chan *User, chan error) {
 	// // Followers are either in "followers" (legacy) or sharded into "followersByOffset"
 	// if u.has(cacheKeyFollowers) {
-	// 	if *verboseCacheHits {
+	// 	if u.opts().verboseCacheHits {
 	// 		log.Printf("cache hit for followers of %s", u.Username())
 	// 	}
 	// 	return u.cachedFollowers(fOpts...)
 	// } else
 	if u.has(cacheKeyFollowersDone) && u.has(cacheKeyFollowersByOffset) {
 		// If we've completely read users and sharded them, read from the sharded directory.
-		if *verboseCacheHits {
+		if u.opts().verboseCacheHits {
 			log.Printf("cache hit for followersByOffset and followersDone of %s", u.Username())
 		}
 		return u.cachedFollowersByOffset(fOpts...)
 	} else if u.has(cacheKeyFollowersByOffset) {
 		// In the case we have partially read the followers, populate the in-memory cache.
-		if *verboseCacheHits {
+		if u.opts().verboseCacheHits {
 			log.Printf("cache hit for followersByOffset of %s", u.Username())
 		}
 
@@ -402,7 +393,7 @@ func (u *User) followersUsingDiskCache(ctx context.Context, fOpts ...api.AllFoll
 
 func (u *User) FollowersSync(fOpts ...api.AllFollowersOption) ([]*User, error) {
 	if u.has(cacheKeyFollowers) {
-		if *verboseCacheHits {
+		if u.opts().verboseCacheHits {
 			log.Printf("cache hit for followers of %s", u.Username())
 		}
 		lenBefore := len(u.followers)
@@ -418,7 +409,7 @@ func (u *User) FollowersSync(fOpts ...api.AllFollowersOption) ([]*User, error) {
 
 		var res []*User
 		for _, f := range u.followers {
-			res = append(res, u.factory.MakeUser(f))
+			res = append(res, u.MakeUser(f))
 		}
 		return res, nil
 	}
@@ -427,7 +418,7 @@ func (u *User) FollowersSync(fOpts ...api.AllFollowersOption) ([]*User, error) {
 	var followers []string
 	if err := u.client.AllFollowers(u.username, func(offset int, userInfos api.UserInfos) error {
 		for _, ui := range userInfos {
-			res = append(res, u.factory.MakeUser(ui.Username))
+			res = append(res, u.MakeUser(ui.Username))
 			followers = append(followers, ui.Username)
 		}
 		return nil
@@ -447,7 +438,7 @@ func (u *User) FollowersSync(fOpts ...api.AllFollowersOption) ([]*User, error) {
 }
 
 func (u *User) Following(ctx context.Context, fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
-	if *followingUsingDiskCache {
+	if u.opts().followingUsingDiskCache {
 		return u.followingUsingDiskCache(ctx, fOpts...)
 	}
 	return u.followingUsingDB(ctx, fOpts...)
@@ -563,19 +554,19 @@ func (u *User) followingUsingDB(ctx context.Context, fOpts ...api.AllFollowingsO
 func (u *User) followingUsingDiskCache(ctx context.Context, fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
 	// Following are either in "following" (legacy) or sharded into "followingByOffset"
 	if u.has(cacheKeyFollowing) {
-		if *verboseCacheHits {
+		if u.opts().verboseCacheHits {
 			log.Printf("cache hit for following of %s", u.Username())
 		}
 		return u.cachedFollowing(fOpts...)
 	} else if u.has(cacheKeyFollowingDone) && u.has(cacheKeyFollowingByOffset) {
 		// If we've completely read users and sharded them, read from the sharded directory.
-		if *verboseCacheHits {
+		if u.opts().verboseCacheHits {
 			log.Printf("cache hit for followingByOffset and followingDone of %s", u.Username())
 		}
 		return u.cachedFollowingByOffset(fOpts...)
 	} else if u.has(cacheKeyFollowingByOffset) {
 		// In the case we have partially read the following, populate the in-memory cache.
-		if *verboseCacheHits {
+		if u.opts().verboseCacheHits {
 			log.Printf("cache hit for followingByOffset of %s", u.Username())
 		}
 
@@ -672,7 +663,7 @@ func (u *User) followingUsingDiskCache(ctx context.Context, fOpts ...api.AllFoll
 
 func (u *User) FollowingSync(fOpts ...api.AllFollowingsOption) ([]*User, error) {
 	if u.has(cacheKeyFollowing) {
-		if *verboseCacheHits {
+		if u.opts().verboseCacheHits {
 			log.Printf("cache hit for following of %s", u.Username())
 		}
 		lenBefore := len(u.following)
@@ -688,7 +679,7 @@ func (u *User) FollowingSync(fOpts ...api.AllFollowingsOption) ([]*User, error) 
 
 		var res []*User
 		for _, f := range u.following {
-			res = append(res, u.factory.MakeUser(f))
+			res = append(res, u.MakeUser(f))
 		}
 		return res, nil
 	}
@@ -697,7 +688,7 @@ func (u *User) FollowingSync(fOpts ...api.AllFollowingsOption) ([]*User, error) 
 	var following []string
 	if err := u.client.AllFollowings(u.username, func(offset int, userInfos api.UserInfos) error {
 		for _, ui := range userInfos {
-			res = append(res, u.factory.MakeUser(ui.Username))
+			res = append(res, u.MakeUser(ui.Username))
 			following = append(following, ui.Username)
 		}
 		return nil
@@ -779,7 +770,7 @@ func (u *User) Persist(ctx context.Context, pOpts ...UserPersistOption) error {
 	}
 
 	if should(cacheKeyFollowers) {
-		if *verbosePersist {
+		if u.opts().verbosePersist {
 			log.Printf("persisting followers of %s", u.username)
 		}
 
@@ -807,13 +798,13 @@ func (u *User) Persist(ctx context.Context, pOpts ...UserPersistOption) error {
 			return err
 		}
 	} else {
-		if *verbosePersist {
+		if u.opts().verbosePersist {
 			log.Printf("SKIP persisting followers of %s", u.username)
 		}
 	}
 
 	if should(cacheKeyFollowing) {
-		if *verbosePersist {
+		if u.opts().verbosePersist {
 			log.Printf("persisting following of %s", u.username)
 		}
 
@@ -841,7 +832,7 @@ func (u *User) Persist(ctx context.Context, pOpts ...UserPersistOption) error {
 			return err
 		}
 	} else {
-		if *verbosePersist {
+		if u.opts().verbosePersist {
 			log.Printf("SKIP persisting following of %s", u.username)
 		}
 	}
