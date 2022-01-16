@@ -275,21 +275,6 @@ func (d *DB) GetUserFollowingDone(ctx context.Context, username string) (bool, e
 	return userOptions.FollowingDone, nil
 }
 
-func (d *DB) deleteAllUserInfo(ctx context.Context) error {
-	filter := bson.D{}
-	if res, err := d.collection("userInfo").DeleteMany(ctx, filter); err != nil {
-		if d.dbVerboseUserInfo {
-			log.Printf("deleteAllUserInfo: DeleteMany error: %v", err)
-		}
-		return err
-	} else {
-		if d.dbVerboseUserInfo {
-			log.Printf("deleteAllUserInfo: DeleteMany result: %+v", res)
-		}
-	}
-	return nil
-}
-
 type storedFollowish struct {
 	Username  string
 	Offset    int
@@ -357,36 +342,6 @@ func (d *DB) deleteFollowers(ctx context.Context, username string) error {
 	return nil
 }
 
-func (d *DB) deleteAllFollowers(ctx context.Context) error {
-	filter := bson.D{}
-	if res, err := d.collection("followers").DeleteMany(ctx, filter); err != nil {
-		if d.dbVerboseFollowers {
-			log.Printf("deleteAllFollowers: DeleteMany error: %v", err)
-		}
-		return err
-	} else {
-		if d.dbVerboseFollowers {
-			log.Printf("deleteAllFollowers: DeleteMany result: %+v", res)
-		}
-	}
-	return nil
-}
-
-func (d *DB) deleteAllFollowing(ctx context.Context) error {
-	filter := bson.D{}
-	if res, err := d.collection("following").DeleteMany(ctx, filter); err != nil {
-		if d.dbVerboseFollowing {
-			log.Printf("deleteAllFollowing: DeleteMany error: %v", err)
-		}
-		return err
-	} else {
-		if d.dbVerboseFollowing {
-			log.Printf("deleteAllFollowing: DeleteMany result: %+v", res)
-		}
-	}
-	return nil
-}
-
 func (d *DB) getFollowish(ctx context.Context, collection, username string) (chan string, chan error, error) {
 	filter := bson.D{{"username", username}}
 	findOpts := options.Find()
@@ -441,7 +396,7 @@ func (d *DB) getUserMaxFollowishOffset(ctx context.Context, username string, col
 		return 0, errors.Errorf("Find: %v", err)
 	}
 
-	for cur.Next(ctx) {
+	if cur.Next(ctx) {
 		var el storedFollowish
 		if err := cur.Decode(&el); err != nil {
 			return 0, errors.Errorf("Decode: %v", err)
