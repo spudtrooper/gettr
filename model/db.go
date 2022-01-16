@@ -23,8 +23,11 @@ var (
 )
 
 type DB struct {
-	dbName string
-	client *mongo.Client
+	dbName             string
+	client             *mongo.Client
+	dbVerboseUserInfo  bool
+	dbVerboseFollowers bool
+	dbVerboseFollowing bool
 }
 
 func MakeDB(ctx context.Context, mOpts ...MakeDBOption) (*DB, error) {
@@ -55,8 +58,11 @@ func MakeDB(ctx context.Context, mOpts ...MakeDBOption) (*DB, error) {
 	db.Collection("followers")
 
 	res := &DB{
-		dbName: dbName,
-		client: client,
+		dbName:             dbName,
+		client:             client,
+		dbVerboseUserInfo:  *dbVerboseUserInfo,
+		dbVerboseFollowers: *dbVerboseFollowers,
+		dbVerboseFollowing: *dbVerboseFollowing,
 	}
 	return res, nil
 }
@@ -87,12 +93,12 @@ type storedUserInfo struct {
 func (d *DB) SetUserInfo(ctx context.Context, username string, userInfo api.UserInfo) error {
 	filter := bson.D{{"userinfo.username", username}}
 	if res, err := d.collection("userInfo").DeleteMany(ctx, filter); err != nil {
-		if *dbVerboseUserInfo {
+		if d.dbVerboseUserInfo {
 			log.Printf("SetUserInfo: DeleteMany error: %v", err)
 		}
 		return err
 	} else {
-		if *dbVerboseUserInfo {
+		if d.dbVerboseUserInfo {
 			log.Printf("SetUserInfo: DeleteMany result: %+v", res)
 		}
 	}
@@ -104,7 +110,7 @@ func (d *DB) SetUserInfo(ctx context.Context, username string, userInfo api.User
 	if err != nil {
 		return err
 	}
-	if *dbVerboseUserInfo {
+	if d.dbVerboseUserInfo {
 		log.Printf("SetUserInfo(%q) -> %+v", username, res)
 	}
 	return nil
@@ -118,14 +124,14 @@ func (d *DB) SetUserOptions(ctx context.Context, username string, userOptions Us
 		}},
 	}
 	if res, err := d.collection("userInfo").UpdateOne(ctx, filter, update); err == nil {
-		if *dbVerboseFollowers {
+		if d.dbVerboseFollowers {
 			log.Printf("SetUserOptions for %s: UpdateOne result: %+v", username, res)
 		}
 		if res.MatchedCount != 0 || res.ModifiedCount != 0 || res.UpsertedCount != 0 {
 			return nil
 		}
 	} else {
-		if *dbVerboseFollowers {
+		if d.dbVerboseFollowers {
 			log.Printf("SetUserOptions for %s: UpdateOne error: %v", username, err)
 		}
 	}
@@ -141,7 +147,7 @@ func (d *DB) SetUserOptions(ctx context.Context, username string, userOptions Us
 	if err != nil {
 		return err
 	}
-	if *dbVerboseUserInfo {
+	if d.dbVerboseUserInfo {
 		log.Printf("SetUserInfo(%q) -> %+v", username, res)
 	}
 	return nil
@@ -179,14 +185,14 @@ func (d *DB) setUserOptionsPart(ctx context.Context, username string, val bool, 
 		}},
 	}
 	if res, err := d.collection("userInfo").UpdateOne(ctx, filter, update); err == nil {
-		if *dbVerboseFollowers {
+		if d.dbVerboseFollowers {
 			log.Printf("SetUserOptions for %s and part %s: UpdateOne result: %+v", username, part, res)
 		}
 		if res.MatchedCount != 0 || res.ModifiedCount != 0 || res.UpsertedCount != 0 {
 			return nil
 		}
 	} else {
-		if *dbVerboseFollowers {
+		if d.dbVerboseFollowers {
 			log.Printf("SetUserOptions for %s and part: UpdateOne error: %v", username, part, err)
 		}
 	}
@@ -201,7 +207,7 @@ func (d *DB) setUserOptionsPart(ctx context.Context, username string, val bool, 
 	if err != nil {
 		return err
 	}
-	if *dbVerboseUserInfo {
+	if d.dbVerboseUserInfo {
 		log.Printf("SetUserInfo(%q) -> %+v", username, res)
 	}
 	return nil
@@ -272,12 +278,12 @@ func (d *DB) GetUserFollowingDone(ctx context.Context, username string) (bool, e
 func (d *DB) deleteAllUserInfo(ctx context.Context) error {
 	filter := bson.D{}
 	if res, err := d.collection("userInfo").DeleteMany(ctx, filter); err != nil {
-		if *dbVerboseUserInfo {
+		if d.dbVerboseUserInfo {
 			log.Printf("deleteAllUserInfo: DeleteMany error: %v", err)
 		}
 		return err
 	} else {
-		if *dbVerboseUserInfo {
+		if d.dbVerboseUserInfo {
 			log.Printf("deleteAllUserInfo: DeleteMany result: %+v", res)
 		}
 	}
@@ -309,14 +315,14 @@ func (d *DB) setFollowish(ctx context.Context, username string, offset int, user
 		}},
 	}
 	if res, err := d.collection(collection).UpdateOne(ctx, filter, update); err == nil {
-		if *dbVerboseFollowers {
+		if d.dbVerboseFollowers {
 			log.Printf("setFollowish[%q]: UpdateOne result: %+v", collection, res)
 		}
 		if res.MatchedCount != 0 || res.ModifiedCount != 0 || res.UpsertedCount != 0 {
 			return nil
 		}
 	} else {
-		if *dbVerboseFollowers {
+		if d.dbVerboseFollowers {
 			log.Printf("setFollowish[%q]: UpdateOne error: %v", collection, err)
 		}
 	}
@@ -330,7 +336,7 @@ func (d *DB) setFollowish(ctx context.Context, username string, offset int, user
 	if err != nil {
 		return err
 	}
-	if *dbVerboseFollowers {
+	if d.dbVerboseFollowers {
 		log.Printf("setFollowish[%q](%q) -> %+v", collection, username, res)
 	}
 	return nil
@@ -339,12 +345,12 @@ func (d *DB) setFollowish(ctx context.Context, username string, offset int, user
 func (d *DB) deleteFollowers(ctx context.Context, username string) error {
 	filter := bson.D{{"username", username}}
 	if res, err := d.collection("followers").DeleteMany(ctx, filter); err != nil {
-		if *dbVerboseFollowers {
+		if d.dbVerboseFollowers {
 			log.Printf("deleteFollowers: DeleteMany error: %v", err)
 		}
 		return err
 	} else {
-		if *dbVerboseFollowers {
+		if d.dbVerboseFollowers {
 			log.Printf("deleteFollowers: DeleteMany result: %+v", res)
 		}
 	}
@@ -354,12 +360,12 @@ func (d *DB) deleteFollowers(ctx context.Context, username string) error {
 func (d *DB) deleteAllFollowers(ctx context.Context) error {
 	filter := bson.D{}
 	if res, err := d.collection("followers").DeleteMany(ctx, filter); err != nil {
-		if *dbVerboseFollowers {
+		if d.dbVerboseFollowers {
 			log.Printf("deleteAllFollowers: DeleteMany error: %v", err)
 		}
 		return err
 	} else {
-		if *dbVerboseFollowers {
+		if d.dbVerboseFollowers {
 			log.Printf("deleteAllFollowers: DeleteMany result: %+v", res)
 		}
 	}
@@ -369,12 +375,12 @@ func (d *DB) deleteAllFollowers(ctx context.Context) error {
 func (d *DB) deleteAllFollowing(ctx context.Context) error {
 	filter := bson.D{}
 	if res, err := d.collection("following").DeleteMany(ctx, filter); err != nil {
-		if *dbVerboseFollowing {
+		if d.dbVerboseFollowing {
 			log.Printf("deleteAllFollowing: DeleteMany error: %v", err)
 		}
 		return err
 	} else {
-		if *dbVerboseFollowing {
+		if d.dbVerboseFollowing {
 			log.Printf("deleteAllFollowing: DeleteMany result: %+v", res)
 		}
 	}
