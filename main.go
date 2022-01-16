@@ -112,6 +112,14 @@ func realMain(ctx context.Context) error {
 		log.Printf("GetPosts: %+v", info)
 	}
 
+	if should("Timeline") {
+		info, err := client.Timeline()
+		if err != nil {
+			return err
+		}
+		log.Printf("Timeline: %+v", info)
+	}
+
 	if should("GetComments") {
 		info, err := client.GetComments("pmyaf4548d")
 		if err != nil {
