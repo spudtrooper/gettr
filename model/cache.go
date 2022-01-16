@@ -208,7 +208,7 @@ func (c *cacheImpl) GetAllStrings(parts ...string) (SharedStrings, error) {
 			return err
 		}
 		for _, s := range arr {
-			set[s] = filepath.Base(filepath.Dir(path))
+			set[s] = filepath.Base(path)
 		}
 		return nil
 	}); err != nil {

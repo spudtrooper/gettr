@@ -12,6 +12,7 @@ import (
 	"github.com/spudtrooper/gettr/log"
 	"github.com/spudtrooper/goutil/check"
 	"github.com/spudtrooper/goutil/flags"
+	"github.com/spudtrooper/goutil/must"
 	"github.com/spudtrooper/goutil/or"
 	"github.com/spudtrooper/goutil/sets"
 	"github.com/thomaso-mirodin/intmath/intgr"
@@ -1045,85 +1046,91 @@ func (u *User) cachedFollowingByOffset(fOpts ...api.AllFollowingsOption) (chan *
 	return users, errs
 }
 
-func (u *User) PersistInDB(ctx context.Context) error {
-	threads := 200
+func (u *User) PersistInDB(ctx context.Context, pOpts ...PersistInDBOption) error {
+	opts := MakePersistInDBOptions(pOpts...)
+	threads := or.Int(opts.Threads(), defaultThreads)
 
-	followers, followersErrs := u.followersUsingDiskCache(ctx, api.AllFollowersThreads(threads))
-	if false { // TODO: Why is pulling on empty/by closed channel not working?
-		for e := range followersErrs {
-			log.Printf("ignoring followersErrs %v", e)
+	if u.has(cacheKeyUserInfo) {
+		log.Printf("transering userInfo")
+		userInfo, err := u.userInfoUsingDiskCache(ctx)
+		if err != nil {
+			return err
+		}
+		if err := u.db.SetUserInfo(ctx, u.Username(), userInfo); err != nil {
+			return err
 		}
 	}
 
-	// followerUsers := make(chan *User)
-	// go func() {
-	// 	var wg sync.WaitGroup
-	// 	for i := 0; i < threads; i++ {
-	// 		wg.Add(1)
-	// 		go func() {
-	// 			defer wg.Done()
-	// 			for f := range followers {
-	// 				_, err := f.UserInfo()
-	// 				check.Err(err)
-	// 				followerUsers <- f
-	// 			}
-	// 		}()
-	// 	}
-	// 	wg.Wait()
-	// 	close(followerUsers)
-	// }()
+	type usersAndOffset struct {
+		users  []string
+		offset string
+	}
 
-	{
-		c := followers
-		i := 0
-		for f := range c {
-			u, err := f.UserInfo(ctx)
-			if err != nil {
-				return err
+	createUsersByOffset := func(ss SharedStrings) chan usersAndOffset {
+		usersByOffsets := map[string][]string{}
+		for _, x := range ss {
+			user, offset := x.Val, x.Dir
+			users := usersByOffsets[offset]
+			users = append(users, user)
+			usersByOffsets[offset] = users
+		}
+		ch := make(chan usersAndOffset)
+		go func() {
+			for offset, users := range usersByOffsets {
+				ch <- usersAndOffset{offset: offset, users: users}
 			}
-			log.Printf("followers[%d]: %v", i, u)
-			i++
-		}
+			close(ch)
+		}()
+		return ch
 	}
 
-	following, followingErrs := u.followingUsingDiskCache(ctx, api.AllFollowingsThreads(threads))
-	if false { // TODO: Why is pulling on empty/by closed channel not working?
-		for e := range followingErrs {
-			log.Printf("ignoring followingErr: %v", e)
+	var wg sync.WaitGroup
+
+	if u.has(cacheKeyFollowersByOffset) {
+		log.Printf("transering followers with %d threads", threads)
+		ss, err := u.cache.GetAllStrings(u.cacheParts(cacheKeyFollowersByOffset)...)
+		if err != nil {
+			return err
 		}
-	}
-
-	// followingUsers := make(chan *User)
-	// go func() {
-	// 	var wg sync.WaitGroup
-	// 	for i := 0; i < threads; i++ {
-	// 		wg.Add(1)
-	// 		go func() {
-	// 			defer wg.Done()
-	// 			for f := range following {
-	// 				_, err := f.UserInfo()
-	// 				check.Err(err)
-	// 				followingUsers <- f
-	// 			}
-	// 		}()
-	// 	}
-	// 	wg.Wait()
-	// 	close(followingUsers)
-	// }()
-
-	{
-		c := following
-		i := 0
-		for f := range c {
-			u, err := f.UserInfo(ctx)
-			if err != nil {
-				return err
+		ch := createUsersByOffset(ss)
+		go func() {
+			for i := 0; i < threads; i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for uao := range ch {
+						if err := u.db.SetFollowers(ctx, u.Username(), must.Atoi(uao.offset), uao.users); err != nil {
+							log.Printf("TODO SetFollowers; %v", err)
+						}
+					}
+				}()
 			}
-			log.Printf("following[%d]: %v", i, u)
-			i++
-			i++
-		}
+		}()
 	}
+
+	if u.has(cacheKeyFollowingByOffset) {
+		log.Printf("transering following with %d threads", threads)
+		ss, err := u.cache.GetAllStrings(u.cacheParts(cacheKeyFollowingByOffset)...)
+		if err != nil {
+			return err
+		}
+		ch := createUsersByOffset(ss)
+		go func() {
+			for i := 0; i < threads; i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for uao := range ch {
+						if err := u.db.SetFollowing(ctx, u.Username(), must.Atoi(uao.offset), uao.users); err != nil {
+							log.Printf("TODO SetFollowing; %v", err)
+						}
+					}
+				}()
+			}
+		}()
+	}
+
+	wg.Wait()
 
 	return nil
 }
