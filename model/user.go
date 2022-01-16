@@ -182,7 +182,8 @@ func (u *User) userInfoUsingDiskCache(ctx context.Context, uOpts ...UserInfoOpti
 }
 
 func (u *User) Followers(ctx context.Context, fOpts ...api.AllFollowersOption) (chan *User, chan error) {
-	if u.opts().followersUsingDiskCache {
+	opts := api.MakeAllFollowersOptions(fOpts...)
+	if opts.FromDisk() || u.opts().followersUsingDiskCache {
 		return u.followersUsingDiskCache(ctx, fOpts...)
 	}
 	return u.followersUsingDB(ctx, fOpts...)
@@ -438,7 +439,8 @@ func (u *User) FollowersSync(fOpts ...api.AllFollowersOption) ([]*User, error) {
 }
 
 func (u *User) Following(ctx context.Context, fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
-	if u.opts().followingUsingDiskCache {
+	opts := api.MakeAllFollowingsOptions(fOpts...)
+	if opts.FromDisk() || u.opts().followingUsingDiskCache {
 		return u.followingUsingDiskCache(ctx, fOpts...)
 	}
 	return u.followingUsingDB(ctx, fOpts...)
