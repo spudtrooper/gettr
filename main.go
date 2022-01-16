@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -36,6 +37,7 @@ var (
 	profileLocation        = flags.String("profile_location", "profile location to update")
 	profileWebsite         = flags.String("profile_website", "profile website to update")
 	profileBackgroundImage = flags.String("profile_background_image", "profile background image to update")
+	debug                  = flags.Bool("debug", "generic debug for some actions")
 )
 
 func realMain(ctx context.Context) error {
@@ -55,6 +57,7 @@ func realMain(ctx context.Context) error {
 		actionMap[strings.ToLower(c)] = true
 	}
 	shouldReturnedTrueOnce := false
+	var possibleActions []string
 	should := func(s string) bool {
 		for k := range actionMap {
 			if k == "all" {
@@ -68,6 +71,7 @@ func realMain(ctx context.Context) error {
 		if res {
 			shouldReturnedTrueOnce = true
 		}
+		possibleActions = append(possibleActions, s)
 		return res
 	}
 
@@ -488,24 +492,49 @@ func realMain(ctx context.Context) error {
 		if *uploadImage == "" {
 			return errors.Errorf("--upload_image required")
 		}
-		var bgImg string
+		var img string
 		{
 			res, err := client.Upload(*uploadImage)
 			if err != nil {
 				return err
 			}
 			log.Printf("Upload: %v", res)
-			bgImg = res.ORI
-			if strings.HasPrefix(bgImg, "/") {
-				bgImg = string(bgImg[1:])
+			img = res.ORI
+			if strings.HasPrefix(img, "/") {
+				img = string(img[1:])
 			}
 		}
 		{
-			res, err := client.UpdateProfile(api.UpdateProfileIcon(bgImg))
+			res, err := client.UpdateProfile(api.UpdateProfileIcon(img))
 			if err != nil {
 				return err
 			}
 			log.Printf("UpdateProfile: %v", res)
+		}
+	}
+
+	if should("CreatePostImage") {
+		if *uploadImage == "" {
+			return errors.Errorf("--upload_image required")
+		}
+		var img string
+		{
+			res, err := client.Upload(*uploadImage)
+			if err != nil {
+				return err
+			}
+			log.Printf("Upload: %v", res)
+			img = res.ORI
+			if strings.HasPrefix(img, "/") {
+				img = string(img[1:])
+			}
+		}
+		{
+			res, err := client.CreatePost(*text, api.CreatePostImages([]string{img}), api.CreatePostDebug(*debug))
+			if err != nil {
+				return err
+			}
+			log.Printf("CreatePost: %v", res)
 		}
 	}
 
@@ -523,7 +552,16 @@ func realMain(ctx context.Context) error {
 	}
 
 	if !shouldReturnedTrueOnce {
-		return errors.Errorf("no valid actions in %+v", actionMap)
+		var actions []string
+		for s := range actionMap {
+			actions = append(actions, fmt.Sprintf("%q", s))
+		}
+		msg := fmt.Sprintf("no valid actions in %v.\nThe possible actions are:\n", actions)
+		sort.Strings(possibleActions)
+		for _, s := range possibleActions {
+			msg += " - " + s + "\n"
+		}
+		return errors.Errorf(msg)
 	}
 
 	return nil

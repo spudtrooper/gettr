@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -420,11 +421,47 @@ type CreatePostInfo struct {
 	Text  string  `json:"txt"`
 }
 
-func (c *Core) CreatePost(text string) (CreatePostInfo, error) {
+func (c *Core) CreatePost(text string, cOpts ...CreatePostOption) (CreatePostInfo, error) {
+	opts := MakeCreatePostOptions(cOpts...)
 	date := int(time.Now().UnixMilli())
-	content := fmt.Sprintf(
-		`{"data":{"acl":{"_t":"acl"},"_t":"post","txt":"%s","udate":%d,"cdate":%d,"uid":"%s"},"aux":null,"serial":"post"}`,
-		text, date, date, c.username)
+	var contentData struct {
+		Data struct {
+			ACL struct {
+				Type string `json:"_t"`
+			} `json:"acl"`
+			Type      string   `json:"_t"`
+			Text      string   `json:"txt"`
+			UDate     IntDate  `json:"udate"`
+			CDate     IntDate  `json:"cdate"`
+			UID       string   `json:"uid"`
+			Images    []string `json:"imgs"`
+			VidWidth  int      `json:"vid_wid"`
+			VidHeight int      `json:"vid_hgt"`
+		} `json:"data"`
+		Aux    interface{} `json:"aux"`
+		Serial string      `json:"serial"`
+	}
+	contentData.Data.ACL.Type = "acl"
+	contentData.Data.Type = "post"
+	contentData.Data.Text = text
+	contentData.Data.CDate = IntDate(date)
+	contentData.Data.UDate = IntDate(date)
+	contentData.Data.UID = c.username
+	contentData.Serial = "post"
+	if len(opts.Images()) > 0 {
+		contentData.Data.Images = opts.Images()
+		contentData.Data.VidWidth = 152
+		contentData.Data.VidHeight = 250
+
+	}
+	contentBytes, err := json.Marshal(&contentData)
+	if err != nil {
+		return CreatePostInfo{}, err
+	}
+	content := string(contentBytes)
+	if opts.Debug() {
+		log.Printf("DEBUG: content: <<<\n\n%s\n\n>>>", content)
+	}
 	data := url.Values{}
 	data.Set("content", content)
 	route := "u/post"
