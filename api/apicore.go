@@ -1,8 +1,12 @@
 package api
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"net/url"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -76,7 +80,7 @@ func (c *Core) GetUserInfo(username string) (UserInfo, error) {
 	var payload struct {
 		Data UserInfo
 	}
-	if err := c.get(route, &payload); err != nil {
+	if _, err := c.get(route, &payload); err != nil {
 		return UserInfo{}, err
 	}
 	return payload.Data, nil
@@ -105,7 +109,7 @@ func (c *Core) GetPublicGlobals() (*PublicGlobals, error) {
 	var payload struct {
 		Globals PublicGlobals
 	}
-	if err := c.get(route, &payload); err != nil {
+	if _, err := c.get(route, &payload); err != nil {
 		return nil, err
 	}
 	return &payload.Globals, nil
@@ -131,7 +135,7 @@ func (c *Core) GetSuggestions(sOpts ...SuggestOption) ([]HtInfo, error) {
 	var payload struct {
 		Aux suggestions `json:"aux"`
 	}
-	if err := c.get(route, &payload); err != nil {
+	if _, err := c.get(route, &payload); err != nil {
 		return nil, err
 	}
 	var res []HtInfo
@@ -169,7 +173,7 @@ func (c *Core) GetPosts(username string, pOpts ...PostsOption) ([]PostInfo, erro
 	var payload struct {
 		Aux posts `json:"aux"`
 	}
-	if err := c.get(route, &payload); err != nil {
+	if _, err := c.get(route, &payload); err != nil {
 		return nil, err
 	}
 	var res []PostInfo
@@ -206,7 +210,7 @@ func (c *Core) GetComments(post string, cOpts ...CommentsOption) ([]CommentInfo,
 	var payload struct {
 		Aux comments `json:"aux"`
 	}
-	if err := c.get(route, &payload); err != nil {
+	if _, err := c.get(route, &payload); err != nil {
 		return nil, err
 	}
 	var res []CommentInfo
@@ -268,7 +272,7 @@ func (c *Core) GetPost(post string, pOpts ...PostOption) (PostDetails, error) {
 		Aux  aux      `json:"aux"`
 		Data PostInfo `json:"data"`
 	}
-	if err := c.get(route, &payload); err != nil {
+	if _, err := c.get(route, &payload); err != nil {
 		return PostDetails{}, err
 	}
 	res := PostDetails{
@@ -293,7 +297,7 @@ func (c *Core) GetMuted(mOpts ...MutedOption) (UserInfos, error) {
 	var payload struct {
 		Aux aux `json:"aux"`
 	}
-	if err := c.get(route, &payload); err != nil {
+	if _, err := c.get(route, &payload); err != nil {
 		return nil, err
 	}
 	var res UserInfos
@@ -315,7 +319,7 @@ func (c *Core) GetFollowings(username string, fOpts ...FollowingsOption) (UserIn
 	var payload struct {
 		Aux aux `json:"aux"`
 	}
-	if err := c.get(route, &payload); err != nil {
+	if _, err := c.get(route, &payload); err != nil {
 		return nil, err
 	}
 	var res UserInfos
@@ -327,7 +331,7 @@ func (c *Core) GetFollowings(username string, fOpts ...FollowingsOption) (UserIn
 
 func (c *Core) Follow(username string) error {
 	route := createRoute(fmt.Sprintf("u/user/%s/follows/%s", c.username, username))
-	if err := c.post(route, nil, nil); err != nil {
+	if _, err := c.post(route, nil, nil); err != nil {
 		return err
 	}
 	return nil
@@ -345,7 +349,7 @@ func (c *Core) GetFollowers(username string, fOpts ...FollowersOption) (UserInfo
 	var payload struct {
 		Aux aux `json:"aux"`
 	}
-	if err := c.get(route, &payload); err != nil {
+	if _, err := c.get(route, &payload); err != nil {
 		return nil, err
 	}
 	var res UserInfos
@@ -427,7 +431,10 @@ func (c *Core) CreatePost(text string) (CreatePostInfo, error) {
 	var payload struct {
 		Data CreatePostInfo `json:"data"`
 	}
-	if err := c.post(route, &payload, strings.NewReader(data.Encode())); err != nil {
+	extraHeaders := map[string]string{
+		"Content-Type": "application/x-www-form-urlencoded",
+	}
+	if _, err := c.post(route, &payload, strings.NewReader(data.Encode()), RequestExtraHeaders(extraHeaders)); err != nil {
 		return CreatePostInfo{}, err
 	}
 	return payload.Data, nil
@@ -445,8 +452,77 @@ type DeletePostInfo struct {
 func (c *Core) DeletePost(postID string) (bool, error) {
 	route := fmt.Sprintf("u/post/%s", postID)
 	var payload bool
-	if err := c.delete(route, &payload); err != nil {
+	if _, err := c.delete(route, &payload); err != nil {
 		return false, err
 	}
 	return payload, nil
+}
+
+func base64String(s string) string {
+	return base64.StdEncoding.EncodeToString([]byte(s))
+}
+
+type UploadInfo struct {
+	ORI     string `json:"ori"`
+	MD5     string `json:"md5"`
+	Status  int    `json:"status"`
+	Message string `json:"message"`
+}
+
+func (c *Core) Upload(f string) (*UploadInfo, error) {
+	extWithNoDot := string(path.Ext(f)[1:])
+	filename := "53d4e55-65f-07ee-ea2f-e3cc0aeec16-base64image." + extWithNoDot
+	filetype := "image/" + extWithNoDot
+	token := c.authToken
+	body, err := ioutil.ReadFile(f)
+	if err != nil {
+		return nil, err
+	}
+	var patchLocation string
+	commonHeaders := func(m map[string]string) map[string]string {
+		common := map[string]string{
+			"userid":        c.username,
+			"filename":      filename,
+			"Authorization": token,
+			"Tus-Resumable": `1.0.0`,
+		}
+		for k, v := range common {
+			m[k] = v
+		}
+		return m
+	}
+	{
+		uploadMetadata := fmt.Sprintf("filename %s,filetype %s", base64String(filename), base64String(filetype))
+		extraHeaders := commonHeaders(map[string]string{
+			"Upload-Metadata": uploadMetadata,
+			"Content-Length":  `0`,
+			"Upload-Length":   fmt.Sprintf("%d", len(body)),
+		})
+		route := "media/big/upload"
+		res, err := c.post(route, nil, nil, RequestExtraHeaders(extraHeaders), RequestHost("upload.gettr.com"))
+		if err != nil {
+			return nil, err
+		}
+		loc := res.Header.Get("Location")
+		if loc == "" {
+			return nil, errors.Errorf("no location from the POST: response=%v", res)
+		}
+		patchLocation = loc
+	}
+	{
+		extraHeaders := commonHeaders(map[string]string{
+			"Content-Type":   `application/offset+octet-stream`,
+			"Content-Length": fmt.Sprintf("%d", len(body)),
+			"Upload-Offset":  `0`,
+		})
+		route := patchLocation
+		if strings.HasPrefix(route, "/") {
+			route = string(route[1:])
+		}
+		res := &UploadInfo{}
+		if _, err := c.patch(route, nil, bytes.NewBuffer(body), RequestExtraHeaders(extraHeaders), RequestHost("upload.gettr.com"), RequestCustomPayload(res)); err != nil {
+			return nil, err
+		}
+		return res, nil
+	}
 }

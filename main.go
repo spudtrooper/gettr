@@ -15,6 +15,7 @@ import (
 	"github.com/spudtrooper/gettr/api"
 	"github.com/spudtrooper/gettr/model"
 	"github.com/spudtrooper/goutil/check"
+	"github.com/spudtrooper/goutil/flags"
 	"github.com/spudtrooper/goutil/or"
 	"github.com/spudtrooper/goutil/sets"
 )
@@ -30,6 +31,7 @@ var (
 	force         = flag.Bool("force", false, "force things")
 	text          = flag.String("text", "", "text for posting")
 	postID        = flag.String("post_id", "", "post ID for deletion")
+	uploadImage   = flags.String("upload_image", "image to upload")
 )
 
 func realMain(ctx context.Context) error {
@@ -476,6 +478,17 @@ func realMain(ctx context.Context) error {
 		if err := u.PersistInDB(ctx); err != nil {
 			return err
 		}
+	}
+
+	if should("Upload") {
+		if *uploadImage == "" {
+			return errors.Errorf("--upload_image required")
+		}
+		res, err := client.Upload(*uploadImage)
+		if err != nil {
+			return err
+		}
+		log.Printf("Upload: %v", res)
 	}
 
 	if !shouldReturnedTrueOnce {
