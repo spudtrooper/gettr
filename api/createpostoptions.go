@@ -1,6 +1,6 @@
 package api
 
-// genopts --opt_type=CreatePostOption --prefix=CreatePost --outfile=api/createpostoptions.go 'images:[]string' 'debug:bool' 'previewImage:string' 'description:string'
+// genopts --opt_type=CreatePostOption --prefix=CreatePost --outfile=api/createpostoptions.go 'images:[]string' 'debug:bool' 'previewImage:string' 'description:string' 'title:string' 'previewSource:string'
 
 type CreatePostOption func(*createPostOptionImpl)
 
@@ -9,6 +9,8 @@ type CreatePostOptions interface {
 	Debug() bool
 	PreviewImage() string
 	Description() string
+	Title() string
+	PreviewSource() string
 }
 
 func CreatePostImages(images []string) CreatePostOption {
@@ -35,17 +37,33 @@ func CreatePostDescription(description string) CreatePostOption {
 	}
 }
 
-type createPostOptionImpl struct {
-	images       []string
-	debug        bool
-	previewImage string
-	description  string
+func CreatePostTitle(title string) CreatePostOption {
+	return func(opts *createPostOptionImpl) {
+		opts.title = title
+	}
 }
 
-func (c *createPostOptionImpl) Images() []string     { return c.images }
-func (c *createPostOptionImpl) Debug() bool          { return c.debug }
-func (c *createPostOptionImpl) PreviewImage() string { return c.previewImage }
-func (c *createPostOptionImpl) Description() string  { return c.description }
+func CreatePostPreviewSource(previewSource string) CreatePostOption {
+	return func(opts *createPostOptionImpl) {
+		opts.previewSource = previewSource
+	}
+}
+
+type createPostOptionImpl struct {
+	images        []string
+	debug         bool
+	previewImage  string
+	description   string
+	title         string
+	previewSource string
+}
+
+func (c *createPostOptionImpl) Images() []string      { return c.images }
+func (c *createPostOptionImpl) Debug() bool           { return c.debug }
+func (c *createPostOptionImpl) PreviewImage() string  { return c.previewImage }
+func (c *createPostOptionImpl) Description() string   { return c.description }
+func (c *createPostOptionImpl) Title() string         { return c.title }
+func (c *createPostOptionImpl) PreviewSource() string { return c.previewSource }
 
 func makeCreatePostOptionImpl(opts ...CreatePostOption) *createPostOptionImpl {
 	res := &createPostOptionImpl{}

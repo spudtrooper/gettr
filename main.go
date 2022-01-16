@@ -33,10 +33,12 @@ var (
 	force                  = flag.Bool("force", false, "force things")
 	text                   = flag.String("text", "", "text for posting")
 	dsc                    = flag.String("dsc", "", "description for posting")
+	postTitle              = flag.String("post_title", "", "title for posting")
 	postID                 = flag.String("post_id", "", "post ID for deletion")
 	uploadImage            = flags.String("upload_image", "image to upload")
 	postImage              = flags.String("post_image", "image to post")
 	postPreviewImage       = flags.String("post_preview_image", "preview image to post")
+	postPreviewSource      = flags.String("post_preview_source", "preview source to post")
 	profileDescription     = flags.String("profile_description", "profile description to update")
 	profileLocation        = flags.String("profile_location", "profile location to update")
 	profileWebsite         = flags.String("profile_website", "profile website to update")
@@ -480,7 +482,9 @@ func realMain(ctx context.Context) error {
 	if should("CreatePost") {
 		info, err := client.CreatePost(*text,
 			api.CreatePostDebug(*debug),
+			api.CreatePostTitle(*postTitle),
 			api.CreatePostPreviewImage(*postPreviewImage),
+			api.CreatePostPreviewSource(*postPreviewSource),
 			api.CreatePostDescription(*dsc),
 		)
 		if err != nil {
@@ -549,7 +553,9 @@ func realMain(ctx context.Context) error {
 			res, err := client.CreatePost(*text,
 				api.CreatePostImages([]string{img}),
 				api.CreatePostDebug(*debug),
+				api.CreatePostTitle(*postTitle),
 				api.CreatePostPreviewImage(*postPreviewImage),
+				api.CreatePostPreviewSource(*postPreviewSource),
 				api.CreatePostDescription(*dsc),
 			)
 			if err != nil {
@@ -567,7 +573,9 @@ func realMain(ctx context.Context) error {
 		res, err := client.CreatePost(*text,
 			api.CreatePostImages([]string{*postImage}),
 			api.CreatePostDebug(*debug),
+			api.CreatePostTitle(*postTitle),
 			api.CreatePostPreviewImage(*postPreviewImage),
+			api.CreatePostPreviewSource(*postPreviewSource),
 			api.CreatePostDescription(*dsc),
 		)
 		if err != nil {

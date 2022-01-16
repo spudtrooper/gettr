@@ -448,16 +448,18 @@ func (c *Core) CreatePost(text string, cOpts ...CreatePostOption) (CreatePostInf
 			ACL struct {
 				Type string `json:"_t"`
 			} `json:"acl"`
-			Type         string   `json:"_t"`
-			Text         string   `json:"txt"`
-			Description  string   `json:"dsc"`
-			UDate        IntDate  `json:"udate"`
-			CDate        IntDate  `json:"cdate"`
-			UID          string   `json:"uid"`
-			Images       []string `json:"imgs"`
-			PreviewImage string   `json:"previmg"`
-			VidWidth     int      `json:"vid_wid"`
-			VidHeight    int      `json:"vid_hgt"`
+			Type          string   `json:"_t"`
+			Text          string   `json:"txt"`
+			Description   string   `json:"dsc"`
+			UDate         IntDate  `json:"udate"`
+			CDate         IntDate  `json:"cdate"`
+			UID           string   `json:"uid"`
+			Images        []string `json:"imgs"`
+			PreviewImage  string   `json:"previmg"`
+			PreviewSource string   `json:"prevsrc"`
+			VidWidth      int      `json:"vid_wid"`
+			VidHeight     int      `json:"vid_hgt"`
+			Title         string   `json:"ttl"`
 		} `json:"data"`
 		Aux    interface{} `json:"aux"`
 		Serial string      `json:"serial"`
@@ -473,14 +475,13 @@ func (c *Core) CreatePost(text string, cOpts ...CreatePostOption) (CreatePostInf
 		contentData.Data.Images = opts.Images()
 		contentData.Data.VidWidth = 152
 		contentData.Data.VidHeight = 250
-
 	}
-	if opts.Description() != "" {
-		contentData.Data.Description = opts.Description()
-	}
-	if opts.PreviewImage() != "" {
-		contentData.Data.PreviewImage = opts.PreviewImage()
-	}
+	contentData.Data.VidWidth = 152
+	contentData.Data.VidHeight = 250
+	contentData.Data.Description = opts.Description()
+	contentData.Data.PreviewImage = opts.PreviewImage()
+	contentData.Data.PreviewSource = opts.PreviewSource()
+	contentData.Data.Title = opts.Title()
 	contentBytes, err := json.Marshal(&contentData)
 	if err != nil {
 		return CreatePostInfo{}, err
