@@ -11,7 +11,6 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/spudtrooper/gettr/api"
 	"github.com/spudtrooper/gettr/log"
 	"github.com/spudtrooper/gettr/model"
 	"github.com/spudtrooper/goutil/check"
@@ -38,7 +37,7 @@ func Generate(ctx context.Context, outputDirName string, factory model.Factory, 
 	followers := make(chan *model.User)
 	followersForResolution := make(chan *model.User)
 	go func() {
-		users, errs := u.Followers(ctx, api.AllFollowersThreads(threads))
+		users, errs := u.Followers(ctx, model.UserFollowersThreads(threads))
 		for u := range users {
 			followers <- u
 			followersForResolution <- u

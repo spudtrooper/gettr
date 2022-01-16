@@ -66,7 +66,7 @@ func realMain(ctx context.Context) {
 
 	followers := make(chan *model.User)
 	go func() {
-		users, _ := u.Followers(ctx, api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
+		users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads))
 		for u := range users {
 			followers <- u
 		}

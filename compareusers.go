@@ -5,7 +5,6 @@ import (
 	"flag"
 	"log"
 
-	"github.com/spudtrooper/gettr/api"
 	"github.com/spudtrooper/gettr/model"
 	"github.com/spudtrooper/goutil/check"
 )
@@ -20,7 +19,7 @@ var (
 func findFollowers(ctx context.Context, u *model.User) []string {
 	c := make(chan *model.User)
 	go func() {
-		users, _ := u.Followers(ctx, api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
+		users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads))
 		for u := range users {
 			c <- u
 		}

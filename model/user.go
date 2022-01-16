@@ -181,12 +181,21 @@ func (u *User) userInfoUsingDiskCache(ctx context.Context, uOpts ...UserInfoOpti
 	return u.userInfo, nil
 }
 
-func (u *User) Followers(ctx context.Context, fOpts ...api.AllFollowersOption) (chan *User, chan error) {
-	opts := api.MakeAllFollowersOptions(fOpts...)
-	if opts.FromDisk() || u.opts().followersUsingDiskCache {
-		return u.followersUsingDiskCache(ctx, fOpts...)
+func (u *User) Followers(ctx context.Context, fOpts ...UserFollowersOption) (chan *User, chan error) {
+	opts := MakeUserFollowersOptions(fOpts...)
+	convertOpts := func(opts UserFollowingOptions) []api.AllFollowersOption {
+		return []api.AllFollowersOption{
+			api.AllFollowersIncl(opts.Incl()),
+			api.AllFollowersMax(opts.Max()),
+			api.AllFollowersOffset(opts.Offset()),
+			api.AllFollowersStart(opts.Start()),
+			api.AllFollowersThreads(opts.Threads()),
+		}
 	}
-	return u.followersUsingDB(ctx, fOpts...)
+	if opts.FromDisk() || u.opts().followersUsingDiskCache {
+		return u.followersUsingDiskCache(ctx, convertOpts(opts)...)
+	}
+	return u.followersUsingDB(ctx, convertOpts(opts)...)
 }
 
 func (u *User) followersUsingDB(ctx context.Context, fOpts ...api.AllFollowersOption) (chan *User, chan error) {
@@ -438,12 +447,21 @@ func (u *User) FollowersSync(fOpts ...api.AllFollowersOption) ([]*User, error) {
 	return res, nil
 }
 
-func (u *User) Following(ctx context.Context, fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
-	opts := api.MakeAllFollowingsOptions(fOpts...)
-	if opts.FromDisk() || u.opts().followingUsingDiskCache {
-		return u.followingUsingDiskCache(ctx, fOpts...)
+func (u *User) Following(ctx context.Context, fOpts ...UserFollowingOption) (chan *User, chan error) {
+	opts := MakeUserFollowingOptions(fOpts...)
+	convertOpts := func(opts UserFollowingOptions) []api.AllFollowingsOption {
+		return []api.AllFollowingsOption{
+			api.AllFollowingsIncl(opts.Incl()),
+			api.AllFollowingsMax(opts.Max()),
+			api.AllFollowingsOffset(opts.Offset()),
+			api.AllFollowingsStart(opts.Start()),
+			api.AllFollowingsThreads(opts.Threads()),
+		}
 	}
-	return u.followingUsingDB(ctx, fOpts...)
+	if opts.FromDisk() || u.opts().followingUsingDiskCache {
+		return u.followingUsingDiskCache(ctx, convertOpts(opts)...)
+	}
+	return u.followingUsingDB(ctx, convertOpts(opts)...)
 }
 
 func (u *User) followingUsingDB(ctx context.Context, fOpts ...api.AllFollowingsOption) (chan *User, chan error) {
@@ -778,7 +796,7 @@ func (u *User) Persist(ctx context.Context, pOpts ...UserPersistOption) error {
 
 		followers := make(chan *User)
 		go func() {
-			users, errs := u.Followers(ctx, api.AllFollowersMax(opts.Max()), api.AllFollowersThreads(opts.Threads()))
+			users, errs := u.Followers(ctx, UserFollowersMax(opts.Max()), UserFollowersThreads(opts.Threads()))
 			for u := range users {
 				followers <- u
 			}
@@ -812,7 +830,7 @@ func (u *User) Persist(ctx context.Context, pOpts ...UserPersistOption) error {
 
 		following := make(chan *User)
 		go func() {
-			users, errs := u.Following(ctx, api.AllFollowingsMax(opts.Max()), api.AllFollowingsThreads(opts.Threads()))
+			users, errs := u.Following(ctx, UserFollowingMax(opts.Max()), UserFollowingThreads(opts.Threads()))
 			for u := range users {
 				following <- u
 			}

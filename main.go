@@ -224,7 +224,7 @@ func realMain(ctx context.Context) error {
 
 		followers := make(chan *model.User)
 		go func() {
-			users, _ := u.Followers(ctx, api.AllFollowersMax(*max), api.AllFollowersMax(*threads), api.AllFollowersOffset(*offset))
+			users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads), model.UserFollowersOffset(*offset))
 			for u := range users {
 				if ui, _ := u.UserInfo(ctx); ui.Username != "" {
 					followers <- u
@@ -267,7 +267,7 @@ func realMain(ctx context.Context) error {
 
 		followers := make(chan *model.User)
 		go func() {
-			users, _ := u.Followers(ctx, api.AllFollowersMax(*max), api.AllFollowersMax(*threads), api.AllFollowersOffset(*offset))
+			users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads), model.UserFollowersOffset(*offset))
 			for u := range users {
 				if ui, _ := u.UserInfo(ctx); ui.Username != "" {
 					followers <- u
@@ -302,7 +302,7 @@ func realMain(ctx context.Context) error {
 
 		following := make(chan *model.User)
 		go func() {
-			users, _ := u.Following(ctx, api.AllFollowingsMax(*max), api.AllFollowingsMax(*threads), api.AllFollowingsOffset(*offset))
+			users, _ := u.Following(ctx, model.UserFollowingMax(*max), model.UserFollowingMax(*threads), model.UserFollowingOffset(*offset))
 			for u := range users {
 				ui, err := u.UserInfo(ctx)
 				if err != nil {
@@ -387,7 +387,7 @@ func realMain(ctx context.Context) error {
 		{
 			c := make(chan *model.User)
 			go func() {
-				users, _ := u.Followers(ctx, api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
+				users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads))
 				for u := range users {
 					c <- u
 				}
@@ -403,7 +403,7 @@ func realMain(ctx context.Context) error {
 		{
 			c := make(chan *model.User)
 			go func() {
-				users, _ := u.Following(ctx, api.AllFollowingsMax(*max), api.AllFollowingsMax(*threads))
+				users, _ := u.Following(ctx, model.UserFollowingMax(*max), model.UserFollowingMax(*threads))
 				for u := range users {
 					c <- u
 				}
@@ -424,7 +424,7 @@ func realMain(ctx context.Context) error {
 		{
 			c := make(chan *model.User)
 			go func() {
-				users, _ := u.Followers(ctx, api.AllFollowersMax(*max), api.AllFollowersMax(*threads))
+				users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads))
 				for u := range users {
 					c <- u
 				}
@@ -440,7 +440,7 @@ func realMain(ctx context.Context) error {
 		{
 			c := make(chan *model.User)
 			go func() {
-				users, _ := u.Following(ctx, api.AllFollowingsMax(*max), api.AllFollowingsMax(*threads))
+				users, _ := u.Following(ctx, model.UserFollowingMax(*max), model.UserFollowingMax(*threads))
 				for u := range users {
 					c <- u
 				}
