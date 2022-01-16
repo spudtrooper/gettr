@@ -268,6 +268,7 @@ func (u UserInfo) Following() int        { return u.Flw.Int() }
 func (u UserInfo) Followers() int        { return u.Flg.Int() }
 func (u UserInfo) TwitterFollowing() int { return u.TwtFlw.Int() }
 func (u UserInfo) TwitterFollowers() int { return u.TwtFlg.Int() }
+func (u UserInfo) URI() string           { return userURI(u.ID) }
 
 type UserInfos []UserInfo
 
@@ -437,6 +438,8 @@ type CreatePostInfo struct {
 	Text  string  `json:"txt"`
 }
 
+func (c CreatePostInfo) URI() string { return postURI(c.ID) }
+
 func (c *Core) CreatePost(text string, cOpts ...CreatePostOption) (CreatePostInfo, error) {
 	opts := MakeCreatePostOptions(cOpts...)
 	date := int(time.Now().UnixMilli())
@@ -445,14 +448,16 @@ func (c *Core) CreatePost(text string, cOpts ...CreatePostOption) (CreatePostInf
 			ACL struct {
 				Type string `json:"_t"`
 			} `json:"acl"`
-			Type      string   `json:"_t"`
-			Text      string   `json:"txt"`
-			UDate     IntDate  `json:"udate"`
-			CDate     IntDate  `json:"cdate"`
-			UID       string   `json:"uid"`
-			Images    []string `json:"imgs"`
-			VidWidth  int      `json:"vid_wid"`
-			VidHeight int      `json:"vid_hgt"`
+			Type         string   `json:"_t"`
+			Text         string   `json:"txt"`
+			Description  string   `json:"dsc"`
+			UDate        IntDate  `json:"udate"`
+			CDate        IntDate  `json:"cdate"`
+			UID          string   `json:"uid"`
+			Images       []string `json:"imgs"`
+			PreviewImage string   `json:"previmg"`
+			VidWidth     int      `json:"vid_wid"`
+			VidHeight    int      `json:"vid_hgt"`
 		} `json:"data"`
 		Aux    interface{} `json:"aux"`
 		Serial string      `json:"serial"`
@@ -469,6 +474,12 @@ func (c *Core) CreatePost(text string, cOpts ...CreatePostOption) (CreatePostInf
 		contentData.Data.VidWidth = 152
 		contentData.Data.VidHeight = 250
 
+	}
+	if opts.Description() != "" {
+		contentData.Data.Description = opts.Description()
+	}
+	if opts.PreviewImage() != "" {
+		contentData.Data.PreviewImage = opts.PreviewImage()
 	}
 	contentBytes, err := json.Marshal(&contentData)
 	if err != nil {

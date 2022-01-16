@@ -243,3 +243,11 @@ func prettyPrintJSON(b []byte) (string, error) {
 	}
 	return prettyJSON.String(), nil
 }
+
+func userURI(username string) string {
+	return fmt.Sprintf("https://gettr.com/user/%s", username)
+}
+
+func postURI(postID string) string {
+	return fmt.Sprintf("https://gettr.com/post/%s", postID)
+}

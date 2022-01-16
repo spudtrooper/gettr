@@ -32,9 +32,11 @@ var (
 	threads                = flag.Int("threads", 0, "threads to calls")
 	force                  = flag.Bool("force", false, "force things")
 	text                   = flag.String("text", "", "text for posting")
+	dsc                    = flag.String("dsc", "", "description for posting")
 	postID                 = flag.String("post_id", "", "post ID for deletion")
 	uploadImage            = flags.String("upload_image", "image to upload")
 	postImage              = flags.String("post_image", "image to post")
+	postPreviewImage       = flags.String("post_preview_image", "preview image to post")
 	profileDescription     = flags.String("profile_description", "profile description to update")
 	profileLocation        = flags.String("profile_location", "profile location to update")
 	profileWebsite         = flags.String("profile_website", "profile website to update")
@@ -476,7 +478,11 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("CreatePost") {
-		info, err := client.CreatePost(*text)
+		info, err := client.CreatePost(*text,
+			api.CreatePostDebug(*debug),
+			api.CreatePostPreviewImage(*postPreviewImage),
+			api.CreatePostDescription(*dsc),
+		)
 		if err != nil {
 			return err
 		}
@@ -540,7 +546,12 @@ func realMain(ctx context.Context) error {
 			}
 		}
 		{
-			res, err := client.CreatePost(*text, api.CreatePostImages([]string{img}), api.CreatePostDebug(*debug))
+			res, err := client.CreatePost(*text,
+				api.CreatePostImages([]string{img}),
+				api.CreatePostDebug(*debug),
+				api.CreatePostPreviewImage(*postPreviewImage),
+				api.CreatePostDescription(*dsc),
+			)
 			if err != nil {
 				return err
 			}
@@ -553,7 +564,12 @@ func realMain(ctx context.Context) error {
 			return errors.Errorf("--post_image required")
 		}
 
-		res, err := client.CreatePost(*text, api.CreatePostImages([]string{*postImage}), api.CreatePostDebug(*debug))
+		res, err := client.CreatePost(*text,
+			api.CreatePostImages([]string{*postImage}),
+			api.CreatePostDebug(*debug),
+			api.CreatePostPreviewImage(*postPreviewImage),
+			api.CreatePostDescription(*dsc),
+		)
 		if err != nil {
 			return err
 		}
