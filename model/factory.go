@@ -19,7 +19,7 @@ var (
 type Factory interface {
 	MakeUser(username string) *User
 	Cache() Cache
-	Client() *api.Client
+	Client() *api.Extended
 }
 
 type factoryOptions struct {
@@ -32,7 +32,7 @@ type factoryOptions struct {
 
 type factory struct {
 	cache       Cache
-	client      *api.Client
+	client      *api.Extended
 	db          *DB
 	userCacheMu sync.Mutex
 	userCache   map[string]*User
@@ -41,7 +41,7 @@ type factory struct {
 
 func (f *factory) opts() factoryOptions { return f.factoryOptions }
 
-func MakeFactory(ctx context.Context, cache Cache, client *api.Client) (Factory, error) {
+func MakeFactory(ctx context.Context, cache Cache, client *api.Core) (Factory, error) {
 	db, err := MakeDB(ctx)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func MakeFactory(ctx context.Context, cache Cache, client *api.Client) (Factory,
 	userCache := map[string]*User{}
 	res := &factory{
 		cache:     cache,
-		client:    client,
+		client:    api.MakeExtended(client),
 		db:        db,
 		userCache: userCache,
 		factoryOptions: factoryOptions{
@@ -79,8 +79,8 @@ func MakeFactoryFromFlags(ctx context.Context) (Factory, error) {
 	return factory, nil
 }
 
-func (f *factory) Cache() Cache        { return f.cache }
-func (f *factory) Client() *api.Client { return f.client }
+func (f *factory) Cache() Cache          { return f.cache }
+func (f *factory) Client() *api.Extended { return f.client }
 
 func (f *factory) MakeUser(username string) *User {
 	f.userCacheMu.Lock()
