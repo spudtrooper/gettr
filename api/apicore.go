@@ -159,15 +159,7 @@ type PostInfo struct {
 	Reposts     int     `json:"shbpst"`
 }
 
-func (c *Core) GetPosts(username string, pOpts ...PostsOption) ([]PostInfo, error) {
-	opts := MakePostsOptions(pOpts...)
-	offset := or.Int(opts.Offset(), defaultOffset)
-	max := or.Int(opts.Max(), defaultMax)
-	dir := or.String(opts.Dir(), defaultDir)
-	incl := or.String(strings.Join(opts.Incl(), "|"), "posts|stats|userinfo|shared|liked")
-	fp := or.String(opts.Fp(), "f_uo")
-	route := createRoute(fmt.Sprintf("u/user/%s/posts", username),
-		param{"offset", offset}, param{"max", max}, param{"dir", dir}, param{"incl", incl}, param{"fp", fp})
+func (c *Core) getPosts(route string) ([]PostInfo, error) {
 	type posts struct {
 		Posts map[string]PostInfo `json:"post"`
 	}
@@ -182,6 +174,30 @@ func (c *Core) GetPosts(username string, pOpts ...PostsOption) ([]PostInfo, erro
 		res = append(res, p)
 	}
 	return res, nil
+}
+
+func (c *Core) GetPosts(username string, pOpts ...PostsOption) ([]PostInfo, error) {
+	opts := MakePostsOptions(pOpts...)
+	offset := or.Int(opts.Offset(), defaultOffset)
+	max := or.Int(opts.Max(), defaultMax)
+	dir := or.String(opts.Dir(), defaultDir)
+	incl := or.String(strings.Join(opts.Incl(), "|"), "posts|stats|userinfo|shared|liked")
+	fp := or.String(opts.Fp(), "f_uo")
+	route := createRoute(fmt.Sprintf("u/user/%s/posts", username),
+		param{"offset", offset}, param{"max", max}, param{"dir", dir}, param{"incl", incl}, param{"fp", fp})
+	return c.getPosts(route)
+}
+
+func (c *Core) Timeline(pOpts ...TimelineOption) ([]PostInfo, error) {
+	opts := MakeTimelineOptions(pOpts...)
+	offset := or.Int(opts.Offset(), defaultOffset)
+	max := or.Int(opts.Max(), defaultMax)
+	dir := or.String(opts.Dir(), defaultDir)
+	incl := or.String(strings.Join(opts.Incl(), "|"), "posts|stats|userinfo|shared|liked")
+	merge := or.String(opts.Merge(), "shares")
+	route := createRoute(fmt.Sprintf("u/user/%s/timeline", c.username),
+		param{"offset", offset}, param{"max", max}, param{"dir", dir}, param{"incl", incl}, param{"merge", merge})
+	return c.getPosts(route)
 }
 
 type CommentInfo struct {
@@ -603,29 +619,4 @@ func (c *Core) LikePost(postID string) error {
 		return err
 	}
 	return nil
-}
-
-func (c *Core) Timeline(pOpts ...TimelineOption) ([]PostInfo, error) {
-	opts := MakeTimelineOptions(pOpts...)
-	offset := or.Int(opts.Offset(), defaultOffset)
-	max := or.Int(opts.Max(), defaultMax)
-	dir := or.String(opts.Dir(), defaultDir)
-	incl := or.String(strings.Join(opts.Incl(), "|"), "posts|stats|userinfo|shared|liked")
-	merge := or.String(opts.Merge(), "shares")
-	route := createRoute(fmt.Sprintf("u/user/%s/timeline", c.username),
-		param{"offset", offset}, param{"max", max}, param{"dir", dir}, param{"incl", incl}, param{"merge", merge})
-	type posts struct {
-		Posts map[string]PostInfo `json:"post"`
-	}
-	var payload struct {
-		Aux posts `json:"aux"`
-	}
-	if _, err := c.get(route, &payload); err != nil {
-		return nil, err
-	}
-	var res []PostInfo
-	for _, p := range payload.Aux.Posts {
-		res = append(res, p)
-	}
-	return res, nil
 }
