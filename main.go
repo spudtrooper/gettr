@@ -21,17 +21,20 @@ import (
 )
 
 var (
-	actions       = flag.String("actions", "", "comma-delimited list of calls to make")
-	pause         = flag.Duration("pause", 0, "pause amount between follows")
-	offset        = flag.Int("offset", 0, "offset for calls that take offsets")
-	other         = flag.String("other", "", "other username")
-	usernamesFile = flag.String("usernames_file", "", "file containing usernames")
-	max           = flag.Int("max", 0, "max to calls")
-	threads       = flag.Int("threads", 0, "threads to calls")
-	force         = flag.Bool("force", false, "force things")
-	text          = flag.String("text", "", "text for posting")
-	postID        = flag.String("post_id", "", "post ID for deletion")
-	uploadImage   = flags.String("upload_image", "image to upload")
+	actions            = flag.String("actions", "", "comma-delimited list of calls to make")
+	pause              = flag.Duration("pause", 0, "pause amount between follows")
+	offset             = flag.Int("offset", 0, "offset for calls that take offsets")
+	other              = flag.String("other", "", "other username")
+	usernamesFile      = flag.String("usernames_file", "", "file containing usernames")
+	max                = flag.Int("max", 0, "max to calls")
+	threads            = flag.Int("threads", 0, "threads to calls")
+	force              = flag.Bool("force", false, "force things")
+	text               = flag.String("text", "", "text for posting")
+	postID             = flag.String("post_id", "", "post ID for deletion")
+	uploadImage        = flags.String("upload_image", "image to upload")
+	profileDescription = flags.String("profile_description", "profile description to update")
+	profileLocation    = flags.String("profile_location", "profile location to update")
+	profileWebsite     = flags.String("profile_website", "profile website to update")
 )
 
 func realMain(ctx context.Context) error {
@@ -484,11 +487,37 @@ func realMain(ctx context.Context) error {
 		if *uploadImage == "" {
 			return errors.Errorf("--upload_image required")
 		}
-		res, err := client.Upload(*uploadImage)
+		var bgImg string
+		{
+			res, err := client.Upload(*uploadImage)
+			if err != nil {
+				return err
+			}
+			log.Printf("Upload: %v", res)
+			bgImg = res.ORI
+			if strings.HasPrefix(bgImg, "/") {
+				bgImg = string(bgImg[1:])
+			}
+		}
+		{
+			res, err := client.UpdateProfile(api.UpdateProfileIcon(bgImg))
+			if err != nil {
+				return err
+			}
+			log.Printf("UpdateProfile: %v", res)
+		}
+	}
+
+	if should("UpdateProfile") {
+		res, err := client.UpdateProfile(
+			api.UpdateProfileDescription(*profileDescription),
+			api.UpdateProfileLocation(*profileLocation),
+			api.UpdateProfileWebsite(*profileWebsite),
+		)
 		if err != nil {
 			return err
 		}
-		log.Printf("Upload: %v", res)
+		log.Printf("UpdateProfile: %v", res)
 	}
 
 	if !shouldReturnedTrueOnce {

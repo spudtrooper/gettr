@@ -469,14 +469,14 @@ type UploadInfo struct {
 	Message string `json:"message"`
 }
 
-func (c *Core) Upload(f string) (*UploadInfo, error) {
+func (c *Core) Upload(f string) (UploadInfo, error) {
 	extWithNoDot := string(path.Ext(f)[1:])
 	filename := "53d4e55-65f-07ee-ea2f-e3cc0aeec16-base64image." + extWithNoDot
 	filetype := "image/" + extWithNoDot
 	token := c.authToken
 	body, err := ioutil.ReadFile(f)
 	if err != nil {
-		return nil, err
+		return UploadInfo{}, err
 	}
 	var patchLocation string
 	commonHeaders := func(m map[string]string) map[string]string {
@@ -501,11 +501,11 @@ func (c *Core) Upload(f string) (*UploadInfo, error) {
 		route := "media/big/upload"
 		res, err := c.post(route, nil, nil, RequestExtraHeaders(extraHeaders), RequestHost("upload.gettr.com"))
 		if err != nil {
-			return nil, err
+			return UploadInfo{}, err
 		}
 		loc := res.Header.Get("Location")
 		if loc == "" {
-			return nil, errors.Errorf("no location from the POST: response=%v", res)
+			return UploadInfo{}, errors.Errorf("no location from the POST: response=%v", res)
 		}
 		patchLocation = loc
 	}
@@ -519,10 +519,43 @@ func (c *Core) Upload(f string) (*UploadInfo, error) {
 		if strings.HasPrefix(route, "/") {
 			route = string(route[1:])
 		}
-		res := &UploadInfo{}
-		if _, err := c.patch(route, nil, bytes.NewBuffer(body), RequestExtraHeaders(extraHeaders), RequestHost("upload.gettr.com"), RequestCustomPayload(res)); err != nil {
-			return nil, err
+		res := UploadInfo{}
+		if _, err := c.patch(route, nil, bytes.NewBuffer(body), RequestExtraHeaders(extraHeaders), RequestHost("upload.gettr.com"), RequestCustomPayload(&res)); err != nil {
+			return UploadInfo{}, err
 		}
 		return res, nil
 	}
+}
+
+type UpdateProfileInfo struct{ UserInfo }
+
+func (c *Core) UpdateProfile(pOpts ...UpdateProfileOption) (UpdateProfileInfo, error) {
+	opts := MakeUpdateProfileOptions(pOpts...)
+	data := url.Values{}
+	if opts.Description() != "" {
+		data.Set("dsc", opts.Description())
+	}
+	if opts.BackgroundImage() != "" {
+		data.Set("bgimg", opts.BackgroundImage())
+	}
+	if opts.Icon() != "" {
+		data.Set("ico", opts.Icon())
+	}
+	if opts.Website() != "" {
+		data.Set("website", opts.Website())
+	}
+	if opts.Location() != "" {
+		data.Set("location", opts.Location())
+	}
+	route := fmt.Sprintf("u/user/%s/profile", c.username)
+	var payload struct {
+		Data UpdateProfileInfo `json:"data"`
+	}
+	extraHeaders := map[string]string{
+		"Content-Type": "application/x-www-form-urlencoded",
+	}
+	if _, err := c.post(route, &payload, strings.NewReader(data.Encode()), RequestExtraHeaders(extraHeaders)); err != nil {
+		return UpdateProfileInfo{}, err
+	}
+	return payload.Data, nil
 }
