@@ -34,6 +34,7 @@ var (
 	text                   = flag.String("text", "", "text for posting")
 	postID                 = flag.String("post_id", "", "post ID for deletion")
 	uploadImage            = flags.String("upload_image", "image to upload")
+	postImage              = flags.String("post_image", "image to post")
 	profileDescription     = flags.String("profile_description", "profile description to update")
 	profileLocation        = flags.String("profile_location", "profile location to update")
 	profileWebsite         = flags.String("profile_website", "profile website to update")
@@ -547,6 +548,18 @@ func realMain(ctx context.Context) error {
 		}
 	}
 
+	if should("CreatePostCustomImage") {
+		if *postImage == "" {
+			return errors.Errorf("--post_image required")
+		}
+
+		res, err := client.CreatePost(*text, api.CreatePostImages([]string{*postImage}), api.CreatePostDebug(*debug))
+		if err != nil {
+			return err
+		}
+		log.Printf("CreatePost: %v", res)
+	}
+
 	if should("UpdateProfile") {
 		res, err := client.UpdateProfile(
 			api.UpdateProfileBackgroundImage(*profileBackgroundImage),
@@ -592,6 +605,20 @@ func realMain(ctx context.Context) error {
 			return true, nil
 		})
 		parallel.LazyDrain(results, errors)
+	}
+
+	if should("DeleteAll") {
+		posts, err := client.GetPosts(client.Username())
+		if err != nil {
+			return err
+		}
+		for _, p := range posts {
+			ok, err := client.DeletePost(p.ID)
+			if err != nil {
+				return err
+			}
+			log.Printf("deleted: %s -> %v", p.ID, ok)
+		}
 	}
 
 	if !shouldReturnedTrueOnce {
