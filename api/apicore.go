@@ -596,3 +596,11 @@ func (c *Core) UpdateProfile(pOpts ...UpdateProfileOption) (UpdateProfileInfo, e
 	}
 	return payload.Data, nil
 }
+
+func (c *Core) LikePost(postID string) error {
+	route := fmt.Sprintf("u/user/%s/likes/post/%s", c.username, postID)
+	if _, err := c.post(route, nil, nil); err != nil {
+		return err
+	}
+	return nil
+}

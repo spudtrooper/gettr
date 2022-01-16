@@ -551,6 +551,49 @@ func realMain(ctx context.Context) error {
 		log.Printf("UpdateProfile: %v", res)
 	}
 
+	if should("LikeAll") {
+		u := factory.Self()
+
+		followers := make(chan *model.User)
+		go func() {
+			users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads), model.UserFollowersOffset(*offset))
+			for u := range users {
+				if ui, _ := u.UserInfo(ctx); ui.Username != "" {
+					followers <- u
+				}
+			}
+			close(followers)
+		}()
+
+		var wg sync.WaitGroup
+		for t := 0; t < 10; t++ {
+			t := t
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for f := range followers {
+					posts, err := client.GetPosts(f.Username())
+					if err != nil {
+						fmt.Printf("TODO: ignoring GetPosts error: %v", err)
+						continue
+					}
+					if len(posts) == 0 {
+						log.Printf("no posts from %s", f.Username())
+						continue
+					}
+					for i, post := range posts {
+						log.Printf("%s[%d #%d] trying to like: https://gettr.com/post/%s", f.Username(), i, t, post.ID)
+						if err := client.LikePost(post.ID); err != nil {
+							fmt.Printf("TODO: ignoring LikePost error: %v", err)
+							continue
+						}
+					}
+				}
+			}()
+		}
+		wg.Wait()
+	}
+
 	if !shouldReturnedTrueOnce {
 		var actions []string
 		for s := range actionMap {
