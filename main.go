@@ -18,6 +18,7 @@ import (
 	"github.com/spudtrooper/goutil/check"
 	"github.com/spudtrooper/goutil/flags"
 	"github.com/spudtrooper/goutil/or"
+	"github.com/spudtrooper/goutil/parallel"
 	"github.com/spudtrooper/goutil/sets"
 )
 
@@ -554,7 +555,7 @@ func realMain(ctx context.Context) error {
 	if should("LikeAll") {
 		u := factory.Self()
 
-		followers := make(chan *model.User)
+		followers := make(chan interface{}) //*model.User)
 		go func() {
 			users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads), model.UserFollowersOffset(*offset))
 			for u := range users {
@@ -565,33 +566,24 @@ func realMain(ctx context.Context) error {
 			close(followers)
 		}()
 
-		var wg sync.WaitGroup
-		for t := 0; t < 10; t++ {
-			t := t
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				for f := range followers {
-					posts, err := client.GetPosts(f.Username())
-					if err != nil {
-						fmt.Printf("TODO: ignoring GetPosts error: %v", err)
-						continue
-					}
-					if len(posts) == 0 {
-						log.Printf("no posts from %s", f.Username())
-						continue
-					}
-					for i, post := range posts {
-						log.Printf("%s[%d #%d] trying to like: https://gettr.com/post/%s", f.Username(), i, t, post.ID)
-						if err := client.LikePost(post.ID); err != nil {
-							fmt.Printf("TODO: ignoring LikePost error: %v", err)
-							continue
-						}
-					}
+		results, errors := parallel.Exec(followers, 10, func(x interface{}) (interface{}, error) {
+			f := x.(*model.User)
+			posts, err := client.GetPosts(f.Username())
+			if err != nil {
+				return false, err
+			}
+			if len(posts) == 0 {
+				return false, nil
+			}
+			for i, post := range posts {
+				log.Printf("%s[%d] trying to like: https://gettr.com/post/%s", f.Username(), i, post.ID)
+				if err := client.LikePost(post.ID); err != nil {
+					return false, err
 				}
-			}()
-		}
-		wg.Wait()
+			}
+			return true, nil
+		})
+		parallel.LazyDrain(results, errors)
 	}
 
 	if !shouldReturnedTrueOnce {
