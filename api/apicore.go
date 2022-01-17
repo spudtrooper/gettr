@@ -159,6 +159,8 @@ type PostInfo struct {
 	Reposts     int     `json:"shbpst"`
 }
 
+func (p PostInfo) URI() string { return postURI(p.ID) }
+
 func (c *Core) getPosts(route string, rOpts ...RequestOption) ([]PostInfo, error) {
 	type posts struct {
 		Posts map[string]PostInfo `json:"post"`

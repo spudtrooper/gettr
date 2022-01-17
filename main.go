@@ -652,6 +652,9 @@ func realMain(ctx context.Context) error {
 			return err
 		}
 		log.Printf("Search: %+v", info)
+		for i, p := range info {
+			log.Printf(" [%d] %s", i, p.URI())
+		}
 	}
 
 	if should("SearchUsers") {
@@ -661,6 +664,9 @@ func realMain(ctx context.Context) error {
 			return err
 		}
 		log.Printf("Search: %+v", info)
+		for _, p := range info {
+			log.Printf(" - %s", p.URI())
+		}
 	}
 
 	if !shouldReturnedTrueOnce {
