@@ -20,6 +20,7 @@ var (
 	dbVerboseUserInfo  = flags.Bool("db_verbose_user_info", "verbose logging for getting and setting user info")
 	dbVerboseFollowers = flags.Bool("db_verbose_followers", "verbose logging for getting and setting followers")
 	dbVerboseFollowing = flags.Bool("db_verbose_following", "verbose logging for getting and setting following")
+	dbVerbosePosts     = flags.Bool("db_verbose_posts", "verbose logging for getting and setting posts")
 )
 
 type DB struct {
@@ -28,6 +29,7 @@ type DB struct {
 	dbVerboseUserInfo  bool
 	dbVerboseFollowers bool
 	dbVerboseFollowing bool
+	dbVerbosePosts     bool
 }
 
 func MakeDB(ctx context.Context, mOpts ...MakeDBOption) (*DB, error) {
@@ -64,6 +66,7 @@ func MakeDB(ctx context.Context, mOpts ...MakeDBOption) (*DB, error) {
 		dbVerboseUserInfo:  *dbVerboseUserInfo,
 		dbVerboseFollowers: *dbVerboseFollowers,
 		dbVerboseFollowing: *dbVerboseFollowing,
+		dbVerbosePosts:     *dbVerbosePosts,
 	}
 	return res, nil
 }
@@ -89,6 +92,11 @@ type UserOptions struct {
 type storedUserInfo struct {
 	UserInfo api.UserInfo
 	Options  UserOptions
+}
+
+type storedPostInfo struct {
+	PostInfo api.PostInfo
+	Username string
 }
 
 func (d *DB) SetUserInfo(ctx context.Context, username string, userInfo api.UserInfo) error {
@@ -328,16 +336,57 @@ func (d *DB) setFollowish(ctx context.Context, username string, offset int, user
 	return nil
 }
 
-func (d *DB) deleteFollowers(ctx context.Context, username string) error {
-	filter := bson.D{{"username", username}}
-	if res, err := d.collection("followers").DeleteMany(ctx, filter); err != nil {
-		if d.dbVerboseFollowers {
-			log.Printf("deleteFollowers: DeleteMany error: %v", err)
+func (d *DB) DeleteFollowers(ctx context.Context, username string) error {
+	{
+		filter := bson.D{{"username", username}}
+		if res, err := d.collection("followers").DeleteMany(ctx, filter); err != nil {
+			if d.dbVerboseFollowers {
+				log.Printf("DeleteFollowers: DeleteMany error: %v", err)
+			}
+			return err
+		} else {
+			if d.dbVerboseFollowers {
+				log.Printf("DeleteFollowers: DeleteMany result: %+v", res)
+			}
 		}
-		return err
-	} else {
-		if d.dbVerboseFollowers {
-			log.Printf("deleteFollowers: DeleteMany result: %+v", res)
+	}
+	{
+		filter := bson.D{{"userinfo.username", username}}
+		update := bson.D{
+			{"$set", bson.D{
+				{"options.followersdone", false},
+			}},
+		}
+		if _, err := d.collection("userInfo").UpdateOne(ctx, filter, update); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *DB) DeleteFollowing(ctx context.Context, username string) error {
+	{
+		filter := bson.D{{"username", username}}
+		if res, err := d.collection("following").DeleteMany(ctx, filter); err != nil {
+			if d.dbVerboseFollowing {
+				log.Printf("DeleteFollowing: DeleteMany error: %v", err)
+			}
+			return err
+		} else {
+			if d.dbVerboseFollowing {
+				log.Printf("DeleteFollowing: DeleteMany result: %+v", res)
+			}
+		}
+	}
+	{
+		filter := bson.D{{"userinfo.username", username}}
+		update := bson.D{
+			{"$set", bson.D{
+				{"options.followingdone", false},
+			}},
+		}
+		if _, err := d.collection("userInfo").UpdateOne(ctx, filter, update); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -383,7 +432,7 @@ func (d *DB) GetUserMaxFollowerOffset(ctx context.Context, username string) (int
 	return d.getUserMaxFollowishOffset(ctx, username, "followers")
 }
 
-func (d *DB) GetUserMaxFollowIngOffset(ctx context.Context, username string) (int, error) {
+func (d *DB) GetUserMaxFollowingOffset(ctx context.Context, username string) (int, error) {
 	return d.getUserMaxFollowishOffset(ctx, username, "following")
 }
 
@@ -424,4 +473,35 @@ func (d *DB) GetFollowersSync(ctx context.Context, username string) ([]string, e
 		res = append(res, el.Usernames...)
 	}
 	return res, nil
+}
+
+func (d *DB) AddPostInfos(ctx context.Context, username string, postInfos []api.PostInfo) error {
+	for _, p := range postInfos {
+		// TODO: This sucks
+		filter := bson.D{{"postinfo.id", p.ID}}
+		if res, err := d.collection("posts").DeleteMany(ctx, filter); err != nil {
+			if d.dbVerbosePosts {
+				log.Printf("AddPostInfos: DeleteMany error: %v", err)
+			}
+			return err
+		} else {
+			if d.dbVerbosePosts {
+				log.Printf("AddPostInfos: DeleteMany result: %+v", res)
+			}
+		}
+
+		stored := storedPostInfo{
+			PostInfo: p,
+			Username: username,
+		}
+		res, err := d.collection("posts").InsertOne(ctx, stored)
+		if err != nil {
+			return err
+		}
+		if d.dbVerbosePosts {
+			log.Printf("AddPostInfos(%q) -> %+v", p.URI(), res)
+		}
+		return nil
+	}
+	return nil
 }

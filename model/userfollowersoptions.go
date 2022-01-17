@@ -1,6 +1,6 @@
 package model
 
-// genopts --opt_type=UserFollowersOption --prefix=UserFollowers --outfile=model/userfollowersoptions.go 'offset:int' 'max:int' 'incl:[]string' 'start:int' 'threads:int' 'fromDisk'
+// genopts --opt_type=UserFollowersOption --prefix=UserFollowers --outfile=model/userfollowersoptions.go 'offset:int' 'max:int' 'incl:[]string' 'start:int' 'threads:int' 'fromDisk' 'force'
 
 type UserFollowersOption func(*userFollowersOptionImpl)
 
@@ -11,6 +11,7 @@ type UserFollowersOptions interface {
 	Start() int
 	Threads() int
 	FromDisk() bool
+	Force() bool
 }
 
 func UserFollowersOffset(offset int) UserFollowersOption {
@@ -49,6 +50,12 @@ func UserFollowersFromDisk(fromDisk bool) UserFollowersOption {
 	}
 }
 
+func UserFollowersForce(force bool) UserFollowersOption {
+	return func(opts *userFollowersOptionImpl) {
+		opts.force = force
+	}
+}
+
 type userFollowersOptionImpl struct {
 	offset   int
 	max      int
@@ -56,6 +63,7 @@ type userFollowersOptionImpl struct {
 	start    int
 	threads  int
 	fromDisk bool
+	force    bool
 }
 
 func (u *userFollowersOptionImpl) Offset() int    { return u.offset }
@@ -64,6 +72,7 @@ func (u *userFollowersOptionImpl) Incl() []string { return u.incl }
 func (u *userFollowersOptionImpl) Start() int     { return u.start }
 func (u *userFollowersOptionImpl) Threads() int   { return u.threads }
 func (u *userFollowersOptionImpl) FromDisk() bool { return u.fromDisk }
+func (u *userFollowersOptionImpl) Force() bool    { return u.force }
 
 func makeUserFollowersOptionImpl(opts ...UserFollowersOption) *userFollowersOptionImpl {
 	res := &userFollowersOptionImpl{}

@@ -20,6 +20,7 @@ type Factory interface {
 	MakeUser(username string) *User
 	Cache() Cache
 	Client() *api.Extended
+	DB() *DB
 	Self() *User
 }
 
@@ -40,9 +41,11 @@ type factory struct {
 	factoryOptions
 }
 
-func (f *factory) opts() factoryOptions { return f.factoryOptions }
-
-func (f *factory) Self() *User { return f.MakeUser(f.client.Username()) }
+func (f *factory) opts() factoryOptions  { return f.factoryOptions }
+func (f *factory) Self() *User           { return f.MakeUser(f.client.Username()) }
+func (f *factory) Cache() Cache          { return f.cache }
+func (f *factory) Client() *api.Extended { return f.client }
+func (f *factory) DB() *DB               { return f.db }
 
 func MakeFactory(ctx context.Context, cache Cache, client *api.Core) (Factory, error) {
 	db, err := MakeDB(ctx)
@@ -81,9 +84,6 @@ func MakeFactoryFromFlags(ctx context.Context) (Factory, error) {
 	}
 	return factory, nil
 }
-
-func (f *factory) Cache() Cache          { return f.cache }
-func (f *factory) Client() *api.Extended { return f.client }
 
 func (f *factory) MakeUser(username string) *User {
 	f.userCacheMu.Lock()

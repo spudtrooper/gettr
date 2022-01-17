@@ -10,6 +10,7 @@ import (
 
 	"github.com/spudtrooper/gettr/api"
 	"github.com/spudtrooper/gettr/log"
+	"github.com/spudtrooper/gettr/todo"
 	"github.com/spudtrooper/goutil/check"
 	"github.com/spudtrooper/goutil/must"
 	"github.com/spudtrooper/goutil/or"
@@ -31,6 +32,7 @@ type User struct {
 	cacheFollowersInMemory bool // currently always false
 	cacheFollowingInMemory bool // currently always false
 	checkSkip              bool // currently always false (this is a complete waste)
+	cachePostsInMemory     bool // currently always false
 }
 
 type cacheKey string
@@ -184,9 +186,10 @@ func (u *User) userInfoUsingDiskCache(ctx context.Context, uOpts ...UserInfoOpti
 
 func (u *User) Followers(ctx context.Context, fOpts ...UserFollowersOption) (chan *User, chan error) {
 	opts := MakeUserFollowersOptions(fOpts...)
-	convertOpts := func(opts UserFollowingOptions) []api.AllFollowersOption {
+	convertOpts := func(opts UserFollowersOptions) []api.AllFollowersOption {
 		return []api.AllFollowersOption{
 			api.AllFollowersIncl(opts.Incl()),
+			api.AllFollowersForce(opts.Force()),
 			api.AllFollowersMax(opts.Max()),
 			api.AllFollowersOffset(opts.Offset()),
 			api.AllFollowersStart(opts.Start()),
@@ -203,43 +206,53 @@ func (u *User) followersUsingDB(ctx context.Context, fOpts ...api.AllFollowersOp
 	opts := api.MakeAllFollowersOptions(fOpts...)
 	threads := or.Int(opts.Threads(), defaultThreads)
 
-	done, err := u.db.GetUserFollowersDone(ctx, u.Username())
-	check.Err(err)
-	if done {
-		users := make(chan *User)
-
-		followers, errors, err := u.db.GetFollowers(ctx, u.Username())
+	if !opts.Force() {
+		done, err := u.db.GetUserFollowersDone(ctx, u.Username())
 		check.Err(err)
+		log.Printf("followersUsingDB: done=%t", done)
+		if done {
+			users := make(chan *User)
 
-		go func() {
-			var wg sync.WaitGroup
-			for i := 0; i < threads; i++ {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					for f := range followers {
-						users <- u.MakeUser(f)
-					}
-				}()
-			}
-			wg.Wait()
-			close(users)
-		}()
+			followers, errors, err := u.db.GetFollowers(ctx, u.Username())
+			check.Err(err)
 
-		return users, errors
+			go func() {
+				var wg sync.WaitGroup
+				for i := 0; i < threads; i++ {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						for f := range followers {
+							users <- u.MakeUser(f)
+						}
+					}()
+				}
+				wg.Wait()
+				close(users)
+			}()
+
+			return users, errors
+		}
 	}
-
-	lastOffset, err := u.db.GetUserMaxFollowerOffset(ctx, u.Username())
-	check.Err(err)
-	log.Printf("have last followers offset: %d", lastOffset)
-	if lastOffset > 0 {
-		fOpts = append(fOpts, api.AllFollowersStart(lastOffset))
-	}
-
-	userInfos, userNamesToCache, errs := u.client.AllFollowersParallel(u.username, fOpts...)
 
 	users := make(chan *User)
 	usernames := make(chan string)
+
+	if opts.Force() {
+		log.Printf("deleting followers of %s", u.username)
+		if err := u.db.DeleteFollowers(ctx, u.username); err != nil {
+			todo.SkipErr("deleteFollowers", err)
+		}
+	} else {
+		lastOffset, err := u.db.GetUserMaxFollowerOffset(ctx, u.Username())
+		check.Err(err)
+		log.Printf("have last followers offset: %d", lastOffset)
+		if lastOffset > 0 {
+			fOpts = append(fOpts, api.AllFollowersStart(lastOffset))
+		}
+	}
+
+	userInfos, userNamesToCache, errs := u.client.AllFollowersParallel(u.username, fOpts...)
 
 	go func() {
 		// Transfer the partially-populated in-memory cache to the result.
@@ -453,6 +466,7 @@ func (u *User) Following(ctx context.Context, fOpts ...UserFollowingOption) (cha
 	convertOpts := func(opts UserFollowingOptions) []api.AllFollowingsOption {
 		return []api.AllFollowingsOption{
 			api.AllFollowingsIncl(opts.Incl()),
+			api.AllFollowingsForce(opts.Force()),
 			api.AllFollowingsMax(opts.Max()),
 			api.AllFollowingsOffset(opts.Offset()),
 			api.AllFollowingsStart(opts.Start()),
@@ -495,28 +509,18 @@ func (u *User) followingUsingDB(ctx context.Context, fOpts ...api.AllFollowingsO
 		return users, errors
 	}
 
-	lastOffset := -1
-	// todo
-	if false {
-		if u.has(cacheKeyFollowersByOffset) {
-			keys, err := u.cache.FindKeys(u.cacheParts(cacheKeyFollowersByOffset)...)
-			if err != nil {
-				log.Printf("ignoring FindLargestKey: %v", err)
-			} else {
-				for _, k := range keys {
-					n, err := strconv.Atoi(k)
-					if err != nil {
-						log.Printf("ignoring Atoi: %v", err)
-						continue
-					}
-					lastOffset = intgr.Max(lastOffset, n)
-				}
-			}
+	if opts.Force() {
+		log.Printf("deleting following of %s", u.username)
+		if err := u.db.DeleteFollowing(ctx, u.username); err != nil {
+			todo.SkipErr("DeleteFollowing", err)
 		}
-	}
-	log.Printf("have last followers offset: %d", lastOffset)
-	if lastOffset > 0 {
-		fOpts = append(fOpts, api.AllFollowingsStart(lastOffset))
+	} else {
+		lastOffset, err := u.db.GetUserMaxFollowingOffset(ctx, u.Username())
+		check.Err(err)
+		log.Printf("have last following offset: %d", lastOffset)
+		if lastOffset > 0 {
+			fOpts = append(fOpts, api.AllFollowingsStart(lastOffset))
+		}
 	}
 
 	userInfos, userNamesToCache, errs := u.client.AllFollowingParallel(u.username, fOpts...)
@@ -1152,3 +1156,76 @@ func (u *User) PersistInDB(ctx context.Context, pOpts ...PersistInDBOption) erro
 
 	return nil
 }
+
+// func (u *User) Posts(ctx context.Context, fOpts ...UserPostsOption) (chan *User, chan error) {
+// 	opts := MakeUserPostsOptions(fOpts...)
+// 	convertOpts := func(opts UserPostsOptions) []api.AllPostsOption {
+// 		return []api.AllPostsOption{
+// 			api.AllPostsIncl(opts.Incl()),
+// 			api.AllPostsForce(opts.Force()),
+// 			api.AllPostsMax(opts.Max()),
+// 			api.AllPostsOffset(opts.Offset()),
+// 			api.AllPostsStart(opts.Start()),
+// 			api.AllPostsThreads(opts.Threads()),
+// 		}
+// 	}
+// 	return u.postsUsingDB(ctx, convertOpts(opts)...)
+// }
+
+// func (u *User) postsUsingDB(ctx context.Context, fOpts ...api.AllPostsOption) (chan *User, chan error) {
+// 	opts := api.MakeAllPostsOptions(fOpts...)
+// 	threads := or.Int(opts.Threads(), defaultThreads)
+
+// 	users := make(chan *User)
+// 	usernames := make(chan string)
+
+// 	posts, errs := u.client.AllPosts(u.username, fOpts...)
+
+// 	go func() {
+// 		// Transfer the partially-populated in-memory cache to the result.
+// 		if u.cacheFollowersInMemory {
+// 			for _, f := range u.followers {
+// 				follower := u.MakeUser(f)
+// 				users <- follower
+// 			}
+// 		}
+// 		// Transfer the newly-read users to the result.
+// 		for postInfo := range posts {
+// 			follower := u.MakeUser(postInfo.Username)
+// 			follower.userInfo = postInfo
+// 			users <- follower
+// 			usernames <- postInfo.Username
+// 		}
+// 		close(users)
+// 		close(usernames)
+// 	}()
+
+// 	go func() {
+
+// 		// Cache by shard.
+// 		for so := range userNamesToCache {
+// 			if err := u.db.SetFollowers(ctx, u.Username(), so.Offset, so.Strings); err != nil {
+// 				log.Printf("SetFollowers: error caching followers for %s, offset=%d: %v", u.Username(), so.Offset, err)
+// 			}
+// 		}
+// 		// Mark that we are complete.
+// 		if err := u.db.SetUserFollowersDone(ctx, u.Username(), true); err != nil {
+// 			log.Printf("SetUserFollowersDone: error caching followers for %s: %v", u.Username(), err)
+// 		}
+// 	}()
+
+// 	// // Cache all newly-read users in memory.
+// 	// go func() {
+// 	// 	var posts []api.PostInfo
+// 	// 	for f := range usernames {
+// 	// 		if u.cachePostsInMemory {
+// 	// 			followers = append(followers, f)
+// 	// 		}
+// 	// 	}
+// 	// 	if u.cachePostsInMemory {
+// 	// 		u.posts = append(u.posts, posts...)
+// 	// 	}
+// 	// }()
+
+// 	return users, errs
+// }

@@ -146,19 +146,32 @@ func (c *Core) GetSuggestions(sOpts ...SuggestOption) ([]HtInfo, error) {
 }
 
 type PostInfo struct {
-	CDate       IntDate `json:"cdate"`
-	Update      IntDate `json:"update"`
-	Text        string  `json:"txt"`
-	TextLang    string  `json:"txt_lang"`
-	Description string  `json:"dsc"`
-	Type        string  `json:"_t"`
-	ID          string  `json:"_id"`
-	Comments    int     `json:"cm"`
-	Likes       int     `json:"lkbpst"`
-	Reposts     int     `json:"shbpst"`
+	CDate   IntDate  `json:"cdate"`
+	Update  IntDate  `json:"update"`
+	Txt     string   `json:"txt"`
+	Ttl     string   `json:"ttl"`
+	TxtLang string   `json:"txt_lang"`
+	Dsc     string   `json:"dsc"`
+	Type    string   `json:"_t"`
+	ID      string   `json:"_id"`
+	Cm      int      `json:"cm"`
+	Lkbpst  int      `json:"lkbpst"`
+	Shbpst  int      `json:"shbpst"`
+	IMGs    []string `json:"imgs"`
+	Previmg string   `json:"previmg"`
+	Prevsrc string   `json:"prevsrc"`
 }
 
-func (p PostInfo) URI() string { return postURI(p.ID) }
+func (p PostInfo) URI() string           { return postURI(p.ID) }
+func (p PostInfo) Links() int            { return p.Lkbpst }
+func (p PostInfo) Reposts() int          { return p.Shbpst }
+func (p PostInfo) Images() []string      { return p.IMGs }
+func (p PostInfo) PreviewImage() string  { return p.Previmg }
+func (p PostInfo) PreviewSource() string { return p.Prevsrc }
+func (p PostInfo) Title() string         { return p.Ttl }
+func (p PostInfo) Text() string          { return p.Txt }
+func (p PostInfo) Description() string   { return p.Dsc }
+func (p PostInfo) Comments() int         { return p.Cm }
 
 func (c *Core) getPosts(route string, rOpts ...RequestOption) ([]PostInfo, error) {
 	type posts struct {
@@ -381,6 +394,11 @@ func (c *Core) GetFollowers(username string, fOpts ...FollowersOption) (UserInfo
 type OffsetStrings struct {
 	Offset  int
 	Strings []string
+}
+
+type OffsetPosts struct {
+	Offset int
+	Posts  []PostInfo
 }
 
 type clientStatsCollector struct {

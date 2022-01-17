@@ -225,3 +225,51 @@ func (c *Extended) AllFollowingParallel(username string, fOpts ...AllFollowingsO
 
 	return userInfos, userNames, errs
 }
+
+func (c *Extended) AllPosts(username string, fOpts ...AllPostsOption) (chan OffsetPosts, chan error) {
+	opts := MakeAllPostsOptions(fOpts...)
+	max := or.Int(opts.Max(), defaultMax)
+	start := or.Int(opts.Start(), defaultStart)
+	threads := or.Int(opts.Threads(), defaultThreads)
+
+	offsetPosts := make(chan OffsetPosts)
+	offsets := make(chan int)
+	errs := make(chan error)
+
+	go func() {
+		for offset := start; offset < math.MaxInt; offset += max {
+			offsets <- offset
+		}
+		close(offsets)
+	}()
+
+	go func() {
+		var wg sync.WaitGroup
+		for i := 0; i < threads; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				col := makeClientStatsCollector("AllPosts")
+				for offset := range offsets {
+					posts, err := c.GetPosts(username, PostsOffset(offset), PostsMax(max))
+					if *clientStats {
+						col.RecordAndPrint()
+					}
+					if err != nil {
+						errs <- err
+						break
+					}
+					if len(posts) == 0 {
+						break
+					}
+					offsetPosts <- OffsetPosts{Posts: posts, Offset: offset}
+				}
+			}()
+		}
+		wg.Wait()
+		close(offsetPosts)
+		close(errs)
+	}()
+
+	return offsetPosts, errs
+}

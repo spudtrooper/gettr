@@ -48,11 +48,11 @@ var (
 )
 
 func realMain(ctx context.Context) error {
-	factory, err := model.MakeFactoryFromFlags(ctx)
+	f, err := model.MakeFactoryFromFlags(ctx)
 	if err != nil {
 		return err
 	}
-	client := factory.Client()
+	client := f.Client()
 
 	actionMap := map[string]bool{}
 	if *actions != "" {
@@ -223,7 +223,7 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("FollowAllCallback") {
-		existingFollowersSet := sets.String(findFollowerUsernames(factory.MakeUser(client.Username())))
+		existingFollowersSet := sets.String(findFollowerUsernames(f.MakeUser(client.Username())))
 		log.Printf("have %d existing followers", len(existingFollowersSet))
 
 		username := *other
@@ -249,9 +249,9 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("FollowAll") {
-		existingFollowersSet := sets.String(findFollowerUsernames(factory.MakeUser(client.Username())))
+		existingFollowersSet := sets.String(findFollowerUsernames(f.MakeUser(client.Username())))
 		log.Printf("have %d existing followers", len(existingFollowersSet))
-		u := factory.MakeUser(*other)
+		u := f.MakeUser(*other)
 
 		followers := make(chan *model.User)
 		go func() {
@@ -294,7 +294,7 @@ func realMain(ctx context.Context) error {
 
 	if should("PrintAllFollowers") {
 		username := or.String(*other, client.Username())
-		u := factory.MakeUser(username)
+		u := f.MakeUser(username)
 
 		followers := make(chan *model.User)
 		go func() {
@@ -329,7 +329,7 @@ func realMain(ctx context.Context) error {
 
 	if should("PrintAllFollowing") {
 		username := or.String(*other, client.Username())
-		u := factory.MakeUser(username)
+		u := f.MakeUser(username)
 
 		following := make(chan *model.User)
 		go func() {
@@ -406,14 +406,14 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("Persist") {
-		user := factory.MakeUser(*other)
+		user := f.MakeUser(*other)
 		if err := user.Persist(ctx, model.UserPersistMax(*max), model.UserPersistThreads(*threads), model.UserPersistForce(*force)); err != nil {
 			return err
 		}
 	}
 
 	if should("Read") {
-		u := factory.MakeUser(*other)
+		u := f.MakeUser(*other)
 
 		{
 			c := make(chan *model.User)
@@ -450,7 +450,7 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("PersistAll") {
-		u := factory.MakeUser(*other)
+		u := f.MakeUser(*other)
 
 		{
 			c := make(chan *model.User)
@@ -509,7 +509,7 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("PersistInDB") {
-		u := factory.MakeUser(*other)
+		u := f.MakeUser(*other)
 		if err := u.PersistInDB(ctx); err != nil {
 			return err
 		}
@@ -598,7 +598,7 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("LikeAll") {
-		u := factory.Self()
+		u := f.Self()
 
 		followers := make(chan interface{}) //*model.User)
 		go func() {
@@ -667,6 +667,23 @@ func realMain(ctx context.Context) error {
 		for _, p := range info {
 			log.Printf(" - %s", p.URI())
 		}
+	}
+
+	if should("AllPosts") {
+		posts, errors := client.AllPosts(*other, api.AllPostsMax(*max), api.AllPostsOffset(*offset), api.AllPostsThreads(*threads))
+		parallel.WaitFor(func() {
+			i := 0
+			for ps := range posts {
+				for _, p := range ps.Posts {
+					log.Printf("post[%d @ %d]: %s", i, ps.Offset, p.URI())
+					i++
+				}
+			}
+		}, func() {
+			for e := range errors {
+				log.Printf("error: %v", e)
+			}
+		})
 	}
 
 	if !shouldReturnedTrueOnce {
