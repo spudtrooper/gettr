@@ -159,14 +159,14 @@ type PostInfo struct {
 	Reposts     int     `json:"shbpst"`
 }
 
-func (c *Core) getPosts(route string) ([]PostInfo, error) {
+func (c *Core) getPosts(route string, rOpts ...RequestOption) ([]PostInfo, error) {
 	type posts struct {
 		Posts map[string]PostInfo `json:"post"`
 	}
 	var payload struct {
 		Aux posts `json:"aux"`
 	}
-	if _, err := c.get(route, &payload); err != nil {
+	if _, err := c.get(route, &payload, rOpts...); err != nil {
 		return nil, err
 	}
 	var res []PostInfo
@@ -488,7 +488,7 @@ func (c *Core) CreatePost(text string, cOpts ...CreatePostOption) (CreatePostInf
 	}
 	content := string(contentBytes)
 	if opts.Debug() {
-		log.Printf("DEBUG: content: <<<\n\n%s\n\n>>>", content)
+		log.Printf("DEBUG: CreatePost content: <<<\n\n%s\n\n>>>", content)
 	}
 	data := url.Values{}
 	data.Set("content", content)
@@ -631,4 +631,85 @@ func (c *Core) LikePost(postID string) error {
 		return err
 	}
 	return nil
+}
+
+func (c *Core) makeSearchBody(query string, sOpts ...SearchOption) ([]byte, error) {
+	opts := MakeSearchOptions(sOpts...)
+	incl := or.String(strings.Join(opts.Incl(), "|"), "poststats|shared|liked|posts|userinfo|followings|followers|videos")
+	max := or.Int(opts.Max(), defaultMax)
+	offset := or.Int(opts.Offset(), defaultOffset)
+	type content struct {
+		Query  string `json:"q"`
+		Incl   string `json:"incl"`
+		Max    int    `json:"max"`
+		Offset int    `json:"offset"`
+	}
+	cd := struct {
+		Content content `json:"content"`
+	}{
+		Content: content{
+			Query:  query,
+			Incl:   incl,
+			Max:    max,
+			Offset: offset,
+		},
+	}
+	body, err := json.Marshal(&cd)
+	if err != nil {
+		return nil, err
+	}
+	if opts.Debug() {
+		log.Printf("DEBUG: Search body: <<<\n\n%s\n\n>>>", string(body))
+	}
+	return body, err
+}
+
+func (c *Core) SearchPosts(query string, sOpts ...SearchOption) ([]PostInfo, error) {
+	body, err := c.makeSearchBody(query, sOpts...)
+	if err != nil {
+		return nil, err
+	}
+	route := "u/posts/srch/phrase"
+	extraHeaders := map[string]string{
+		"content-type": `application/json`,
+	}
+	type posts struct {
+		Posts map[string]PostInfo `json:"post"`
+	}
+	var payload struct {
+		Aux posts `json:"aux"`
+	}
+	if _, err := c.post(route, &payload, bytes.NewBuffer(body), RequestExtraHeaders(extraHeaders)); err != nil {
+		return nil, err
+	}
+	var res []PostInfo
+	for _, p := range payload.Aux.Posts {
+		res = append(res, p)
+	}
+	return res, nil
+}
+
+func (c *Core) SearchUsers(query string, sOpts ...SearchOption) ([]UserInfo, error) {
+	body, err := c.makeSearchBody(query, sOpts...)
+	if err != nil {
+		return nil, err
+	}
+	route := "u/users/srch/phrase"
+	extraHeaders := map[string]string{
+		"content-type": `application/json`,
+	}
+	type users struct {
+		Uinf map[string]UserInfo `json:"uinf"`
+	}
+	var payload struct {
+		Aux users `json:"aux"`
+	}
+	if _, err := c.post(route, &payload, bytes.NewBuffer(body), RequestExtraHeaders(extraHeaders)); err != nil {
+		return nil, err
+	}
+	var res []UserInfo
+	for _, p := range payload.Aux.Uinf {
+		res = append(res, p)
+	}
+	return res, nil
 }

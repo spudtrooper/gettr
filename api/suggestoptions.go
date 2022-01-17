@@ -1,11 +1,13 @@
 package api
 
-// genopts --opt_type=SuggestOption --prefix=Suggest --outfile=api/suggestoptions.go 'max:int'
+// genopts --opt_type=SuggestOption --prefix=Suggest --outfile=api/suggestoptions.go 'max:int' 'incl:[]string' 'offset:int'
 
 type SuggestOption func(*suggestOptionImpl)
 
 type SuggestOptions interface {
 	Max() int
+	Incl() []string
+	Offset() int
 }
 
 func SuggestMax(max int) SuggestOption {
@@ -14,11 +16,27 @@ func SuggestMax(max int) SuggestOption {
 	}
 }
 
-type suggestOptionImpl struct {
-	max int
+func SuggestIncl(incl []string) SuggestOption {
+	return func(opts *suggestOptionImpl) {
+		opts.incl = incl
+	}
 }
 
-func (s *suggestOptionImpl) Max() int { return s.max }
+func SuggestOffset(offset int) SuggestOption {
+	return func(opts *suggestOptionImpl) {
+		opts.offset = offset
+	}
+}
+
+type suggestOptionImpl struct {
+	max    int
+	incl   []string
+	offset int
+}
+
+func (s *suggestOptionImpl) Max() int       { return s.max }
+func (s *suggestOptionImpl) Incl() []string { return s.incl }
+func (s *suggestOptionImpl) Offset() int    { return s.offset }
 
 func makeSuggestOptionImpl(opts ...SuggestOption) *suggestOptionImpl {
 	res := &suggestOptionImpl{}

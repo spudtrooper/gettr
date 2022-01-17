@@ -44,6 +44,7 @@ var (
 	profileWebsite         = flags.String("profile_website", "profile website to update")
 	profileBackgroundImage = flags.String("profile_background_image", "profile background image to update")
 	debug                  = flags.Bool("debug", "generic debug for some actions")
+	query                  = flags.String("query", "query for search")
 )
 
 func realMain(ctx context.Context) error {
@@ -83,6 +84,12 @@ func realMain(ctx context.Context) error {
 
 	if len(actionMap) == 0 {
 		return errors.Errorf("you need to specify at least one call")
+	}
+
+	requireStringFlag := func(flag *string, name string) {
+		if *flag == "" {
+			log.Fatalf("--%s required", name)
+		}
 	}
 
 	if should("GetUserInfo") {
@@ -509,9 +516,7 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("Upload") {
-		if *uploadImage == "" {
-			return errors.Errorf("--upload_image required")
-		}
+		requireStringFlag(uploadImage, "upload_image")
 		var img string
 		{
 			res, err := client.Upload(*uploadImage)
@@ -534,9 +539,7 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("CreatePostImage") {
-		if *uploadImage == "" {
-			return errors.Errorf("--upload_image required")
-		}
+		requireStringFlag(uploadImage, "upload_image")
 		var img string
 		{
 			res, err := client.Upload(*uploadImage)
@@ -566,10 +569,7 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("CreatePostCustomImage") {
-		if *postImage == "" {
-			return errors.Errorf("--post_image required")
-		}
-
+		requireStringFlag(uploadImage, "post_image")
 		res, err := client.CreatePost(*text,
 			api.CreatePostImages([]string{*postImage}),
 			api.CreatePostDebug(*debug),
@@ -643,6 +643,24 @@ func realMain(ctx context.Context) error {
 			}
 			log.Printf("deleted: %s -> %v", p.ID, ok)
 		}
+	}
+
+	if should("SearchPosts") {
+		requireStringFlag(query, "query")
+		info, err := client.SearchPosts(*query, api.SearchMax(*max), api.SearchOffset(*offset), api.SearchDebug(*debug))
+		if err != nil {
+			return err
+		}
+		log.Printf("Search: %+v", info)
+	}
+
+	if should("SearchUsers") {
+		requireStringFlag(query, "query")
+		info, err := client.SearchUsers(*query, api.SearchMax(*max), api.SearchOffset(*offset), api.SearchDebug(*debug))
+		if err != nil {
+			return err
+		}
+		log.Printf("Search: %+v", info)
 	}
 
 	if !shouldReturnedTrueOnce {

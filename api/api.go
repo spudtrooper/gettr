@@ -166,12 +166,20 @@ func (c *Core) request(method, route string, result interface{}, body io.Reader,
 
 	client := &http.Client{}
 	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Set("x-app-auth", c.xAppAuth)
 	for k, v := range opts.ExtraHeaders() {
 		req.Header.Set(k, v)
 	}
-	if err != nil {
-		return nil, err
+	if c.debug {
+		log.Printf("requesting %s", url)
+		log.Printf("  headers:")
+		for k, v := range req.Header {
+			log.Printf("    %s: %s", k, v)
+		}
+		log.Printf("  body: %v", body)
 	}
 	doRes, err := client.Do(req)
 	if err != nil {

@@ -13,6 +13,7 @@ import (
 	"github.com/spudtrooper/goutil/check"
 	"github.com/spudtrooper/goutil/must"
 	"github.com/spudtrooper/goutil/or"
+	"github.com/spudtrooper/goutil/parallel"
 	"github.com/spudtrooper/goutil/sets"
 	"github.com/thomaso-mirodin/intmath/intgr"
 )
@@ -797,12 +798,15 @@ func (u *User) Persist(ctx context.Context, pOpts ...UserPersistOption) error {
 		followers := make(chan *User)
 		go func() {
 			users, errs := u.Followers(ctx, UserFollowersMax(opts.Max()), UserFollowersThreads(opts.Threads()))
-			for u := range users {
-				followers <- u
-			}
-			for e := range errs {
-				log.Printf("error: %v", e)
-			}
+			parallel.WaitFor(func() {
+				for u := range users {
+					followers <- u
+				}
+			}, func() {
+				for e := range errs {
+					log.Printf("error: %v", e)
+				}
+			})
 			close(followers)
 		}()
 
@@ -831,12 +835,15 @@ func (u *User) Persist(ctx context.Context, pOpts ...UserPersistOption) error {
 		following := make(chan *User)
 		go func() {
 			users, errs := u.Following(ctx, UserFollowingMax(opts.Max()), UserFollowingThreads(opts.Threads()))
-			for u := range users {
-				following <- u
-			}
-			for e := range errs {
-				log.Printf("error: %v", e)
-			}
+			parallel.WaitFor(func() {
+				for u := range users {
+					following <- u
+				}
+			}, func() {
+				for e := range errs {
+					log.Printf("error: %v", e)
+				}
+			})
 			close(following)
 		}()
 
