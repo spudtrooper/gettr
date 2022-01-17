@@ -445,46 +445,46 @@ func (c CreatePostInfo) URI() string { return postURI(c.ID) }
 func (c *Core) CreatePost(text string, cOpts ...CreatePostOption) (CreatePostInfo, error) {
 	opts := MakeCreatePostOptions(cOpts...)
 	date := int(time.Now().UnixMilli())
-	var contentData struct {
-		Data struct {
-			ACL struct {
-				Type string `json:"_t"`
-			} `json:"acl"`
-			Type          string   `json:"_t"`
-			Text          string   `json:"txt"`
-			Description   string   `json:"dsc"`
-			UDate         IntDate  `json:"udate"`
-			CDate         IntDate  `json:"cdate"`
-			UID           string   `json:"uid"`
-			Images        []string `json:"imgs"`
-			PreviewImage  string   `json:"previmg"`
-			PreviewSource string   `json:"prevsrc"`
-			VidWidth      int      `json:"vid_wid"`
-			VidHeight     int      `json:"vid_hgt"`
-			Title         string   `json:"ttl"`
-		} `json:"data"`
-		Aux    interface{} `json:"aux"`
-		Serial string      `json:"serial"`
+	type aclT struct {
+		Type string `json:"_t"`
 	}
-	contentData.Data.ACL.Type = "acl"
-	contentData.Data.Type = "post"
-	contentData.Data.Text = text
-	contentData.Data.CDate = IntDate(date)
-	contentData.Data.UDate = IntDate(date)
-	contentData.Data.UID = c.username
-	contentData.Serial = "post"
-	if len(opts.Images()) > 0 {
-		contentData.Data.Images = opts.Images()
-		contentData.Data.VidWidth = 152
-		contentData.Data.VidHeight = 250
+	type dataT struct {
+		ACL           aclT     `json:"acl"`
+		Type          string   `json:"_t"`
+		Text          string   `json:"txt"`
+		Description   string   `json:"dsc"`
+		UDate         IntDate  `json:"udate"`
+		CDate         IntDate  `json:"cdate"`
+		UID           string   `json:"uid"`
+		Images        []string `json:"imgs"`
+		PreviewImage  string   `json:"previmg"`
+		PreviewSource string   `json:"prevsrc"`
+		VidWidth      int      `json:"vid_wid"`
+		VidHeight     int      `json:"vid_hgt"`
+		Title         string   `json:"ttl"`
 	}
-	contentData.Data.VidWidth = 152
-	contentData.Data.VidHeight = 250
-	contentData.Data.Description = opts.Description()
-	contentData.Data.PreviewImage = opts.PreviewImage()
-	contentData.Data.PreviewSource = opts.PreviewSource()
-	contentData.Data.Title = opts.Title()
-	contentBytes, err := json.Marshal(&contentData)
+	var contentData = struct {
+		Data   dataT  `json:"data"`
+		Serial string `json:"serial"`
+	}{
+		Data: dataT{
+			ACL:           aclT{Type: "acl"},
+			Type:          "post",
+			Text:          text,
+			CDate:         IntDate(date),
+			UDate:         IntDate(date),
+			UID:           c.username,
+			Description:   opts.Description(),
+			PreviewImage:  opts.PreviewImage(),
+			PreviewSource: opts.PreviewSource(),
+			Title:         opts.Title(),
+			VidWidth:      152,
+			VidHeight:     250,
+			Images:        opts.Images(),
+		},
+		Serial: "post",
+	}
+	contentBytes, err := jsonMarshal(&contentData)
 	if err != nil {
 		return CreatePostInfo{}, err
 	}

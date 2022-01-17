@@ -259,3 +259,14 @@ func userURI(username string) string {
 func postURI(postID string) string {
 	return fmt.Sprintf("https://gettr.com/post/%s", postID)
 }
+
+// https://stackoverflow.com/questions/28595664/how-to-stop-json-marshal-from-escaping-and/28596225
+func jsonMarshal(t interface{}) ([]byte, error) {
+	buffer := &bytes.Buffer{}
+	encoder := json.NewEncoder(buffer)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(t); err != nil {
+		return nil, err
+	}
+	return buffer.Bytes(), nil
+}
