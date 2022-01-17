@@ -1,4 +1,4 @@
-package main
+package wordcloud
 
 import (
 	"context"
@@ -58,7 +58,7 @@ var (
 	nonAlphaNum = regexp.MustCompile(`[^a-zA-Z0-9]`)
 )
 
-func realMain(ctx context.Context) {
+func Main(ctx context.Context) {
 	if *other == "" {
 		log.Fatalf("--other required")
 	}
@@ -129,9 +129,4 @@ func realMain(ctx context.Context) {
 			break
 		}
 	}
-}
-
-func main() {
-	flag.Parse()
-	realMain(context.Background())
 }

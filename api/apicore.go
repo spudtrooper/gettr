@@ -3,7 +3,6 @@ package api
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -656,7 +655,7 @@ func (c *Core) makeSearchBody(query string, sOpts ...SearchOption) ([]byte, erro
 			Offset: offset,
 		},
 	}
-	body, err := json.Marshal(&cd)
+	body, err := jsonMarshal(&cd)
 	if err != nil {
 		return nil, err
 	}

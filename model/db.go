@@ -56,6 +56,7 @@ func MakeDB(ctx context.Context, mOpts ...MakeDBOption) (*DB, error) {
 	db.Collection("userInfo")
 	db.Collection("following")
 	db.Collection("followers")
+	db.Collection("posts")
 
 	res := &DB{
 		dbName:             dbName,
