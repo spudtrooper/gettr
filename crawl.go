@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -35,8 +36,9 @@ var (
 )
 
 const (
-	allCollection  = "crawlFollowersQueue"
-	doneCollection = "crawlFollowersDone"
+	allCollection        = "crawlFollowersQueue"
+	doneCollection       = "crawlFollowersDone"
+	maxOffsetsCollection = "crawlmaxOffsets"
 )
 
 func connect(ctx context.Context) (*mongo.Database, error) {
@@ -82,6 +84,11 @@ func crawl(ctx context.Context) {
 		Users    []string
 	}
 
+	type storedMaxOffset struct {
+		Username string
+		Offset   int
+	}
+
 	restartQueues := func() {
 		usersToProcess := make(chan *model.User)
 		go func() {
@@ -112,6 +119,40 @@ func crawl(ctx context.Context) {
 		}
 		storeUsers(allCollection, users)
 		storeUsers(doneCollection, []string{})
+	}
+
+	isNoDocError := func(err error) bool {
+		return strings.Contains(fmt.Sprintf("%v", err), "mongo: no documents in result")
+	}
+
+	updateMaxOffset := func(username string, offset int) {
+		filter := bson.D{{"username", username}}
+		upsert := true
+		opt := &options.FindOneAndUpdateOptions{
+			Upsert: &upsert,
+		}
+		update := bson.D{
+			{"$max", bson.D{
+				{"offset", offset},
+			}},
+		}
+		if res := db.Collection(maxOffsetsCollection).FindOneAndUpdate(ctx, filter, update, opt); res.Err() != nil {
+			if skip := isNoDocError(res.Err()); !skip {
+				todo.SkipErr("findMaxOff", res.Err())
+			}
+		}
+	}
+
+	findMaxOffset := func(username string) int {
+		filter := bson.D{{"username", username}}
+		var res storedMaxOffset
+		if err := db.Collection(maxOffsetsCollection).FindOne(ctx, filter).Decode(&res); err != nil {
+			if skip := isNoDocError(err); !skip {
+				todo.SkipErr("findMaxOff", err)
+			}
+			return 0
+		}
+		return res.Offset
 	}
 
 	process := func() {
@@ -173,9 +214,11 @@ func crawl(ctx context.Context) {
 
 		var userCount, grandTotal int32
 		processUser := func(user string) {
+			start := findMaxOffset(user)
 			posts, errors := f.Client().AllPosts(user,
 				api.AllPostsThreads(postsThreads),
-				api.AllPostsMax(*postsMax))
+				api.AllPostsMax(*postsMax),
+				api.AllPostsStart(start))
 			log.Printf("processUser [%d/%d (%0.2f%%)]: %s",
 				userCount, numRemaining, 100.0*float64(userCount)/float64(numRemaining), user)
 			atomic.AddInt32(&userCount, 1)
@@ -186,6 +229,7 @@ func crawl(ctx context.Context) {
 						todo.SkipErr("AddPosts", err)
 						continue
 					}
+					updateMaxOffset(user, ps.Offset)
 					before := total
 					total += len(ps.Posts)
 					atomic.AddInt32(&grandTotal, int32(len(ps.Posts)))
@@ -198,7 +242,9 @@ func crawl(ctx context.Context) {
 					log.Printf("error: %v", e)
 				}
 			})
-			log.Printf("processUser processed %d posts for %s, grand total: %d", total, user, grandTotal)
+			if total > 0 {
+				log.Printf("processUser *** processed %d posts for %s, grand total: %d", total, user, grandTotal)
+			}
 		}
 
 		var wg sync.WaitGroup
