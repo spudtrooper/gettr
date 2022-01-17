@@ -89,38 +89,6 @@ func crawl(ctx context.Context) {
 		Offset   int
 	}
 
-	restartQueues := func() {
-		usersToProcess := make(chan *model.User)
-		go func() {
-			followers, _ := other.Followers(ctx,
-				model.UserFollowersForce(*forceFollowers),
-				model.UserFollowersThreads(*followersThreads),
-				model.UserFollowersThreads(*followersMax))
-			for u := range followers {
-				usersToProcess <- u
-			}
-			usersToProcess <- other
-			close(usersToProcess)
-		}()
-		var users []string
-		for u := range usersToProcess {
-			users = append(users, u.Username())
-		}
-		storeUsers := func(collection string, users []string) {
-			filter := bson.D{{"username", username}}
-			db.Collection(collection).DeleteMany(ctx, filter)
-			stored := storedQueue{
-				Username: username,
-				Users:    users,
-			}
-			if _, err := db.Collection(collection).InsertOne(ctx, stored); err != nil {
-				check.Err(err)
-			}
-		}
-		storeUsers(allCollection, users)
-		storeUsers(doneCollection, []string{})
-	}
-
 	isNoDocError := func(err error) bool {
 		return strings.Contains(fmt.Sprintf("%v", err), "mongo: no documents in result")
 	}
@@ -153,6 +121,42 @@ func crawl(ctx context.Context) {
 			return 0
 		}
 		return res.Offset
+	}
+
+	restartQueues := func() {
+		usersToProcess := make(chan *model.User)
+		go func() {
+			followers, _ := other.Followers(ctx,
+				model.UserFollowersForce(*forceFollowers),
+				model.UserFollowersThreads(*followersThreads),
+				model.UserFollowersThreads(*followersMax))
+			for u := range followers {
+				usersToProcess <- u
+			}
+			usersToProcess <- other
+			close(usersToProcess)
+		}()
+		var users []string
+		for u := range usersToProcess {
+			users = append(users, u.Username())
+		}
+		storeUsers := func(collection string, users []string) {
+			filter := bson.D{{"username", username}}
+			db.Collection(collection).DeleteMany(ctx, filter)
+			stored := storedQueue{
+				Username: username,
+				Users:    users,
+			}
+			if _, err := db.Collection(collection).InsertOne(ctx, stored); err != nil {
+				check.Err(err)
+			}
+		}
+		storeUsers(allCollection, users)
+		storeUsers(doneCollection, []string{})
+		for _, u := range users {
+			updateMaxOffset(u, 0)
+		}
+		// TODO: Remove done files
 	}
 
 	process := func() {
