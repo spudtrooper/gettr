@@ -10,3 +10,4 @@ data/*
 .cache/*
 .user_creds.json
 .user_creds*.json
+playgrounds/*

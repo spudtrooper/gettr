@@ -501,7 +501,6 @@ func (d *DB) AddPostInfos(ctx context.Context, username string, postInfos []api.
 		if d.dbVerbosePosts {
 			log.Printf("AddPostInfos(%q) -> %+v", p.URI(), res)
 		}
-		return nil
 	}
 	return nil
 }

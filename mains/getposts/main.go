@@ -21,20 +21,22 @@ import (
 	"github.com/spudtrooper/goutil/parallel"
 	"github.com/spudtrooper/goutil/ranges"
 	"github.com/spudtrooper/goutil/sets"
+	"github.com/spudtrooper/goutil/timing"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var (
-	other            = flags.String("other", "the other user")
-	followersThreads = flags.Int("follower_threads", "# of threads to calls for followers")
-	followersMax     = flags.Int("followers_max", "max to calls for followers")
-	postsThreads     = flags.Int("posts_threads", "# of threads to calls for posts")
-	processThreads   = flags.Int("process_threads", "# of threads for processing the followers")
-	postsMax         = flags.Int("posts_max", "max to calls for posts")
-	forceFollowers   = flags.Bool("force_followers", "force to pull fresh followers")
-	restart          = flags.Bool("restart", "when true we create the queue of followers")
+	other               = flags.String("other", "the other user")
+	followersThreads    = flags.Int("follower_threads", "# of threads to calls for followers")
+	followersMax        = flags.Int("followers_max", "max to calls for followers")
+	postsThreads        = flags.Int("posts_threads", "# of threads to calls for posts")
+	processThreads      = flags.Int("process_threads", "# of threads for processing the followers")
+	postsMax            = flags.Int("posts_max", "max to calls for posts")
+	forceFollowers      = flags.Bool("force_followers", "force to pull fresh followers")
+	restart             = flags.Bool("restart", "when true we create the queue of followers")
+	showMonitoringTitle = flags.Bool("show_monitoring_title", "show the monitoring title every so often")
 )
 
 const (
@@ -81,6 +83,9 @@ func crawl(ctx context.Context) {
 	db, err := connect(ctx)
 	check.Err(err)
 
+	timing.SetLog(log.Printf)
+	timing.GetOptions().Color = true
+
 	type storedQueue struct {
 		Username string
 		Users    []string
@@ -126,22 +131,33 @@ func crawl(ctx context.Context) {
 	}
 
 	restartQueues := func() {
-		usersToProcess := make(chan *model.User)
-		go func() {
-			followers, _ := other.Followers(ctx,
-				model.UserFollowersForce(*forceFollowers),
-				model.UserFollowersThreads(*followersThreads),
-				model.UserFollowersThreads(*followersMax))
-			for u := range followers {
-				usersToProcess <- u
-			}
-			usersToProcess <- other
-			close(usersToProcess)
-		}()
+		timing.Push("restartQueues")
+		defer timing.Pop()
+		log.Printf("restarting queues")
 		var users []string
-		for u := range usersToProcess {
-			users = append(users, u.Username())
-		}
+		timing.Time("processUsers create usersToProcess", func() {
+			usersToProcess := make(chan *model.User)
+			go func() {
+				followers, errs := other.Followers(ctx,
+					model.UserFollowersForce(*forceFollowers),
+					model.UserFollowersThreads(*followersThreads),
+					model.UserFollowersThreads(*followersMax))
+				parallel.WaitFor(func() {
+					for u := range followers {
+						usersToProcess <- u
+					}
+					usersToProcess <- other
+				}, func() {
+					for e := range errs {
+						todo.SkipErr("Followers", e)
+					}
+				})
+				close(usersToProcess)
+			}()
+			for u := range usersToProcess {
+				users = append(users, u.Username())
+			}
+		})
 		storeUsers := func(collection string, users []string) {
 			filter := bson.D{{"username", username}}
 			db.Collection(collection).DeleteMany(ctx, filter)
@@ -153,28 +169,60 @@ func crawl(ctx context.Context) {
 				check.Err(err)
 			}
 		}
-		storeUsers(allCollection, users)
-		storeUsers(doneCollection, []string{})
-		for _, u := range users {
-			updateMaxOffset(u, 0)
-		}
+		timing.Time("storeUsers(allCollection)", func() {
+			storeUsers(allCollection, users)
+		})
+		timing.Time("storeUsers(doneCollection)", func() {
+			storeUsers(doneCollection, []string{})
+		})
+		timing.Time("updateMaxOffsets", func() {
+			usersCh := make(chan string)
+			go func() {
+				for _, u := range users {
+					usersCh <- u
+				}
+				close(usersCh)
+			}()
+			var wg sync.WaitGroup
+			go func() {
+				for i := 0; i < 100; i++ {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						for u := range usersCh {
+							updateMaxOffset(u, 0)
+						}
+					}()
+				}
+			}()
+			wg.Wait()
+		})
 		// TODO: Remove done files
 	}
 
 	var processing bool
 	process := func() {
+		timing.Push("process")
+		defer timing.Pop()
+
 		usersToProcessCh := make(chan string)
 		var numAll, numDone, numRemaining int
 		{
 			filter := bson.D{{"username", username}}
 
 			var storedDone storedQueue
-			check.Err(db.Collection(doneCollection).FindOne(ctx, filter).Decode(&storedDone))
-			done := sets.String(storedDone.Users)
+			var done sets.StringSet
+			timing.Time("find(doneCollection)", func() {
+				check.Err(db.Collection(doneCollection).FindOne(ctx, filter).Decode(&storedDone))
+				done = sets.String(storedDone.Users)
+			})
 
 			var storedAll storedQueue
-			check.Err(db.Collection(allCollection).FindOne(ctx, filter).Decode(&storedAll))
-			all := storedAll.Users
+			var all []string
+			timing.Time("find(allCollection)", func() {
+				check.Err(db.Collection(allCollection).FindOne(ctx, filter).Decode(&storedAll))
+				all = storedAll.Users
+			})
 
 			var remaining []string
 			for _, u := range all {
@@ -233,13 +281,14 @@ func crawl(ctx context.Context) {
 			var total int
 			parallel.WaitFor(func() {
 				for ps := range posts {
-					if err := f.DB().AddPostInfos(ctx, user, ps.Posts); err != nil {
-						todo.SkipErr("AddPosts", err)
-						continue
-					}
-					updateMaxOffset(user, ps.Offset)
 					total += len(ps.Posts)
 					atomic.AddInt32(&grandTotal, int32(len(ps.Posts)))
+					if len(ps.Posts) > 0 {
+						if err := f.DB().AddPostInfos(ctx, user, ps.Posts); err != nil {
+							todo.SkipErr("AddPosts", err)
+						}
+						updateMaxOffset(user, ps.Offset)
+					}
 				}
 			}, func() {
 				for e := range errors {
@@ -258,7 +307,7 @@ func crawl(ctx context.Context) {
 			const tmplEnd = "%s post(s) from %s user(s)"
 			for processing {
 				elapsed := time.Since(start)
-				if i%30 == 0 {
+				if *showMonitoringTitle && i%30 == 0 {
 					log.Printf(tmplStart+"%s",
 						color.New(color.FgHiYellow).Add(color.Underline).Sprintf("%20s", "Duration"),
 						color.New(color.FgHiGreen).Add(color.Underline).Sprintf("%7s", "UsrCnt"),
@@ -287,7 +336,9 @@ func crawl(ctx context.Context) {
 				defer wg.Done()
 				for u := range usersToProcessCh {
 					processUser(u)
-					markDone(u)
+					go func(u string) {
+						markDone(u)
+					}(u)
 				}
 			}()
 		})
