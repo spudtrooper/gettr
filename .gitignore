@@ -1,9 +1,5 @@
-compareusers
-commonfollowers
 html
 main
-mostfollowers
-wordclouds
 data
 data/*
 .cache
