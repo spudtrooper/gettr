@@ -1,0 +1,30 @@
+// Finds the posts from followers of `username`.
+const username =  'gregkellyusa';
+
+use('gettrwork');
+
+followers = db.crawlFollowersQueue.aggregate([
+  { $match: { username: username } },
+  { $unwind : { path: "$users" } },
+  { $project: { _id: false, followerUsername: "$users", username: 1 } }
+]).toArray();
+
+use('gettr');
+
+db.createCollection('simplefollowers');
+
+db.simplefollowers.insertMany(followers);
+
+// Only the posts from `username`
+db.simplefollowers.aggregate([
+  { $match: { username: username } },
+  {
+      $lookup:
+        {
+          from: "posts", 
+          localField: "followerUsername",
+          foreignField: "username",
+          as: "posts"
+        }
+  }
+]);

@@ -9,7 +9,9 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
+	"github.com/fatih/color"
 	"github.com/spudtrooper/gettr/api"
 	"github.com/spudtrooper/gettr/model"
 	"github.com/spudtrooper/gettr/todo"
@@ -159,6 +161,7 @@ func crawl(ctx context.Context) {
 		// TODO: Remove done files
 	}
 
+	var processing bool
 	process := func() {
 		usersToProcessCh := make(chan string)
 		var numAll, numDone, numRemaining int
@@ -182,9 +185,12 @@ func crawl(ctx context.Context) {
 			numAll = len(all)
 			numDone = len(done)
 			numRemaining = len(remaining)
-			log.Printf("found %d users to process", numAll)
-			log.Printf("found %d users completed", numDone)
-			log.Printf("found %d users remaining", numRemaining)
+			cyan := func(i int) string {
+				return color.New(color.FgCyan).Sprintf("%d", i)
+			}
+			log.Printf("found %s users to process", cyan(numAll))
+			log.Printf("found %s users completed", cyan(numDone))
+			log.Printf("found %s users remaining", cyan(numRemaining))
 			go func() {
 				for _, u := range remaining {
 					usersToProcessCh <- u
@@ -216,15 +222,13 @@ func crawl(ctx context.Context) {
 		processThreads := or.Int(*processThreads, 100)
 		log.Printf("processing followers with %d threads", processThreads)
 
-		var userCount, grandTotal int32
+		var userCount, grandTotal, usersWithPosts int32
 		processUser := func(user string) {
 			start := findMaxOffset(user)
 			posts, errors := f.Client().AllPosts(user,
 				api.AllPostsThreads(postsThreads),
 				api.AllPostsMax(*postsMax),
 				api.AllPostsStart(start))
-			log.Printf("processUser [%d/%d (%0.2f%%)]: %s",
-				userCount, numRemaining, 100.0*float64(userCount)/float64(numRemaining), user)
 			atomic.AddInt32(&userCount, 1)
 			var total int
 			parallel.WaitFor(func() {
@@ -234,12 +238,8 @@ func crawl(ctx context.Context) {
 						continue
 					}
 					updateMaxOffset(user, ps.Offset)
-					before := total
 					total += len(ps.Posts)
 					atomic.AddInt32(&grandTotal, int32(len(ps.Posts)))
-					log.Printf("processUser [%d/%d (%0.2f%%)]: %s: +%d => %d posts (%d)",
-						userCount, numRemaining, 100.0*float64(userCount)/float64(numRemaining),
-						user, before, total, grandTotal)
 				}
 			}, func() {
 				for e := range errors {
@@ -247,9 +247,38 @@ func crawl(ctx context.Context) {
 				}
 			})
 			if total > 0 {
-				log.Printf("processUser *** processed %d posts for %s, grand total: %d", total, user, grandTotal)
+				atomic.AddInt32(&usersWithPosts, 1)
 			}
 		}
+
+		start := time.Now()
+		go func() {
+			i := 0
+			const tmplStart = "%s [%s/%s %s]: "
+			const tmplEnd = "%s post(s) from %s user(s)"
+			for processing {
+				elapsed := time.Since(start)
+				if i%30 == 0 {
+					log.Printf(tmplStart+"%s",
+						color.New(color.FgHiYellow).Add(color.Underline).Sprintf("%20s", "Duration"),
+						color.New(color.FgHiGreen).Add(color.Underline).Sprintf("%7s", "UsrCnt"),
+						color.New(color.FgHiGreen).Add(color.Underline).Sprintf("%7s", "UsrTot"),
+						color.New(color.FgHiCyan).Add(color.Underline).Sprintf("%7s", "% Done"),
+						color.New(color.FgHiWhite).Add(color.Underline).Sprintf(tmplEnd, "# Posts", "# Users"),
+					)
+				}
+				log.Printf(tmplStart+tmplEnd,
+					color.New(color.FgYellow).Sprintf("%20v", elapsed),
+					color.New(color.FgGreen).Sprintf("%7d", userCount),
+					color.New(color.FgGreen).Sprintf("%7d", numRemaining),
+					color.New(color.FgCyan).Sprintf("%6.2f%%", 100.0*float64(userCount)/float64(numRemaining)),
+					color.New(color.FgHiWhite).Sprintf("%7d", grandTotal),
+					color.New(color.FgHiWhite).Sprintf("%7d", usersWithPosts),
+				)
+				time.Sleep(3 * time.Second)
+				i++
+			}
+		}()
 
 		var wg sync.WaitGroup
 		ranges.LoopTo(processThreads, func(i int) {
@@ -268,7 +297,10 @@ func crawl(ctx context.Context) {
 	if *restart {
 		restartQueues()
 	}
+
+	processing = true
 	process()
+	processing = false
 }
 
 func main() {
