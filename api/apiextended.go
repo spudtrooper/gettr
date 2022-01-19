@@ -237,7 +237,9 @@ func (c *Extended) AllPosts(username string, fOpts ...AllPostsOption) (chan Offs
 	errs := make(chan error)
 
 	go func() {
-		for offset := start; offset < math.MaxInt; offset += max {
+		limit := math.MaxInt
+		// limit = 100
+		for offset := start; offset < limit; offset += max {
 			offsets <- offset
 		}
 		close(offsets)

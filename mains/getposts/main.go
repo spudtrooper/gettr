@@ -273,22 +273,25 @@ func crawl(ctx context.Context) {
 		var userCount, grandTotal, usersWithPosts int32
 		processUser := func(user string) {
 			start := findMaxOffset(user)
+			max := or.Int(*postsMax, 20)
 			posts, errors := f.Client().AllPosts(user,
 				api.AllPostsThreads(postsThreads),
-				api.AllPostsMax(*postsMax),
+				api.AllPostsMax(max),
 				api.AllPostsStart(start))
 			atomic.AddInt32(&userCount, 1)
 			var total int
 			parallel.WaitFor(func() {
 				for ps := range posts {
+					ps := ps
 					total += len(ps.Posts)
 					atomic.AddInt32(&grandTotal, int32(len(ps.Posts)))
-					if len(ps.Posts) > 0 {
-						if err := f.DB().AddPostInfos(ctx, user, ps.Posts); err != nil {
-							todo.SkipErr("AddPosts", err)
-						}
-						updateMaxOffset(user, ps.Offset)
+					if len(ps.Posts) == 0 {
+						break
 					}
+					if err := f.DB().AddPostInfos(ctx, user, ps.Posts); err != nil {
+						todo.SkipErr("AddPosts", err)
+					}
+					updateMaxOffset(user, ps.Offset)
 				}
 			}, func() {
 				for e := range errors {

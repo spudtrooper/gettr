@@ -478,17 +478,17 @@ func (d *DB) GetFollowersSync(ctx context.Context, username string) ([]string, e
 func (d *DB) AddPostInfos(ctx context.Context, username string, postInfos []api.PostInfo) error {
 	for _, p := range postInfos {
 		// TODO: This sucks
-		filter := bson.D{{"postinfo.id", p.ID}}
-		if res, err := d.collection("posts").DeleteMany(ctx, filter); err != nil {
-			if d.dbVerbosePosts {
-				log.Printf("AddPostInfos: DeleteMany error: %v", err)
-			}
-			return err
-		} else {
-			if d.dbVerbosePosts {
-				log.Printf("AddPostInfos: DeleteMany result: %+v", res)
-			}
-		}
+		// filter := bson.D{{"postinfo.id", p.ID}}
+		// if res, err := d.collection("posts").DeleteMany(ctx, filter); err != nil {
+		// 	if d.dbVerbosePosts {
+		// 		log.Printf("AddPostInfos: DeleteMany error: %v", err)
+		// 	}
+		// 	return err
+		// } else {
+		// 	if d.dbVerbosePosts {
+		// 		log.Printf("AddPostInfos: DeleteMany result: %+v", res)
+		// 	}
+		// }
 
 		stored := storedPostInfo{
 			PostInfo: p,

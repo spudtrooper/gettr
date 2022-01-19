@@ -231,6 +231,9 @@ func (c *Core) request(method, route string, result interface{}, body io.Reader,
 			if err := json.Unmarshal(data, &payload); err != nil {
 				return nil, err
 			}
+			if *clientVerbose {
+				log.Printf("got response with rc=%s", payload.ResponseCode)
+			}
 			if payload.ResponseCode != "OK" {
 				return nil, errors.Errorf("response error: %+v", payload.Error)
 			}
