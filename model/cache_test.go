@@ -37,14 +37,14 @@ func TestGetAllStrings(t *testing.T) {
 			t.Fatalf("GetAllStrings: %v", err)
 		}
 		sort.Sort(strings)
-		if got, want := strings, []SharedString{
-			{Val: "1", Offset: "a"},
-			{Val: "2", Offset: "a"},
-			{Val: "3", Offset: "b"},
-			{Val: "4", Offset: "b"},
-			{Val: "5", Offset: "c"},
-			{Val: "6", Offset: "c"},
-		}; !reflect.DeepEqual(want, got) {
+		if got, want := strings, ShardedStrings([]ShardedString{
+			{Val: "1", Dir: "a"},
+			{Val: "2", Dir: "a"},
+			{Val: "3", Dir: "b"},
+			{Val: "4", Dir: "b"},
+			{Val: "5", Dir: "c"},
+			{Val: "6", Dir: "c"},
+		}); !reflect.DeepEqual(want, got) {
 			t.Fatalf("GetAllStrings: want != got: %v %v", want, got)
 		}
 	}
@@ -54,7 +54,7 @@ func TestGetAllStrings(t *testing.T) {
 			t.Fatalf("FindKeys: %v", err)
 		}
 		sort.Strings(strings)
-		if got, want := strings, []string{"1", "2", "3"}; !reflect.DeepEqual(want, got) {
+		if got, want := strings, []string{"a", "b", "c"}; !reflect.DeepEqual(want, got) {
 			t.Fatalf("FindKeys: want != got: %v %v", want, got)
 		}
 	}

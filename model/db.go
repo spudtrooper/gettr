@@ -504,3 +504,20 @@ func (d *DB) AddPostInfos(ctx context.Context, username string, postInfos []api.
 	}
 	return nil
 }
+
+func (d *DB) CountPosts(ctx context.Context) (int64, error) {
+	filter := bson.D{{}}
+	return d.collection("posts").CountDocuments(ctx, filter)
+}
+
+func (d *DB) deleteAllUserInfo(ctx context.Context) error {
+	return d.collection("userInfo").Drop(ctx)
+}
+
+func (d *DB) deleteAllFollowers(ctx context.Context) error {
+	return d.collection("followers").Drop(ctx)
+}
+
+func (d *DB) deleteAllFollowing(ctx context.Context) error {
+	return d.collection("following").Drop(ctx)
+}

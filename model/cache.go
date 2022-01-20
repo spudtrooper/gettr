@@ -27,7 +27,7 @@ type Cache interface {
 	GetBytes(parts ...string) ([]byte, error)
 	SetGeneric(val interface{}, parts ...string) error
 	GetStrings(parts ...string) ([]string, error)
-	GetAllStrings(parts ...string) (SharedStrings, error)
+	GetAllStrings(parts ...string) (ShardedStrings, error)
 	FindKeys(parts ...string) ([]string, error)
 	FindKeysChannels(parts ...string) (chan string, chan error, error)
 }
@@ -166,15 +166,15 @@ func (c *cacheImpl) GetStrings(parts ...string) ([]string, error) {
 //              2 = [4,5,6]
 //              3 = [7,8,9]
 //   GetAllStrings("user", "foo", "followersOffsets") == [1,2,3,4,5,6,7,8,9]
-type SharedString struct{ Val, Dir string }
+type ShardedString struct{ Val, Dir string }
 
-type SharedStrings []SharedString
+type ShardedStrings []ShardedString
 
-func (s SharedStrings) Len() int           { return len(s) }
-func (s SharedStrings) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s SharedStrings) Less(i, j int) bool { return s[i].Val < s[j].Val }
+func (s ShardedStrings) Len() int           { return len(s) }
+func (s ShardedStrings) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s ShardedStrings) Less(i, j int) bool { return s[i].Val < s[j].Val }
 
-func (s SharedStrings) Strings() []string {
+func (s ShardedStrings) Strings() []string {
 	var res []string
 	for _, x := range s {
 		res = append(res, x.Val)
@@ -182,7 +182,7 @@ func (s SharedStrings) Strings() []string {
 	return res
 }
 
-func (c *cacheImpl) GetAllStrings(parts ...string) (SharedStrings, error) {
+func (c *cacheImpl) GetAllStrings(parts ...string) (ShardedStrings, error) {
 	dir := c.file(parts...)
 	isDir, err := c.isDir(dir)
 	if err != nil {
@@ -214,9 +214,9 @@ func (c *cacheImpl) GetAllStrings(parts ...string) (SharedStrings, error) {
 	}); err != nil {
 		return nil, err
 	}
-	var res SharedStrings
+	var res ShardedStrings
 	for s, o := range set {
-		res = append(res, SharedString{
+		res = append(res, ShardedString{
 			Val: s,
 			Dir: o,
 		})

@@ -1088,7 +1088,7 @@ func (u *User) PersistInDB(ctx context.Context, pOpts ...PersistInDBOption) erro
 		offset string
 	}
 
-	createUsersByOffset := func(ss SharedStrings) chan usersAndOffset {
+	createUsersByOffset := func(ss ShardedStrings) chan usersAndOffset {
 		usersByOffsets := map[string][]string{}
 		for _, x := range ss {
 			user, offset := x.Val, x.Dir
