@@ -238,6 +238,7 @@ func realMain(ctx context.Context) error {
 				if err := client.Follow(f.Username); err != nil {
 					return err
 				}
+				log.Printf("followed %s", f.Username)
 				if *pause > 0 {
 					time.Sleep(*pause)
 				}
@@ -273,6 +274,7 @@ func realMain(ctx context.Context) error {
 			if err := client.Follow(f.Username()); err != nil {
 				return err
 			}
+			log.Printf("followed %s", f.Username())
 			if *pause > 0 {
 				time.Sleep(*pause)
 			}
@@ -625,6 +627,7 @@ func realMain(ctx context.Context) error {
 				if err := client.LikePost(post.ID); err != nil {
 					return false, err
 				}
+				log.Printf("%s[%d] liked: https://gettr.com/post/%s", f.Username(), i, post.ID)
 			}
 			return true, nil
 		})
