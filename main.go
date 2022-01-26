@@ -18,6 +18,7 @@ import (
 	"github.com/spudtrooper/gettr/model"
 	"github.com/spudtrooper/goutil/check"
 	"github.com/spudtrooper/goutil/flags"
+	"github.com/spudtrooper/goutil/formatstruct"
 	"github.com/spudtrooper/goutil/or"
 	"github.com/spudtrooper/goutil/parallel"
 	"github.com/spudtrooper/goutil/sets"
@@ -98,7 +99,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("GetUserInfo: %+v", info)
+		log.Printf("GetUserInfo: %s", formatstruct.MustFormatString(info))
 	}
 
 	if should("GetPublicGlobals") {
@@ -106,7 +107,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("GetPublicGlobals: %+v", info)
+		log.Printf("GetPublicGlobals: %s", formatstruct.MustFormatString(info))
 	}
 
 	if should("GetSuggestions") {
@@ -114,7 +115,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("GetSuggestions: %+v", info)
+		log.Printf("GetSuggestions: %s", formatstruct.MustFormatString(info))
 	}
 
 	if should("GetPosts") {
@@ -122,7 +123,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("GetPosts: %+v", info)
+		log.Printf("GetPosts: %s", formatstruct.MustFormatString(info))
 	}
 
 	if should("Timeline") {
@@ -130,7 +131,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("Timeline: %+v", info)
+		log.Printf("Timeline: %s", formatstruct.MustFormatString(info))
 	}
 
 	if should("GetComments") {
@@ -138,7 +139,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("GetComments: %+v", info)
+		log.Printf("GetComments: %s", formatstruct.MustFormatString(info))
 	}
 
 	if should("GetPost") {
@@ -146,7 +147,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("GetPost: %+v", info)
+		log.Printf("GetPost: %s", formatstruct.MustFormatString(info))
 	}
 
 	if should("GetMuted") {
@@ -154,7 +155,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("GetMuted: %+v", info)
+		log.Printf("GetMuted: %s", formatstruct.MustFormatString(info))
 	}
 
 	if should("GetFollowings") {
@@ -162,7 +163,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("GetFollowings: %+v", info)
+		log.Printf("GetFollowings: %s", formatstruct.MustFormatString(info))
 	}
 
 	if should("GetAllFollowings") {
@@ -170,7 +171,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("GetAllFollowings: %+v", info)
+		log.Printf("GetAllFollowings: %s", formatstruct.MustFormatString(info))
 		for _, u := range info {
 			if err := client.Follow(u.Username); err != nil {
 				return err
@@ -186,7 +187,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("GetFollowers: %+v", info)
+		log.Printf("GetFollowers: %s", formatstruct.MustFormatString(info))
 		for _, f := range info {
 			log.Println(f.Username)
 		}
@@ -500,7 +501,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("CreatePost: %+v", info)
+		log.Printf("CreatePost: %s", formatstruct.MustFormatString(info))
 	}
 
 	if should("DeletePost") {
@@ -508,7 +509,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("DeletePost: %+v", info)
+		log.Printf("DeletePost: %s", formatstruct.MustFormatString(info))
 	}
 
 	if should("PersistInDB") {
@@ -730,7 +731,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("Search: %+v", info)
+		log.Printf("Search: %s", formatstruct.MustFormatString(info))
 		for i, p := range info {
 			log.Printf(" [%d] %s", i, p.URI())
 		}
@@ -742,7 +743,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("Search: %+v", info)
+		log.Printf("Search: %s", formatstruct.MustFormatString(info))
 		for _, p := range info {
 			log.Printf(" - %s", p.URI())
 		}

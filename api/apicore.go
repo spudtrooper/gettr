@@ -276,6 +276,7 @@ type UserInfo struct {
 	ID        string     `json:"_id"`
 	Nickname  string     `json:"nickname"`
 	Status    string     `json:"status"`
+	Email     string     `json:"email"`
 }
 
 func (u UserInfo) Following() int        { return u.Flw.Int() }
