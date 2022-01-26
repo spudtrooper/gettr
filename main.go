@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"sort"
 	"strings"
@@ -602,7 +603,7 @@ func realMain(ctx context.Context) error {
 	if should("LikeAll") {
 		u := f.Self()
 
-		followers := make(chan interface{}) //*model.User)
+		followers := make(chan interface{})
 		go func() {
 			users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads), model.UserFollowersOffset(*offset))
 			for u := range users {
@@ -632,6 +633,81 @@ func realMain(ctx context.Context) error {
 			return true, nil
 		})
 		parallel.LazyDrain(results, errors)
+	}
+
+	if should("SharePostAll") {
+		u := f.Self()
+
+		followers := make(chan interface{})
+		go func() {
+			users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads), model.UserFollowersOffset(*offset))
+			for u := range users {
+				if ui, _ := u.UserInfo(ctx); ui.Username != "" {
+					followers <- u
+				}
+			}
+			close(followers)
+		}()
+
+		results, errors := parallel.Exec(followers, 10, func(x interface{}) (interface{}, error) {
+			f := x.(*model.User)
+			posts, err := client.GetPosts(f.Username())
+			if err != nil {
+				return false, err
+			}
+			if len(posts) == 0 {
+				return false, nil
+			}
+			post := posts[rand.Int()%len(posts)]
+			log.Printf("%s trying to share: https://gettr.com/post/%s", f.Username(), post.ID)
+			if err := client.SharePost(post.ID, *text, api.SharePostDebug(*debug)); err != nil {
+				return false, err
+			}
+			return true, nil
+		})
+		parallel.LazyDrain(results, errors)
+	}
+
+	if should("SharePostFollowers") {
+		requireStringFlag(other, "other")
+
+		u := f.MakeUser(*other)
+
+		followers := make(chan interface{})
+		go func() {
+			users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads), model.UserFollowersOffset(*offset))
+			for u := range users {
+				if ui, _ := u.UserInfo(ctx); ui.Username != "" {
+					followers <- u
+				}
+			}
+			close(followers)
+		}()
+
+		results, errors := parallel.Exec(followers, 10, func(x interface{}) (interface{}, error) {
+			f := x.(*model.User)
+			posts, err := client.GetPosts(f.Username())
+			if err != nil {
+				return false, err
+			}
+			if len(posts) == 0 {
+				return false, nil
+			}
+			post := posts[rand.Int()%len(posts)]
+			log.Printf("%s trying to share: https://gettr.com/post/%s", f.Username(), post.ID)
+			if err := client.SharePost(post.ID, *text, api.SharePostDebug(*debug)); err != nil {
+				return false, err
+			}
+			return true, nil
+		})
+		parallel.LazyDrain(results, errors)
+	}
+
+	if should("SharePost") {
+		requireStringFlag(postID, "post_id")
+		if err := client.SharePost(*postID, *text, api.SharePostDebug(*debug)); err != nil {
+			return err
+		}
 	}
 
 	if should("DeleteAll") {

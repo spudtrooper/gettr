@@ -732,3 +732,31 @@ func (c *Core) SearchUsers(query string, sOpts ...SearchOption) ([]UserInfo, err
 	}
 	return res, nil
 }
+
+func (c *Core) SharePost(postID string, text string, sOpts ...SharePostOption) error {
+	opts := MakeSharePostOptions(sOpts...)
+	var contentData = struct {
+		Text string `json:"text"`
+	}{
+		Text: text,
+	}
+	contentBytes, err := jsonMarshal(&contentData)
+	if err != nil {
+		return err
+	}
+	content := string(contentBytes)
+	if opts.Debug() {
+		log.Printf("DEBUG: SharePost content: <<<\n\n%s\n\n>>>", content)
+	}
+	data := url.Values{}
+	data.Set("content", content)
+	route := fmt.Sprintf("u/user/%s/shares/post/%s", c.Username(), postID)
+	var payload []interface{}
+	extraHeaders := map[string]string{
+		"Content-Type": "application/x-www-form-urlencoded",
+	}
+	if _, err := c.post(route, &payload, strings.NewReader(data.Encode()), RequestExtraHeaders(extraHeaders)); err != nil {
+		return err
+	}
+	return nil
+}
