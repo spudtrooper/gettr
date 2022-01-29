@@ -49,6 +49,10 @@ var (
 	query                  = flags.String("query", "query for search")
 )
 
+func isLimitExceeded(err error) bool {
+	return strings.Contains(err.Error(), "E_METER_LIMIT_EXCEEDED")
+}
+
 func realMain(ctx context.Context) error {
 	f, err := model.MakeFactoryFromFlags(ctx)
 	if err != nil {
@@ -256,31 +260,38 @@ func realMain(ctx context.Context) error {
 		log.Printf("have %d existing followers", len(existingFollowersSet))
 		u := f.MakeUser(*other)
 
-		followers := make(chan *model.User)
+		followers := make(chan interface{})
 		go func() {
 			users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads), model.UserFollowersOffset(*offset))
 			for u := range users {
 				if ui, _ := u.UserInfo(ctx); ui.Username != "" {
-					followers <- u
+					if existingFollowersSet[u.Username()] {
+						log.Printf("skipping %s because we already follow them", u.Username())
+					} else {
+						followers <- u
+					}
 				}
 			}
 			close(followers)
 		}()
 
-		for f := range followers {
-			if existingFollowersSet[f.Username()] {
-				log.Printf("skipping %s because we already follow them", f.Username())
-				continue
-			}
+		threads := or.Int(*threads, 20)
+		parallel.ExecAndDrain(followers, threads, func(x interface{}) (interface{}, error) {
+			f := x.(*model.User)
 			log.Printf("trying to follow %s", f.Username())
 			if err := client.Follow(f.Username()); err != nil {
-				return err
+				log.Printf("Follow error: %v", err)
+				if isLimitExceeded(err) {
+					log.Fatalf("Limit exceeded: %v", err)
+				}
+			} else {
+				log.Printf("followed %s", f.Username())
 			}
-			log.Printf("followed %s", f.Username())
 			if *pause > 0 {
 				time.Sleep(*pause)
 			}
-		}
+			return nil, nil
+		})
 	}
 
 	if should("PrintAllFollowersCallback") {
@@ -615,7 +626,8 @@ func realMain(ctx context.Context) error {
 			close(followers)
 		}()
 
-		results, errors := parallel.Exec(followers, 10, func(x interface{}) (interface{}, error) {
+		threads := or.Int(*threads, 20)
+		parallel.ExecAndDrain(followers, threads, func(x interface{}) (interface{}, error) {
 			f := x.(*model.User)
 			posts, err := client.GetPosts(f.Username())
 			if err != nil {
@@ -627,13 +639,16 @@ func realMain(ctx context.Context) error {
 			for i, post := range posts {
 				log.Printf("%s[%d] trying to like: https://gettr.com/post/%s", f.Username(), i, post.ID)
 				if err := client.LikePost(post.ID); err != nil {
-					return false, err
+					log.Printf("LikePost error: %v", err)
+					if isLimitExceeded(err) {
+						log.Fatalf("Limit exceeded: %v", err)
+					}
+				} else {
+					log.Printf("%s[%d] liked: https://gettr.com/post/%s", f.Username(), i, post.ID)
 				}
-				log.Printf("%s[%d] liked: https://gettr.com/post/%s", f.Username(), i, post.ID)
 			}
 			return true, nil
 		})
-		parallel.LazyDrain(results, errors)
 	}
 
 	if should("SharePostAll") {
@@ -650,7 +665,8 @@ func realMain(ctx context.Context) error {
 			close(followers)
 		}()
 
-		results, errors := parallel.Exec(followers, 10, func(x interface{}) (interface{}, error) {
+		threads := or.Int(*threads, 20)
+		parallel.ExecAndDrain(followers, threads, func(x interface{}) (interface{}, error) {
 			f := x.(*model.User)
 			posts, err := client.GetPosts(f.Username())
 			if err != nil {
@@ -662,11 +678,15 @@ func realMain(ctx context.Context) error {
 			post := posts[rand.Int()%len(posts)]
 			log.Printf("%s trying to share: https://gettr.com/post/%s", f.Username(), post.ID)
 			if err := client.SharePost(post.ID, *text, api.SharePostDebug(*debug)); err != nil {
-				return false, err
+				log.Printf("SharePost error: %v", err)
+				if isLimitExceeded(err) {
+					log.Fatalf("Limit exceeded: %v", err)
+				}
+			} else {
+				log.Printf("shared https://gettr.com/post/%s from %s", post.ID, f.Username())
 			}
 			return true, nil
 		})
-		parallel.LazyDrain(results, errors)
 	}
 
 	if should("SharePostFollowers") {
@@ -685,7 +705,8 @@ func realMain(ctx context.Context) error {
 			close(followers)
 		}()
 
-		results, errors := parallel.Exec(followers, 10, func(x interface{}) (interface{}, error) {
+		threads := or.Int(*threads, 20)
+		parallel.ExecAndDrain(followers, threads, func(x interface{}) (interface{}, error) {
 			f := x.(*model.User)
 			posts, err := client.GetPosts(f.Username())
 			if err != nil {
@@ -697,11 +718,15 @@ func realMain(ctx context.Context) error {
 			post := posts[rand.Int()%len(posts)]
 			log.Printf("%s trying to share: https://gettr.com/post/%s", f.Username(), post.ID)
 			if err := client.SharePost(post.ID, *text, api.SharePostDebug(*debug)); err != nil {
-				return false, err
+				log.Printf("SharePost error: %v", err)
+				if isLimitExceeded(err) {
+					log.Fatalf("Limit exceeded: %v", err)
+				}
+			} else {
+				log.Printf("shared https://gettr.com/post/%s from %s", post.ID, f.Username())
 			}
 			return true, nil
 		})
-		parallel.LazyDrain(results, errors)
 	}
 
 	if should("SharePost") {
