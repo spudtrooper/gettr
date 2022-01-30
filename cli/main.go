@@ -147,15 +147,19 @@ func Main(ctx context.Context) error {
 		return findFollowersWithExceptions(u, sets.StringSet{})
 	}
 
-	createPost := func(text string) (api.CreatePostInfo, error) {
+	createPostWithImage := func(text, img string) (api.CreatePostInfo, error) {
 		return client.CreatePost(text,
 			api.CreatePostImages([]string{*postImage}),
 			api.CreatePostDebug(*debug),
 			api.CreatePostTitle(*postTitle),
-			api.CreatePostPreviewImage(*postPreviewImage),
+			api.CreatePostPreviewImage(img),
 			api.CreatePostPreviewSource(*postPreviewSource),
 			api.CreatePostDescription(*dsc),
 		)
+	}
+
+	createPost := func(text string) (api.CreatePostInfo, error) {
+		return createPostWithImage(text, *postPreviewImage)
 	}
 
 	reply := func(postID, text string) (api.ReplyInfo, error) {
@@ -194,6 +198,16 @@ func Main(ctx context.Context) error {
 		res := client.Username()
 		log.Printf("defaulting to client user %q", res)
 		return res
+	}
+
+	defaultUser := func() *model.User {
+		username := defaultUsername()
+		u := f.MakeUser(username)
+		return u
+	}
+
+	self := func() *model.User {
+		return f.Self()
 	}
 
 	maybePause := func() {
@@ -406,9 +420,7 @@ func Main(ctx context.Context) error {
 	}
 
 	if should("PrintAllFollowers") {
-		username := defaultUsername()
-		u := f.MakeUser(username)
-
+		u := defaultUser()
 		followers := findFollowers(u)
 		i := 0
 		for f := range followers {
@@ -432,9 +444,7 @@ func Main(ctx context.Context) error {
 	}
 
 	if should("PrintAllFollowing") {
-		username := defaultUsername()
-		u := f.MakeUser(username)
-
+		u := defaultUser()
 		following := make(chan *model.User)
 		go func() {
 			users, _ := u.Following(ctx, model.UserFollowingMax(*max), model.UserFollowingMax(*threads), model.UserFollowingOffset(*offset))
@@ -521,8 +531,7 @@ func Main(ctx context.Context) error {
 	}
 
 	if should("Read") {
-		username := defaultUsername()
-		u := f.MakeUser(username)
+		u := defaultUser()
 
 		{
 			c := make(chan *model.User)
@@ -559,8 +568,7 @@ func Main(ctx context.Context) error {
 	}
 
 	if should("PersistAll") {
-		username := defaultUsername()
-		u := f.MakeUser(username)
+		u := defaultUser()
 
 		{
 			c := make(chan *model.User)
@@ -624,7 +632,7 @@ func Main(ctx context.Context) error {
 	}
 
 	if should("PersistInDB") {
-		u := f.MakeUser(*other)
+		u := defaultUser()
 		if err := u.PersistInDB(ctx); err != nil {
 			return err
 		}
@@ -668,7 +676,7 @@ func Main(ctx context.Context) error {
 			}
 		}
 		{
-			res, err := createPost(*text)
+			res, err := createPostWithImage(*text, img)
 			if err != nil {
 				return err
 			}
@@ -699,7 +707,7 @@ func Main(ctx context.Context) error {
 	}
 
 	if should("LikeAll") {
-		u := f.Self()
+		u := defaultUser()
 
 		followers := findFollowers(u)
 
@@ -756,13 +764,12 @@ func Main(ctx context.Context) error {
 	}
 
 	if should("SharePostAll") {
-		u := f.Self()
+		u := self()
 		shareAll(u)
 	}
 
 	if should("SharePostFollowers") {
-		username := defaultUsername()
-		u := f.MakeUser(username)
+		u := defaultUser()
 		shareAll(u)
 	}
 
@@ -811,13 +818,12 @@ func Main(ctx context.Context) error {
 	}
 
 	if should("ReplyAll") {
-		u := f.Self()
+		u := self()
 		replyAll(u)
 	}
 
 	if should("ReplyFollowers") {
-		username := defaultUsername()
-		u := f.MakeUser(username)
+		u := defaultUser()
 		replyAll(u)
 	}
 
