@@ -25,7 +25,7 @@ var (
 	sortUsers                 = flags.Bool("sort_users", "sort users in the output (this can take a long time")
 )
 
-func realMain(ctx context.Context) error {
+func htmlMain(ctx context.Context) error {
 	if *other == "" {
 		return errors.Errorf("--other required")
 	}
@@ -57,5 +57,5 @@ func realMain(ctx context.Context) error {
 
 func main() {
 	flag.Parse()
-	check.Err(realMain(context.Background()))
+	check.Err(htmlMain(context.Background()))
 }

@@ -54,42 +54,70 @@ func isLimitExceeded(err error) bool {
 }
 
 func realMain(ctx context.Context) error {
+	actionMap := map[string]bool{}
+
+	// Pull arguments before flags into the acton map
+	if len(os.Args) > 1 && !strings.HasPrefix(os.Args[1], "-") {
+		lastCommand := 1
+		for lastCommand < len(os.Args) {
+			if action := strings.TrimSpace(strings.ToLower(os.Args[lastCommand])); action != "" && !strings.HasPrefix(action, "-") {
+				actionMap[action] = true
+				lastCommand++
+			} else {
+				break
+			}
+		}
+		var newArgs []string
+		for i, arg := range os.Args {
+			if i == 0 || i >= lastCommand {
+				newArgs = append(newArgs, arg)
+			}
+		}
+		os.Args = newArgs
+	}
+
+	// Parse flags after modifying os.Args
+	flag.Parse()
+
+	if *actions != "" {
+		for _, c := range strings.Split(*actions, ",") {
+			if action := strings.TrimSpace(strings.ToLower(c)); action != "" {
+				actionMap[action] = true
+			}
+		}
+	}
+	for _, c := range flag.Args() {
+		if action := strings.TrimSpace(strings.ToLower(c)); action != "" {
+			actionMap[action] = true
+		}
+	}
+
+	if len(actionMap) == 0 {
+		return errors.Errorf("you need to specify at least one call")
+	}
+
 	f, err := model.MakeFactoryFromFlags(ctx)
 	if err != nil {
 		return err
 	}
 	client := f.Client()
 
-	actionMap := map[string]bool{}
-	if *actions != "" {
-		for _, c := range strings.Split(*actions, ",") {
-			actionMap[strings.ToLower(c)] = true
-		}
-	}
-	for _, c := range flag.Args() {
-		actionMap[strings.ToLower(c)] = true
-	}
 	shouldReturnedTrueOnce := false
 	var possibleActions []string
+
 	should := func(s string) bool {
 		for k := range actionMap {
 			if k == "all" {
+				shouldReturnedTrueOnce = true
 				return true
 			}
-			if s == k {
-				return actionMap[s]
-			}
 		}
-		res := actionMap[strings.ToLower(s)]
+		res := actionMap[strings.TrimSpace(strings.ToLower(s))]
 		if res {
 			shouldReturnedTrueOnce = true
 		}
 		possibleActions = append(possibleActions, s)
 		return res
-	}
-
-	if len(actionMap) == 0 {
-		return errors.Errorf("you need to specify at least one call")
 	}
 
 	requireStringFlag := func(flag *string, name string) {
@@ -98,13 +126,17 @@ func realMain(ctx context.Context) error {
 		}
 	}
 
-	findFollowers := func(u *model.User) chan interface{} {
+	findFollowersWithExceptions := func(u *model.User, existing sets.StringSet) chan interface{} {
 		followers := make(chan interface{})
 		go func() {
 			users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads), model.UserFollowersOffset(*offset))
 			for u := range users {
 				if ui, _ := u.UserInfo(ctx); ui.Username != "" {
-					followers <- u
+					if existing[u.Username()] {
+						log.Printf("skipping %s because we already follow them", u.Username())
+					} else {
+						followers <- u
+					}
 				}
 			}
 			close(followers)
@@ -112,119 +144,29 @@ func realMain(ctx context.Context) error {
 		return followers
 	}
 
-	if should("GetUserInfo") {
-		info, err := client.GetUserInfo(*other)
-		if err != nil {
-			return err
-		}
-		log.Printf("GetUserInfo: %s", formatstruct.MustFormatString(info))
+	findFollowers := func(u *model.User) chan interface{} {
+		return findFollowersWithExceptions(u, sets.StringSet{})
 	}
 
-	if should("GetPublicGlobals") {
-		info, err := client.GetPublicGlobals()
-		if err != nil {
-			return err
-		}
-		log.Printf("GetPublicGlobals: %s", formatstruct.MustFormatString(info))
+	createPost := func(text string) (api.CreatePostInfo, error) {
+		return client.CreatePost(text,
+			api.CreatePostImages([]string{*postImage}),
+			api.CreatePostDebug(*debug),
+			api.CreatePostTitle(*postTitle),
+			api.CreatePostPreviewImage(*postPreviewImage),
+			api.CreatePostPreviewSource(*postPreviewSource),
+			api.CreatePostDescription(*dsc),
+		)
 	}
 
-	if should("GetSuggestions") {
-		info, err := client.GetSuggestions()
-		if err != nil {
-			return err
-		}
-		log.Printf("GetSuggestions: %s", formatstruct.MustFormatString(info))
-	}
-
-	if should("GetPosts") {
-		info, err := client.GetPosts(*other)
-		if err != nil {
-			return err
-		}
-		log.Printf("GetPosts: %s", formatstruct.MustFormatString(info))
-	}
-
-	if should("Timeline") {
-		info, err := client.Timeline()
-		if err != nil {
-			return err
-		}
-		log.Printf("Timeline: %s", formatstruct.MustFormatString(info))
-	}
-
-	if should("GetComments") {
-		info, err := client.GetComments("pmyaf4548d")
-		if err != nil {
-			return err
-		}
-		log.Printf("GetComments: %s", formatstruct.MustFormatString(info))
-	}
-
-	if should("GetPost") {
-		info, err := client.GetPost("pmyaf4548d")
-		if err != nil {
-			return err
-		}
-		log.Printf("GetPost: %s", formatstruct.MustFormatString(info))
-	}
-
-	if should("GetMuted") {
-		info, err := client.GetMuted()
-		if err != nil {
-			return err
-		}
-		log.Printf("GetMuted: %s", formatstruct.MustFormatString(info))
-	}
-
-	if should("GetFollowings") {
-		info, err := client.GetFollowings(*other, api.FollowingsOffset(*offset), api.FollowingsMax(*max))
-		if err != nil {
-			return err
-		}
-		log.Printf("GetFollowings: %s", formatstruct.MustFormatString(info))
-	}
-
-	if should("GetAllFollowings") {
-		info, err := client.GetAllFollowings(*other)
-		if err != nil {
-			return err
-		}
-		log.Printf("GetAllFollowings: %s", formatstruct.MustFormatString(info))
-		for _, u := range info {
-			if err := client.Follow(u.Username); err != nil {
-				return err
-			}
-			if *pause > 0 {
-				time.Sleep(*pause)
-			}
-		}
-	}
-
-	if should("GetFollowers") {
-		info, err := client.GetFollowers(*other, api.FollowersOffset(*offset), api.FollowersMax(*max))
-		if err != nil {
-			return err
-		}
-		log.Printf("GetFollowers: %s", formatstruct.MustFormatString(info))
-		for _, f := range info {
-			log.Println(f.Username)
-		}
-	}
-
-	if should("GetAllFollowers") {
-		username := *other
-		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
-			log.Printf("following users[%d] of %s", offset, username)
-			for i, u := range userInfos {
-				log.Printf("users[%d][%d]: %v", offset, i, u)
-				if *pause > 0 {
-					time.Sleep(*pause)
-				}
-			}
-			return nil
-		}, api.AllFollowersOffset(*offset)); err != nil {
-			return err
-		}
+	reply := func(postID, text string) (api.ReplyInfo, error) {
+		return client.Reply(postID, text,
+			api.ReplyDebug(*debug),
+			api.ReplyTitle(*postTitle),
+			api.ReplyPreviewImage(*postPreviewImage),
+			api.ReplyPreviewSource(*postPreviewSource),
+			api.ReplyDescription(*dsc),
+		)
 	}
 
 	findFollowerUsernames := func(u *model.User) []string {
@@ -242,15 +184,152 @@ func realMain(ctx context.Context) error {
 		return res
 	}
 
+	mustFormatString := func(x interface{}) string {
+		return fmt.Sprintf("<<<\n%s\n>>>", formatstruct.MustFormatString(x))
+	}
+
+	defaultUsername := func() string {
+		if *other != "" {
+			return *other
+		}
+		res := client.Username()
+		log.Printf("defaulting to client user %q", res)
+		return res
+	}
+
+	if should("GetUserInfo") {
+		username := defaultUsername()
+		info, err := client.GetUserInfo(username)
+		if err != nil {
+			return err
+		}
+		log.Printf("GetUserInfo: %s", mustFormatString(info))
+	}
+
+	if should("GetPublicGlobals") {
+		info, err := client.GetPublicGlobals()
+		if err != nil {
+			return err
+		}
+		log.Printf("GetPublicGlobals: %s", mustFormatString(info))
+	}
+
+	if should("GetSuggestions") {
+		info, err := client.GetSuggestions()
+		if err != nil {
+			return err
+		}
+		log.Printf("GetSuggestions: %s", mustFormatString(info))
+	}
+
+	if should("GetPosts") {
+		username := defaultUsername()
+		info, err := client.GetPosts(username)
+		if err != nil {
+			return err
+		}
+		log.Printf("GetPosts: %s", mustFormatString(info))
+	}
+
+	if should("Timeline") {
+		info, err := client.Timeline()
+		if err != nil {
+			return err
+		}
+		log.Printf("Timeline: %s", mustFormatString(info))
+	}
+
+	if should("GetComments") {
+		requireStringFlag(postID, "post_id")
+		info, err := client.GetComments(*postID)
+		if err != nil {
+			return err
+		}
+		log.Printf("GetComments: %s", mustFormatString(info))
+	}
+
+	if should("GetPost") {
+		requireStringFlag(postID, "post_id")
+		info, err := client.GetPost(*postID)
+		if err != nil {
+			return err
+		}
+		log.Printf("GetPost: %s", mustFormatString(info))
+	}
+
+	if should("GetMuted") {
+		info, err := client.GetMuted()
+		if err != nil {
+			return err
+		}
+		log.Printf("GetMuted: %s", mustFormatString(info))
+	}
+
+	if should("GetFollowings") {
+		username := defaultUsername()
+		info, err := client.GetFollowings(username, api.FollowingsOffset(*offset), api.FollowingsMax(*max))
+		if err != nil {
+			return err
+		}
+		log.Printf("GetFollowings: %s", mustFormatString(info))
+	}
+
+	if should("GetAllFollowings") {
+		username := defaultUsername()
+		info, err := client.GetAllFollowings(username)
+		if err != nil {
+			return err
+		}
+		log.Printf("GetAllFollowings: %s", mustFormatString(info))
+		for _, u := range info {
+			if err := client.Follow(u.Username); err != nil {
+				return err
+			}
+			if *pause > 0 {
+				time.Sleep(*pause)
+			}
+		}
+	}
+
+	if should("GetFollowers") {
+		username := defaultUsername()
+		info, err := client.GetFollowers(username, api.FollowersOffset(*offset), api.FollowersMax(*max))
+		if err != nil {
+			return err
+		}
+		log.Printf("GetFollowers: %s", mustFormatString(info))
+		for _, f := range info {
+			log.Println(f.Username)
+		}
+	}
+
+	if should("GetAllFollowers") {
+		username := defaultUsername()
+		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
+			log.Printf("following users[%d] of %s", offset, username)
+			for i, u := range userInfos {
+				log.Printf("users[%d][%d]: %v", offset, i, u)
+				if *pause > 0 {
+					time.Sleep(*pause)
+				}
+			}
+			return nil
+		}, api.AllFollowersOffset(*offset)); err != nil {
+			return err
+		}
+	}
+
 	if should("FollowAllCallback") {
-		existingFollowersSet := sets.String(findFollowerUsernames(f.MakeUser(client.Username())))
-		log.Printf("have %d existing followers", len(existingFollowersSet))
+		requireStringFlag(other, "other")
+
+		existingFollowers := sets.String(findFollowerUsernames(f.MakeUser(client.Username())))
+		log.Printf("have %d existing followers", len(existingFollowers))
 
 		username := *other
 		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
 			log.Printf("following %d users[%d] of %s", len(userInfos), offset, username)
 			for _, f := range userInfos {
-				if existingFollowersSet[f.Username] {
+				if existingFollowers[f.Username] {
 					log.Printf("skipping %s because we already follow them", f.Username)
 					continue
 				}
@@ -270,24 +349,13 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("FollowAll") {
-		existingFollowersSet := sets.String(findFollowerUsernames(f.MakeUser(client.Username())))
-		log.Printf("have %d existing followers", len(existingFollowersSet))
+		requireStringFlag(other, "other")
+
+		existingFollowers := sets.String(findFollowerUsernames(f.MakeUser(client.Username())))
+		log.Printf("have %d existing followers", len(existingFollowers))
 		u := f.MakeUser(*other)
 
-		followers := make(chan interface{})
-		go func() {
-			users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads), model.UserFollowersOffset(*offset))
-			for u := range users {
-				if ui, _ := u.UserInfo(ctx); ui.Username != "" {
-					if existingFollowersSet[u.Username()] {
-						log.Printf("skipping %s because we already follow them", u.Username())
-					} else {
-						followers <- u
-					}
-				}
-			}
-			close(followers)
-		}()
+		followers := findFollowersWithExceptions(u, existingFollowers)
 
 		threads := or.Int(*threads, 20)
 		parallel.ExecAndDrain(followers, threads, func(x interface{}) (interface{}, error) {
@@ -309,7 +377,7 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("PrintAllFollowersCallback") {
-		username := or.String(*other, client.Username())
+		username := defaultUsername()
 		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
 			log.Printf("following users[%d] of %s", offset, username)
 			for _, f := range userInfos {
@@ -322,29 +390,20 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("PrintAllFollowers") {
-		username := or.String(*other, client.Username())
+		username := defaultUsername()
 		u := f.MakeUser(username)
 
-		followers := make(chan *model.User)
-		go func() {
-			users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads), model.UserFollowersOffset(*offset))
-			for u := range users {
-				if ui, _ := u.UserInfo(ctx); ui.Username != "" {
-					followers <- u
-				}
-			}
-			close(followers)
-		}()
-
+		followers := findFollowers(u)
 		i := 0
 		for f := range followers {
+			f := f.(*model.User)
 			fmt.Printf("followers[%d] %s\n", i, f.Username())
 			i++
 		}
 	}
 
 	if should("PrintAllFollowingCallback") {
-		username := or.String(*other, client.Username())
+		username := defaultUsername()
 		if err := client.AllFollowings(username, func(offset int, userInfos api.UserInfos) error {
 			log.Printf("following users[%d] of %s", offset, username)
 			for _, f := range userInfos {
@@ -357,7 +416,7 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("PrintAllFollowing") {
-		username := or.String(*other, client.Username())
+		username := defaultUsername()
 		u := f.MakeUser(username)
 
 		following := make(chan *model.User)
@@ -435,14 +494,16 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("Persist") {
-		user := f.MakeUser(*other)
+		username := defaultUsername()
+		user := f.MakeUser(username)
 		if err := user.Persist(ctx, model.UserPersistMax(*max), model.UserPersistThreads(*threads), model.UserPersistForce(*force)); err != nil {
 			return err
 		}
 	}
 
 	if should("Read") {
-		u := f.MakeUser(*other)
+		username := defaultUsername()
+		u := f.MakeUser(username)
 
 		{
 			c := make(chan *model.User)
@@ -479,7 +540,8 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("PersistAll") {
-		u := f.MakeUser(*other)
+		username := defaultUsername()
+		u := f.MakeUser(username)
 
 		{
 			c := make(chan *model.User)
@@ -517,27 +579,11 @@ func realMain(ctx context.Context) error {
 
 	if should("CreatePost") {
 		requireStringFlag(text, "text")
-		info, err := client.CreatePost(*text,
-			api.CreatePostDebug(*debug),
-			api.CreatePostTitle(*postTitle),
-			api.CreatePostPreviewImage(*postPreviewImage),
-			api.CreatePostPreviewSource(*postPreviewSource),
-			api.CreatePostDescription(*dsc),
-		)
+		info, err := createPost(*text)
 		if err != nil {
 			return err
 		}
-		log.Printf("CreatePost: %s", formatstruct.MustFormatString(info))
-	}
-
-	reply := func(postID, text string) (api.ReplyInfo, error) {
-		return client.Reply(postID, text,
-			api.ReplyDebug(*debug),
-			api.ReplyTitle(*postTitle),
-			api.ReplyPreviewImage(*postPreviewImage),
-			api.ReplyPreviewSource(*postPreviewSource),
-			api.ReplyDescription(*dsc),
-		)
+		log.Printf("CreatePost: %s", mustFormatString(info))
 	}
 
 	if should("Reply") {
@@ -547,7 +593,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("Reply: %s", formatstruct.MustFormatString(info))
+		log.Printf("Reply: %s", mustFormatString(info))
 	}
 
 	if should("DeletePost") {
@@ -555,7 +601,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("DeletePost: %s", formatstruct.MustFormatString(info))
+		log.Printf("DeletePost: %s", mustFormatString(info))
 	}
 
 	if should("PersistInDB") {
@@ -603,14 +649,7 @@ func realMain(ctx context.Context) error {
 			}
 		}
 		{
-			res, err := client.CreatePost(*text,
-				api.CreatePostImages([]string{img}),
-				api.CreatePostDebug(*debug),
-				api.CreatePostTitle(*postTitle),
-				api.CreatePostPreviewImage(*postPreviewImage),
-				api.CreatePostPreviewSource(*postPreviewSource),
-				api.CreatePostDescription(*dsc),
-			)
+			res, err := createPost(*text)
 			if err != nil {
 				return err
 			}
@@ -620,14 +659,7 @@ func realMain(ctx context.Context) error {
 
 	if should("CreatePostCustomImage") {
 		requireStringFlag(uploadImage, "post_image")
-		res, err := client.CreatePost(*text,
-			api.CreatePostImages([]string{*postImage}),
-			api.CreatePostDebug(*debug),
-			api.CreatePostTitle(*postTitle),
-			api.CreatePostPreviewImage(*postPreviewImage),
-			api.CreatePostPreviewSource(*postPreviewSource),
-			api.CreatePostDescription(*dsc),
-		)
+		res, err := createPost(*text)
 		if err != nil {
 			return err
 		}
@@ -710,8 +742,8 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("SharePostFollowers") {
-		requireStringFlag(other, "other")
-		u := f.MakeUser(*other)
+		username := defaultUsername()
+		u := f.MakeUser(username)
 		shareAll(u)
 	}
 
@@ -756,8 +788,8 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("ReplyFollowers") {
-		requireStringFlag(other, "other")
-		u := f.MakeUser(*other)
+		username := defaultUsername()
+		u := f.MakeUser(username)
 		replyAll(u)
 	}
 
@@ -788,7 +820,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("Search: %s", formatstruct.MustFormatString(info))
+		log.Printf("Search: %s", mustFormatString(info))
 		for i, p := range info {
 			log.Printf(" [%d] %s", i, p.URI())
 		}
@@ -800,7 +832,7 @@ func realMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("Search: %s", formatstruct.MustFormatString(info))
+		log.Printf("Search: %s", mustFormatString(info))
 		for _, p := range info {
 			log.Printf(" - %s", p.URI())
 		}
@@ -840,6 +872,5 @@ func realMain(ctx context.Context) error {
 }
 
 func main() {
-	flag.Parse()
 	check.Err(realMain(context.Background()))
 }
