@@ -785,7 +785,7 @@ func Main(ctx context.Context) error {
 		if comment == "" {
 			comment = "Nice work, homie"
 		}
-		log.Printf("trying to comment on: https://gettr.com/post/%s with %s", post.ID, comment)
+		log.Printf("trying to comment on: https://gettr.com/post/%s with %q", post.ID, comment)
 		if _, err := reply(post.ID, comment); err != nil {
 			log.Printf("Reply error: %v", err)
 			if isLimitExceeded(err) {
