@@ -761,3 +761,83 @@ func (c *Core) SharePost(postID string, text string, sOpts ...SharePostOption) e
 	}
 	return nil
 }
+
+type ReplyInfo struct {
+	CDate IntDate `json:"cdate"`
+	UDate IntDate `json:"udate"`
+	UID   string  `json:"uid"`
+	PUID  string  `json:"puid"`
+	PID   string  `json:"pid"`
+	Type  string  `json:"_t"`
+	ID    string  `json:"_id"`
+	Text  string  `json:"txt"`
+}
+
+func (c ReplyInfo) URI() string { return postURI(c.ID) }
+
+func (c *Core) Reply(postID string, text string, cOpts ...ReplyOption) (ReplyInfo, error) {
+	opts := MakeReplyOptions(cOpts...)
+	date := int(time.Now().UnixMilli())
+	type aclT struct {
+		Type string `json:"_t"`
+	}
+	type dataT struct {
+		ACL           aclT     `json:"acl"`
+		Type          string   `json:"_t"`
+		Text          string   `json:"txt"`
+		Description   string   `json:"dsc"`
+		UDate         IntDate  `json:"udate"`
+		CDate         IntDate  `json:"cdate"`
+		UID           string   `json:"uid"`
+		PID           string   `json:"pid"`
+		Images        []string `json:"imgs"`
+		PreviewImage  string   `json:"previmg"`
+		PreviewSource string   `json:"prevsrc"`
+		VidWidth      int      `json:"vid_wid"`
+		VidHeight     int      `json:"vid_hgt"`
+		Title         string   `json:"ttl"`
+	}
+	var contentData = struct {
+		Data   dataT  `json:"data"`
+		Serial string `json:"serial"`
+	}{
+		Data: dataT{
+			ACL:           aclT{Type: "acl"},
+			Type:          "cmt",
+			Text:          text,
+			CDate:         IntDate(date),
+			UDate:         IntDate(date),
+			UID:           c.username,
+			PID:           postID,
+			Description:   opts.Description(),
+			PreviewImage:  opts.PreviewImage(),
+			PreviewSource: opts.PreviewSource(),
+			Title:         opts.Title(),
+			VidWidth:      152,
+			VidHeight:     250,
+			Images:        opts.Images(),
+		},
+		Serial: "cmt",
+	}
+	contentBytes, err := jsonMarshal(&contentData)
+	if err != nil {
+		return ReplyInfo{}, err
+	}
+	content := string(contentBytes)
+	if opts.Debug() {
+		log.Printf("DEBUG: CreatePost content: <<<\n\n%s\n\n>>>", content)
+	}
+	data := url.Values{}
+	data.Set("content", content)
+	route := fmt.Sprintf("u/post/%s/comment", postID)
+	var payload struct {
+		Data ReplyInfo `json:"data"`
+	}
+	extraHeaders := map[string]string{
+		"Content-Type": "application/x-www-form-urlencoded",
+	}
+	if _, err := c.post(route, &payload, strings.NewReader(data.Encode()), RequestExtraHeaders(extraHeaders)); err != nil {
+		return ReplyInfo{}, err
+	}
+	return payload.Data, nil
+}

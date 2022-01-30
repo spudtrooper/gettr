@@ -98,6 +98,20 @@ func realMain(ctx context.Context) error {
 		}
 	}
 
+	findFollowers := func(u *model.User) chan interface{} {
+		followers := make(chan interface{})
+		go func() {
+			users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads), model.UserFollowersOffset(*offset))
+			for u := range users {
+				if ui, _ := u.UserInfo(ctx); ui.Username != "" {
+					followers <- u
+				}
+			}
+			close(followers)
+		}()
+		return followers
+	}
+
 	if should("GetUserInfo") {
 		info, err := client.GetUserInfo(*other)
 		if err != nil {
@@ -502,6 +516,7 @@ func realMain(ctx context.Context) error {
 	}
 
 	if should("CreatePost") {
+		requireStringFlag(text, "text")
 		info, err := client.CreatePost(*text,
 			api.CreatePostDebug(*debug),
 			api.CreatePostTitle(*postTitle),
@@ -513,6 +528,26 @@ func realMain(ctx context.Context) error {
 			return err
 		}
 		log.Printf("CreatePost: %s", formatstruct.MustFormatString(info))
+	}
+
+	reply := func(postID, text string) (api.ReplyInfo, error) {
+		return client.Reply(postID, text,
+			api.ReplyDebug(*debug),
+			api.ReplyTitle(*postTitle),
+			api.ReplyPreviewImage(*postPreviewImage),
+			api.ReplyPreviewSource(*postPreviewSource),
+			api.ReplyDescription(*dsc),
+		)
+	}
+
+	if should("Reply") {
+		requireStringFlag(text, "text")
+		requireStringFlag(postID, "postID")
+		info, err := reply(*postID, *text)
+		if err != nil {
+			return err
+		}
+		log.Printf("Reply: %s", formatstruct.MustFormatString(info))
 	}
 
 	if should("DeletePost") {
@@ -615,16 +650,7 @@ func realMain(ctx context.Context) error {
 	if should("LikeAll") {
 		u := f.Self()
 
-		followers := make(chan interface{})
-		go func() {
-			users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads), model.UserFollowersOffset(*offset))
-			for u := range users {
-				if ui, _ := u.UserInfo(ctx); ui.Username != "" {
-					followers <- u
-				}
-			}
-			close(followers)
-		}()
+		followers := findFollowers(u)
 
 		threads := or.Int(*threads, 20)
 		parallel.ExecAndDrain(followers, threads, func(x interface{}) (interface{}, error) {
@@ -651,19 +677,8 @@ func realMain(ctx context.Context) error {
 		})
 	}
 
-	if should("SharePostAll") {
-		u := f.Self()
-
-		followers := make(chan interface{})
-		go func() {
-			users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads), model.UserFollowersOffset(*offset))
-			for u := range users {
-				if ui, _ := u.UserInfo(ctx); ui.Username != "" {
-					followers <- u
-				}
-			}
-			close(followers)
-		}()
+	shareAll := func(u *model.User) {
+		followers := findFollowers(u)
 
 		threads := or.Int(*threads, 20)
 		parallel.ExecAndDrain(followers, threads, func(x interface{}) (interface{}, error) {
@@ -689,21 +704,19 @@ func realMain(ctx context.Context) error {
 		})
 	}
 
+	if should("SharePostAll") {
+		u := f.Self()
+		shareAll(u)
+	}
+
 	if should("SharePostFollowers") {
 		requireStringFlag(other, "other")
-
 		u := f.MakeUser(*other)
+		shareAll(u)
+	}
 
-		followers := make(chan interface{})
-		go func() {
-			users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads), model.UserFollowersOffset(*offset))
-			for u := range users {
-				if ui, _ := u.UserInfo(ctx); ui.Username != "" {
-					followers <- u
-				}
-			}
-			close(followers)
-		}()
+	replyAll := func(u *model.User) {
+		followers := findFollowers(u)
 
 		threads := or.Int(*threads, 20)
 		parallel.ExecAndDrain(followers, threads, func(x interface{}) (interface{}, error) {
@@ -716,17 +729,36 @@ func realMain(ctx context.Context) error {
 				return false, nil
 			}
 			post := posts[rand.Int()%len(posts)]
-			log.Printf("%s trying to share: https://gettr.com/post/%s", f.Username(), post.ID)
-			if err := client.SharePost(post.ID, *text, api.SharePostDebug(*debug)); err != nil {
-				log.Printf("SharePost error: %v", err)
+			comments, err := client.GetComments(post.ID)
+			if err != nil {
+				return false, err
+			}
+			if len(comments) == 0 {
+				return false, nil
+			}
+			comment := comments[rand.Int()%len(comments)]
+			log.Printf("%s trying to comment on: https://gettr.com/post/%s with %s", f.Username(), post.ID, comment.Text)
+			if _, err := reply(post.ID, comment.Text); err != nil {
+				log.Printf("Reply error: %v", err)
 				if isLimitExceeded(err) {
 					log.Fatalf("Limit exceeded: %v", err)
 				}
 			} else {
-				log.Printf("shared https://gettr.com/post/%s from %s", post.ID, f.Username())
+				log.Printf("commented on https://gettr.com/post/%s from %s", post.ID, f.Username())
 			}
 			return true, nil
 		})
+	}
+
+	if should("ReplyAll") {
+		u := f.Self()
+		replyAll(u)
+	}
+
+	if should("ReplyFollowers") {
+		requireStringFlag(other, "other")
+		u := f.MakeUser(*other)
+		replyAll(u)
 	}
 
 	if should("SharePost") {
