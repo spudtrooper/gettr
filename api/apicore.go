@@ -214,6 +214,19 @@ func (c *Core) Timeline(pOpts ...TimelineOption) ([]PostInfo, error) {
 	return c.getPosts(route)
 }
 
+func (c *Core) LiveNow(pOpts ...LiveNowOption) ([]PostInfo, error) {
+	opts := MakeLiveNowOptions(pOpts...)
+	offset := or.Int(opts.Offset(), defaultOffset)
+	max := or.Int(opts.Max(), defaultMax)
+	dir := or.String(opts.Dir(), defaultDir)
+	incl := or.String(strings.Join(opts.Incl(), "|"), "posts|stats|userinfo|shared|liked")
+	merge := or.String(opts.Merge(), "shares")
+	lang := or.String(opts.Lang(), "all")
+	route := createRoute("u/posts/livenow",
+		param{"offset", offset}, param{"max", max}, param{"dir", dir}, param{"incl", incl}, param{"merge", merge}, param{"lang", lang})
+	return c.getPosts(route)
+}
+
 type CommentInfo struct {
 	CDate    IntDate  `json:"cdate"`
 	Update   IntDate  `json:"update"`

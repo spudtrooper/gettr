@@ -196,6 +196,12 @@ func Main(ctx context.Context) error {
 		return res
 	}
 
+	maybePause := func() {
+		if *pause != 0 {
+			time.Sleep(*pause)
+		}
+	}
+
 	if should("GetUserInfo") {
 		username := defaultUsername()
 		info, err := client.GetUserInfo(username)
@@ -239,6 +245,16 @@ func Main(ctx context.Context) error {
 		}
 		for i, info := range infos {
 			log.Printf("Timeline[%d]: %s", i, mustFormatString(info))
+		}
+	}
+
+	if should("LiveNow") {
+		infos, err := client.LiveNow()
+		if err != nil {
+			return err
+		}
+		for i, info := range infos {
+			log.Printf("LiveNow[%d]: %s", i, mustFormatString(info))
 		}
 	}
 
@@ -294,9 +310,7 @@ func Main(ctx context.Context) error {
 			if err := client.Follow(u.Username); err != nil {
 				return err
 			}
-			if *pause > 0 {
-				time.Sleep(*pause)
-			}
+			maybePause()
 		}
 	}
 
@@ -317,9 +331,7 @@ func Main(ctx context.Context) error {
 			log.Printf("following users[%d] of %s", offset, username)
 			for i, u := range userInfos {
 				log.Printf("users[%d][%d]: %v", offset, i, u)
-				if *pause > 0 {
-					time.Sleep(*pause)
-				}
+				maybePause()
 			}
 			return nil
 		}, api.AllFollowersOffset(*offset)); err != nil {
@@ -346,9 +358,7 @@ func Main(ctx context.Context) error {
 					return err
 				}
 				log.Printf("followed %s", f.Username)
-				if *pause > 0 {
-					time.Sleep(*pause)
-				}
+				maybePause()
 			}
 			return nil
 		}, api.AllFollowersOffset(*offset)); err != nil {
@@ -377,9 +387,7 @@ func Main(ctx context.Context) error {
 			} else {
 				log.Printf("followed %s", f.Username())
 			}
-			if *pause > 0 {
-				time.Sleep(*pause)
-			}
+			maybePause()
 			return nil, nil
 		})
 	}
@@ -758,9 +766,32 @@ func Main(ctx context.Context) error {
 		shareAll(u)
 	}
 
+	replyToPost := func(post api.PostInfo) error {
+		comments, err := client.GetComments(post.ID)
+		if err != nil {
+			return err
+		}
+		var comment string
+		if len(comments) > 0 {
+			comment = comments[rand.Int()%len(comments)].Text
+		}
+		if comment == "" {
+			comment = "Nice work, homie"
+		}
+		log.Printf("trying to comment on: https://gettr.com/post/%s with %s", post.ID, comment)
+		if _, err := reply(post.ID, comment); err != nil {
+			log.Printf("Reply error: %v", err)
+			if isLimitExceeded(err) {
+				log.Fatalf("Limit exceeded: %v", err)
+			}
+		} else {
+			log.Printf("commented on https://gettr.com/post/%s", post.ID)
+		}
+		return nil
+	}
+
 	replyAll := func(u *model.User) {
 		followers := findFollowers(u)
-
 		threads := or.Int(*threads, 20)
 		parallel.ExecAndDrain(followers, threads, func(x interface{}) (interface{}, error) {
 			f := x.(*model.User)
@@ -772,22 +803,8 @@ func Main(ctx context.Context) error {
 				return false, nil
 			}
 			post := posts[rand.Int()%len(posts)]
-			comments, err := client.GetComments(post.ID)
-			if err != nil {
+			if err := replyToPost(post); err != nil {
 				return false, err
-			}
-			if len(comments) == 0 {
-				return false, nil
-			}
-			comment := comments[rand.Int()%len(comments)]
-			log.Printf("%s trying to comment on: https://gettr.com/post/%s with %s", f.Username(), post.ID, comment.Text)
-			if _, err := reply(post.ID, comment.Text); err != nil {
-				log.Printf("Reply error: %v", err)
-				if isLimitExceeded(err) {
-					log.Fatalf("Limit exceeded: %v", err)
-				}
-			} else {
-				log.Printf("commented on https://gettr.com/post/%s from %s", post.ID, f.Username())
 			}
 			return true, nil
 		})
@@ -802,6 +819,17 @@ func Main(ctx context.Context) error {
 		username := defaultUsername()
 		u := f.MakeUser(username)
 		replyAll(u)
+	}
+
+	if should("ReplyLiveNow") {
+		posts, err := client.LiveNow()
+		if err != nil {
+			return err
+		}
+		for _, post := range posts {
+			replyToPost(post)
+			maybePause()
+		}
 	}
 
 	if should("SharePost") {
