@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"bufio"
 	"context"
 	"flag"
 	"fmt"
@@ -18,6 +17,7 @@ import (
 	"github.com/spudtrooper/gettr/model"
 	"github.com/spudtrooper/goutil/flags"
 	"github.com/spudtrooper/goutil/formatstruct"
+	goutilio "github.com/spudtrooper/goutil/io"
 	"github.com/spudtrooper/goutil/or"
 	"github.com/spudtrooper/goutil/parallel"
 	"github.com/spudtrooper/goutil/sets"
@@ -471,26 +471,13 @@ func Main(ctx context.Context) error {
 	}
 
 	if should("AllFollowersFromFile") {
-		usernames := make(chan string)
-		errs := make(chan error)
-		out := make(chan string)
-
-		f, err := os.Open(*usernamesFile)
+		usernames, err := goutilio.StringsFromFile(*usernamesFile, goutilio.StringsFromFileSkipEmpty(true))
 		if err != nil {
 			return err
 		}
-		defer f.Close()
 
-		go func() {
-			scanner := bufio.NewScanner(f)
-			for scanner.Scan() {
-				if u := scanner.Text(); u != "" {
-					usernames <- u
-				}
-			}
-			close(usernames)
-		}()
-
+		errs := make(chan error)
+		out := make(chan string)
 		go func() {
 			var wg sync.WaitGroup
 			for i := 0; i < 100; i++ {
