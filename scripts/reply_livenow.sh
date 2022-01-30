@@ -1,8 +1,5 @@
 #!/bin/sh
 
-set -e
-
-
 while [[ 1 ]]; do 
     echo
     echo
