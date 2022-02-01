@@ -847,20 +847,14 @@ func Main(ctx context.Context) error {
 		requireStringFlag(postID, "post_id")
 		requireStringFlag(text, "text")
 		threads := or.Int(*threads, 200)
-		var wg sync.WaitGroup
-		for i := 0; i < threads; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				ok, err := client.Chat(*postID, *text)
-				if err != nil {
-					log.Printf("error: %v", err)
-				} else {
-					log.Printf("Chat: %t", ok)
-				}
-			}()
-		}
-		wg.Wait()
+		parallel.DoTimes(threads, func() {
+			ok, err := client.Chat(*postID, *text)
+			if err != nil {
+				log.Printf("error: %v", err)
+			} else {
+				log.Printf("Chat: %t", ok)
+			}
+		})
 	}
 
 	if should("DeleteAll") {
