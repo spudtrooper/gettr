@@ -854,3 +854,40 @@ func (c *Core) Reply(postID string, text string, cOpts ...ReplyOption) (ReplyInf
 	}
 	return payload.Data, nil
 }
+
+func (c *Core) Chat(postID string, text string, cOpts ...ChatOption) (bool, error) {
+	opts := MakeChatOptions(cOpts...)
+	type messageT struct {
+		Type int    `json:"type"`
+		Text string `json:"text"`
+	}
+	type content struct {
+		Message messageT `json:"message"`
+	}
+	contentData := struct {
+		Content content `json:"content"`
+	}{
+		Content: content{
+			Message: messageT{
+				Type: 1,
+				Text: text,
+			},
+		},
+	}
+	body, err := jsonMarshal(&contentData)
+	if err != nil {
+		return false, err
+	}
+	if opts.Debug() {
+		log.Printf("DEBUG: Chat body: <<<\n\n%s\n\n>>>", body)
+	}
+	route := fmt.Sprintf("u/live/chat/%s", postID)
+	extraHeaders := map[string]string{
+		"content-type": `application/json`,
+	}
+	var payload bool
+	if _, err := c.post(route, &payload, bytes.NewBuffer(body), RequestExtraHeaders(extraHeaders)); err != nil {
+		return false, err
+	}
+	return payload, nil
+}

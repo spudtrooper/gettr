@@ -827,9 +827,20 @@ func Main(ctx context.Context) error {
 
 	if should("SharePost") {
 		requireStringFlag(postID, "post_id")
+		requireStringFlag(text, "text")
 		if err := client.SharePost(*postID, *text, api.SharePostDebug(*debug)); err != nil {
 			return err
 		}
+	}
+
+	if should("Chat") {
+		requireStringFlag(postID, "post_id")
+		requireStringFlag(text, "text")
+		ok, err := client.Chat(*postID, *text)
+		if err != nil {
+			return err
+		}
+		log.Printf("Chat: %t", ok)
 	}
 
 	if should("DeleteAll") {
