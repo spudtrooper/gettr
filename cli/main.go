@@ -854,6 +854,9 @@ func Main(ctx context.Context) error {
 			ok, err := client.Chat(post.ID, *text)
 			if err != nil {
 				log.Printf("Chat error: %v", err)
+				if isLimitExceeded(err) {
+					panic("limit exceeded")
+				}
 			} else {
 				log.Printf("Chat on %s: %t", post.URI(), ok)
 			}
@@ -869,6 +872,9 @@ func Main(ctx context.Context) error {
 			ok, err := client.Chat(*postID, *text)
 			if err != nil {
 				log.Printf("error: %v", err)
+				if isLimitExceeded(err) {
+					panic("limit exceeded")
+				}
 			} else {
 				log.Printf("Chat: %t", ok)
 			}
