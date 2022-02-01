@@ -843,6 +843,24 @@ func Main(ctx context.Context) error {
 		log.Printf("Chat: %t", ok)
 	}
 
+	if should("ChatLiveNow") {
+		requireStringFlag(text, "text")
+		posts, err := client.LiveNow()
+		if err != nil {
+			return err
+		}
+		for _, post := range posts {
+			log.Printf("chatting on %s", post.URI())
+			ok, err := client.Chat(post.ID, *text)
+			if err != nil {
+				log.Printf("Chat error: %v", err)
+			} else {
+				log.Printf("Chat on %s: %t", post.URI(), ok)
+			}
+			maybePause()
+		}
+	}
+
 	if should("ChatThreads") {
 		requireStringFlag(postID, "post_id")
 		requireStringFlag(text, "text")
