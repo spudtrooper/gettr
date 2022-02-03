@@ -6,13 +6,10 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"os"
-	"sort"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/spudtrooper/gettr/api"
 	"github.com/spudtrooper/gettr/model"
 	"github.com/spudtrooper/goutil/flags"
@@ -53,71 +50,14 @@ func isLimitExceeded(err error) bool {
 }
 
 func Main(ctx context.Context) error {
-	actionMap := map[string]bool{}
-
-	// Pull arguments before flags into the acton map
-	if len(os.Args) > 1 && !strings.HasPrefix(os.Args[1], "-") {
-		lastCommand := 1
-		for lastCommand < len(os.Args) {
-			if action := strings.TrimSpace(strings.ToLower(os.Args[lastCommand])); action != "" && !strings.HasPrefix(action, "-") {
-				actionMap[action] = true
-				lastCommand++
-			} else {
-				break
-			}
-		}
-		var newArgs []string
-		for i, arg := range os.Args {
-			if i == 0 || i >= lastCommand {
-				newArgs = append(newArgs, arg)
-			}
-		}
-		os.Args = newArgs
-	}
-
-	// Parse flags after modifying os.Args
-	flag.Parse()
-
-	if *actions != "" {
-		for _, c := range strings.Split(*actions, ",") {
-			if action := strings.TrimSpace(strings.ToLower(c)); action != "" {
-				actionMap[action] = true
-			}
-		}
-	}
-	for _, c := range flag.Args() {
-		if action := strings.TrimSpace(strings.ToLower(c)); action != "" {
-			actionMap[action] = true
-		}
-	}
-
-	if len(actionMap) == 0 {
-		return errors.Errorf("you need to specify at least one call")
-	}
+	app := makeApp()
+	app.Init()
 
 	f, err := model.MakeFactoryFromFlags(ctx)
 	if err != nil {
 		return err
 	}
 	client := f.Client()
-
-	shouldReturnedTrueOnce := false
-	var possibleActions []string
-
-	should := func(s string) bool {
-		for k := range actionMap {
-			if k == "all" {
-				shouldReturnedTrueOnce = true
-				return true
-			}
-		}
-		res := actionMap[strings.TrimSpace(strings.ToLower(s))]
-		if res {
-			shouldReturnedTrueOnce = true
-		}
-		possibleActions = append(possibleActions, s)
-		return res
-	}
 
 	requireStringFlag := func(flag *string, name string) {
 		if *flag == "" {
@@ -216,513 +156,6 @@ func Main(ctx context.Context) error {
 		}
 	}
 
-	if should("GetUserInfo") {
-		username := defaultUsername()
-		info, err := client.GetUserInfo(username)
-		if err != nil {
-			return err
-		}
-		log.Printf("GetUserInfo: %s", mustFormatString(info))
-	}
-
-	if should("GetPublicGlobals") {
-		info, err := client.GetPublicGlobals()
-		if err != nil {
-			return err
-		}
-		log.Printf("GetPublicGlobals: %s", mustFormatString(info))
-	}
-
-	if should("GetSuggestions") {
-		info, err := client.GetSuggestions()
-		if err != nil {
-			return err
-		}
-		log.Printf("GetSuggestions: %s", mustFormatString(info))
-	}
-
-	if should("GetPosts") {
-		username := defaultUsername()
-		infos, err := client.GetPosts(username)
-		if err != nil {
-			return err
-		}
-		for i, info := range infos {
-			log.Printf("GetPosts[%d]: %s", i, mustFormatString(info))
-		}
-	}
-
-	if should("Timeline") {
-		infos, err := client.Timeline()
-		if err != nil {
-			return err
-		}
-		for i, info := range infos {
-			log.Printf("Timeline[%d]: %s", i, mustFormatString(info))
-		}
-	}
-
-	if should("LiveNow") {
-		infos, err := client.LiveNow()
-		if err != nil {
-			return err
-		}
-		for i, info := range infos {
-			log.Printf("LiveNow[%d]: %s", i, mustFormatString(info))
-		}
-	}
-
-	if should("GetComments") {
-		requireStringFlag(postID, "post_id")
-		infos, err := client.GetComments(*postID)
-		if err != nil {
-			return err
-		}
-		for i, info := range infos {
-			log.Printf("Comments[%d]: %s", i, mustFormatString(info))
-		}
-	}
-
-	if should("GetPost") {
-		requireStringFlag(postID, "post_id")
-		info, err := client.GetPost(*postID)
-		if err != nil {
-			return err
-		}
-		log.Printf("GetPost: %s", mustFormatString(info))
-	}
-
-	if should("GetMuted") {
-		info, err := client.GetMuted()
-		if err != nil {
-			return err
-		}
-		log.Printf("GetMuted: %s", mustFormatString(info))
-	}
-
-	if should("GetFollowings") {
-		username := defaultUsername()
-		infos, err := client.GetFollowings(username, api.FollowingsOffset(*offset), api.FollowingsMax(*max))
-		if err != nil {
-			return err
-		}
-		for i, info := range infos {
-			log.Printf("GetFollowings[%d]: %s", i, mustFormatString(info))
-		}
-	}
-
-	if should("GetAllFollowings") {
-		username := defaultUsername()
-		infos, err := client.GetAllFollowings(username)
-		if err != nil {
-			return err
-		}
-		for i, info := range infos {
-			log.Printf("GetAllFollowings[%d]: %s", i, mustFormatString(info))
-		}
-		for _, u := range infos {
-			if err := client.Follow(u.Username); err != nil {
-				return err
-			}
-			maybePause()
-		}
-	}
-
-	if should("GetFollowers") {
-		username := defaultUsername()
-		infos, err := client.GetFollowers(username, api.FollowersOffset(*offset), api.FollowersMax(*max))
-		if err != nil {
-			return err
-		}
-		for i, info := range infos {
-			log.Printf("GetFollowers[%d]: %s", i, mustFormatString(info))
-		}
-	}
-
-	if should("GetAllFollowers") {
-		username := defaultUsername()
-		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
-			log.Printf("following users[%d] of %s", offset, username)
-			for i, u := range userInfos {
-				log.Printf("users[%d][%d]: %v", offset, i, u)
-				maybePause()
-			}
-			return nil
-		}, api.AllFollowersOffset(*offset)); err != nil {
-			return err
-		}
-	}
-
-	if should("FollowAllCallback") {
-		requireStringFlag(other, "other")
-
-		existingFollowers := sets.String(findFollowerUsernames(f.MakeUser(client.Username())))
-		log.Printf("have %d existing followers", len(existingFollowers))
-
-		username := *other
-		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
-			log.Printf("following %d users[%d] of %s", len(userInfos), offset, username)
-			for _, f := range userInfos {
-				if existingFollowers[f.Username] {
-					log.Printf("skipping %s because we already follow them", f.Username)
-					continue
-				}
-				log.Printf("trying to follow %s", f.Username)
-				if err := client.Follow(f.Username); err != nil {
-					return err
-				}
-				log.Printf("followed %s", f.Username)
-				maybePause()
-			}
-			return nil
-		}, api.AllFollowersOffset(*offset)); err != nil {
-			return err
-		}
-	}
-
-	if should("FollowAll") {
-		requireStringFlag(other, "other")
-
-		existingFollowers := sets.String(findFollowerUsernames(f.MakeUser(client.Username())))
-		log.Printf("have %d existing followers", len(existingFollowers))
-		u := f.MakeUser(*other)
-
-		followers := findFollowersWithExceptions(u, existingFollowers)
-
-		threads := or.Int(*threads, 20)
-		parallel.ExecAndDrain(followers, threads, func(x interface{}) (interface{}, error) {
-			f := x.(*model.User)
-			log.Printf("trying to follow %s", f.Username())
-			if err := client.Follow(f.Username()); err != nil {
-				log.Printf("Follow error: %v", err)
-				if isLimitExceeded(err) {
-					log.Fatalf("Limit exceeded: %v", err)
-				}
-			} else {
-				log.Printf("followed %s", f.Username())
-			}
-			maybePause()
-			return nil, nil
-		})
-	}
-
-	if should("PrintAllFollowersCallback") {
-		username := defaultUsername()
-		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
-			log.Printf("following users[%d] of %s", offset, username)
-			for _, f := range userInfos {
-				fmt.Println(f.Username)
-			}
-			return nil
-		}, api.AllFollowersOffset(*offset)); err != nil {
-			return err
-		}
-	}
-
-	if should("PrintAllFollowers") {
-		u := defaultUser()
-		followers := findFollowers(u)
-		i := 0
-		for f := range followers {
-			f := f.(*model.User)
-			fmt.Printf("followers[%d] %s\n", i, f.Username())
-			i++
-		}
-	}
-
-	if should("PrintAllFollowingCallback") {
-		username := defaultUsername()
-		if err := client.AllFollowings(username, func(offset int, userInfos api.UserInfos) error {
-			log.Printf("following users[%d] of %s", offset, username)
-			for _, f := range userInfos {
-				fmt.Println(f.Username)
-			}
-			return nil
-		}, api.AllFollowingsOffset(*offset)); err != nil {
-			return err
-		}
-	}
-
-	if should("PrintAllFollowing") {
-		u := defaultUser()
-		following := make(chan *model.User)
-		go func() {
-			users, _ := u.Following(ctx, model.UserFollowingMax(*max), model.UserFollowingMax(*threads), model.UserFollowingOffset(*offset))
-			for u := range users {
-				ui, err := u.UserInfo(ctx)
-				if err != nil {
-					log.Printf("UserInfo: skipping error %v", err)
-					continue
-				}
-				if ui.Username == "" {
-					log.Printf("UserInfo: skipping user %s", u.Username())
-					continue
-				}
-				following <- u
-			}
-			close(following)
-		}()
-
-		i := 0
-		for f := range following {
-			fmt.Printf("following[%d] %s\n", i, f.Username())
-			i++
-		}
-	}
-
-	if should("AllFollowersFromFile") {
-		usernames, err := goutilio.StringsFromFile(*usernamesFile, goutilio.StringsFromFileSkipEmpty(true))
-		if err != nil {
-			return err
-		}
-
-		errs := make(chan error)
-		out := make(chan string)
-		go func() {
-			var wg sync.WaitGroup
-			for i := 0; i < 100; i++ {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					for u := range usernames {
-						if err := client.Follow(u); err != nil {
-							errs <- err
-						} else {
-							out <- u
-						}
-					}
-				}()
-			}
-			wg.Wait()
-			close(out)
-			close(errs)
-		}()
-
-		for u := range out {
-			log.Printf("done: %s", u)
-		}
-		for err := range errs {
-			log.Fatalf("error: %v", err)
-		}
-	}
-
-	if should("Persist") {
-		username := defaultUsername()
-		user := f.MakeUser(username)
-		if err := user.Persist(ctx,
-			model.UserPersistMax(*max),
-			model.UserPersistThreads(*threads),
-			model.UserPersistForce(*force)); err != nil {
-			return err
-		}
-	}
-
-	if should("Read") {
-		u := defaultUser()
-
-		{
-			c := make(chan *model.User)
-			go func() {
-				users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads))
-				for u := range users {
-					c <- u
-				}
-				close(c)
-			}()
-
-			i := 0
-			for f := range c {
-				log.Printf("followers[%d]: %s", i, f.Username())
-				i++
-			}
-		}
-		{
-			c := make(chan *model.User)
-			go func() {
-				users, _ := u.Following(ctx, model.UserFollowingMax(*max), model.UserFollowingMax(*threads))
-				for u := range users {
-					c <- u
-				}
-				close(c)
-			}()
-
-			i := 0
-			for f := range c {
-				log.Printf("following[%d]: %s", i, f.Username())
-				i++
-			}
-		}
-	}
-
-	if should("PersistAll") {
-		u := defaultUser()
-
-		{
-			c := make(chan *model.User)
-			go func() {
-				users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads))
-				for u := range users {
-					c <- u
-				}
-				close(c)
-			}()
-
-			for f := range c {
-				if err := f.Persist(ctx); err != nil {
-					return err
-				}
-			}
-		}
-		{
-			c := make(chan *model.User)
-			go func() {
-				users, _ := u.Following(ctx, model.UserFollowingMax(*max), model.UserFollowingMax(*threads))
-				for u := range users {
-					c <- u
-				}
-				close(c)
-			}()
-
-			for f := range c {
-				if err := f.Persist(ctx); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	if should("CreatePost") {
-		requireStringFlag(text, "text")
-		info, err := createPost(*text)
-		if err != nil {
-			return err
-		}
-		log.Printf("CreatePost: %s", mustFormatString(info))
-	}
-
-	if should("Reply") {
-		requireStringFlag(text, "text")
-		requireStringFlag(postID, "postID")
-		info, err := reply(*postID, *text)
-		if err != nil {
-			return err
-		}
-		log.Printf("Reply: %s", mustFormatString(info))
-	}
-
-	if should("DeletePost") {
-		info, err := client.DeletePost(*postID)
-		if err != nil {
-			return err
-		}
-		log.Printf("DeletePost: %s", mustFormatString(info))
-	}
-
-	if should("PersistInDB") {
-		u := defaultUser()
-		if err := u.PersistInDB(ctx); err != nil {
-			return err
-		}
-	}
-
-	if should("Upload") {
-		requireStringFlag(uploadImage, "upload_image")
-		var img string
-		{
-			res, err := client.Upload(*uploadImage)
-			if err != nil {
-				return err
-			}
-			log.Printf("Upload: %v", res)
-			img = res.ORI
-			if strings.HasPrefix(img, "/") {
-				img = string(img[1:])
-			}
-		}
-		{
-			res, err := client.UpdateProfile(api.UpdateProfileIcon(img))
-			if err != nil {
-				return err
-			}
-			log.Printf("UpdateProfile: %v", res)
-		}
-	}
-
-	if should("CreatePostImage") {
-		requireStringFlag(uploadImage, "upload_image")
-		var img string
-		{
-			res, err := client.Upload(*uploadImage)
-			if err != nil {
-				return err
-			}
-			log.Printf("Upload: %v", res)
-			img = res.ORI
-			if strings.HasPrefix(img, "/") {
-				img = string(img[1:])
-			}
-		}
-		{
-			res, err := createPostWithImage(*text, img)
-			if err != nil {
-				return err
-			}
-			log.Printf("CreatePost: %v", res)
-		}
-	}
-
-	if should("CreatePostCustomImage") {
-		requireStringFlag(uploadImage, "post_image")
-		res, err := createPost(*text)
-		if err != nil {
-			return err
-		}
-		log.Printf("CreatePost: %v", res)
-	}
-
-	if should("UpdateProfile") {
-		res, err := client.UpdateProfile(
-			api.UpdateProfileBackgroundImage(*profileBackgroundImage),
-			api.UpdateProfileDescription(*profileDescription),
-			api.UpdateProfileLocation(*profileLocation),
-			api.UpdateProfileWebsite(*profileWebsite),
-		)
-		if err != nil {
-			return err
-		}
-		log.Printf("UpdateProfile: %v", res)
-	}
-
-	if should("LikeAll") {
-		u := defaultUser()
-
-		followers := findFollowers(u)
-
-		threads := or.Int(*threads, 20)
-		parallel.ExecAndDrain(followers, threads, func(x interface{}) (interface{}, error) {
-			f := x.(*model.User)
-			posts, err := client.GetPosts(f.Username())
-			if err != nil {
-				return false, err
-			}
-			if len(posts) == 0 {
-				return false, nil
-			}
-			for i, post := range posts {
-				log.Printf("%s[%d] trying to like: https://gettr.com/post/%s", f.Username(), i, post.ID)
-				if err := client.LikePost(post.ID); err != nil {
-					log.Printf("LikePost error: %v", err)
-					if isLimitExceeded(err) {
-						log.Fatalf("Limit exceeded: %v", err)
-					}
-				} else {
-					log.Printf("%s[%d] liked: https://gettr.com/post/%s", f.Username(), i, post.ID)
-				}
-			}
-			return true, nil
-		})
-	}
-
 	shareAll := func(u *model.User) {
 		followers := findFollowers(u)
 
@@ -748,16 +181,6 @@ func Main(ctx context.Context) error {
 			}
 			return true, nil
 		})
-	}
-
-	if should("SharePostAll") {
-		u := self()
-		shareAll(u)
-	}
-
-	if should("SharePostFollowers") {
-		u := defaultUser()
-		shareAll(u)
 	}
 
 	replyToPost := func(post api.PostInfo) error {
@@ -804,17 +227,570 @@ func Main(ctx context.Context) error {
 		})
 	}
 
-	if should("ReplyAll") {
+	app.Register("GetUserInfo", func() error {
+		username := defaultUsername()
+		info, err := client.GetUserInfo(username)
+		if err != nil {
+			return err
+		}
+		log.Printf("GetUserInfo: %s", mustFormatString(info))
+		return nil
+	})
+
+	app.Register("GetPublicGlobals", func() error {
+		info, err := client.GetPublicGlobals()
+		if err != nil {
+			return err
+		}
+		log.Printf("GetPublicGlobals: %s", mustFormatString(info))
+		return nil
+	})
+
+	app.Register("GetSuggestions", func() error {
+		info, err := client.GetSuggestions()
+		if err != nil {
+			return err
+		}
+		log.Printf("GetSuggestions: %s", mustFormatString(info))
+		return nil
+	})
+
+	app.Register("GetPosts", func() error {
+		username := defaultUsername()
+		infos, err := client.GetPosts(username)
+		if err != nil {
+			return err
+		}
+		for i, info := range infos {
+			log.Printf("GetPosts[%d]: %s", i, mustFormatString(info))
+		}
+		return nil
+	})
+
+	app.Register("Timeline", func() error {
+		infos, err := client.Timeline()
+		if err != nil {
+			return err
+		}
+		for i, info := range infos {
+			log.Printf("Timeline[%d]: %s", i, mustFormatString(info))
+		}
+		return nil
+	})
+
+	app.Register("LiveNow", func() error {
+		infos, err := client.LiveNow()
+		if err != nil {
+			return err
+		}
+		for i, info := range infos {
+			log.Printf("LiveNow[%d]: %s", i, mustFormatString(info))
+		}
+		return nil
+	})
+
+	app.Register("GetComments", func() error {
+		requireStringFlag(postID, "post_id")
+		infos, err := client.GetComments(*postID)
+		if err != nil {
+			return err
+		}
+		for i, info := range infos {
+			log.Printf("Comments[%d]: %s", i, mustFormatString(info))
+		}
+		return nil
+	})
+
+	app.Register("GetPost", func() error {
+		requireStringFlag(postID, "post_id")
+		info, err := client.GetPost(*postID)
+		if err != nil {
+			return err
+		}
+		log.Printf("GetPost: %s", mustFormatString(info))
+		return nil
+	})
+
+	app.Register("GetMuted", func() error {
+		info, err := client.GetMuted()
+		if err != nil {
+			return err
+		}
+		log.Printf("GetMuted: %s", mustFormatString(info))
+		return nil
+	})
+
+	app.Register("GetFollowings", func() error {
+		username := defaultUsername()
+		infos, err := client.GetFollowings(username, api.FollowingsOffset(*offset), api.FollowingsMax(*max))
+		if err != nil {
+			return err
+		}
+		for i, info := range infos {
+			log.Printf("GetFollowings[%d]: %s", i, mustFormatString(info))
+		}
+		return nil
+	})
+
+	app.Register("GetAllFollowings", func() error {
+		username := defaultUsername()
+		infos, err := client.GetAllFollowings(username)
+		if err != nil {
+			return err
+		}
+		for i, info := range infos {
+			log.Printf("GetAllFollowings[%d]: %s", i, mustFormatString(info))
+		}
+		for _, u := range infos {
+			if err := client.Follow(u.Username); err != nil {
+				return err
+			}
+			maybePause()
+		}
+		return nil
+	})
+
+	app.Register("GetFollowers", func() error {
+		username := defaultUsername()
+		infos, err := client.GetFollowers(username, api.FollowersOffset(*offset), api.FollowersMax(*max))
+		if err != nil {
+			return err
+		}
+		for i, info := range infos {
+			log.Printf("GetFollowers[%d]: %s", i, mustFormatString(info))
+		}
+		return nil
+	})
+
+	app.Register("GetAllFollowers", func() error {
+		username := defaultUsername()
+		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
+			log.Printf("following users[%d] of %s", offset, username)
+			for i, u := range userInfos {
+				log.Printf("users[%d][%d]: %v", offset, i, u)
+				maybePause()
+			}
+			return nil
+		}, api.AllFollowersOffset(*offset)); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	app.Register("FollowAllCallback", func() error {
+		requireStringFlag(other, "other")
+
+		existingFollowers := sets.String(findFollowerUsernames(f.MakeUser(client.Username())))
+		log.Printf("have %d existing followers", len(existingFollowers))
+
+		username := *other
+		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
+			log.Printf("following %d users[%d] of %s", len(userInfos), offset, username)
+			for _, f := range userInfos {
+				if existingFollowers[f.Username] {
+					log.Printf("skipping %s because we already follow them", f.Username)
+					continue
+				}
+				log.Printf("trying to follow %s", f.Username)
+				if err := client.Follow(f.Username); err != nil {
+					return err
+				}
+				log.Printf("followed %s", f.Username)
+				maybePause()
+			}
+			return nil
+		}, api.AllFollowersOffset(*offset)); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	app.Register("FollowAll", func() error {
+		requireStringFlag(other, "other")
+
+		existingFollowers := sets.String(findFollowerUsernames(f.MakeUser(client.Username())))
+		log.Printf("have %d existing followers", len(existingFollowers))
+		u := f.MakeUser(*other)
+
+		followers := findFollowersWithExceptions(u, existingFollowers)
+
+		threads := or.Int(*threads, 20)
+		parallel.ExecAndDrain(followers, threads, func(x interface{}) (interface{}, error) {
+			f := x.(*model.User)
+			log.Printf("trying to follow %s", f.Username())
+			if err := client.Follow(f.Username()); err != nil {
+				log.Printf("Follow error: %v", err)
+				if isLimitExceeded(err) {
+					log.Fatalf("Limit exceeded: %v", err)
+				}
+			} else {
+				log.Printf("followed %s", f.Username())
+			}
+			maybePause()
+			return nil, nil
+		})
+		return nil
+	})
+
+	app.Register("PrintAllFollowersCallback", func() error {
+		username := defaultUsername()
+		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
+			log.Printf("following users[%d] of %s", offset, username)
+			for _, f := range userInfos {
+				fmt.Println(f.Username)
+			}
+			return nil
+		}, api.AllFollowersOffset(*offset)); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	app.Register("PrintAllFollowers", func() error {
+		u := defaultUser()
+		followers := findFollowers(u)
+		i := 0
+		for f := range followers {
+			f := f.(*model.User)
+			fmt.Printf("followers[%d] %s\n", i, f.Username())
+			i++
+		}
+		return nil
+	})
+
+	app.Register("PrintAllFollowingCallback", func() error {
+		username := defaultUsername()
+		if err := client.AllFollowings(username, func(offset int, userInfos api.UserInfos) error {
+			log.Printf("following users[%d] of %s", offset, username)
+			for _, f := range userInfos {
+				fmt.Println(f.Username)
+			}
+			return nil
+		}, api.AllFollowingsOffset(*offset)); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	app.Register("PrintAllFollowing", func() error {
+		u := defaultUser()
+		following := make(chan *model.User)
+		go func() {
+			users, _ := u.Following(ctx, model.UserFollowingMax(*max), model.UserFollowingMax(*threads), model.UserFollowingOffset(*offset))
+			for u := range users {
+				ui, err := u.UserInfo(ctx)
+				if err != nil {
+					log.Printf("UserInfo: skipping error %v", err)
+					continue
+				}
+				if ui.Username == "" {
+					log.Printf("UserInfo: skipping user %s", u.Username())
+					continue
+				}
+				following <- u
+			}
+			close(following)
+		}()
+
+		i := 0
+		for f := range following {
+			fmt.Printf("following[%d] %s\n", i, f.Username())
+			i++
+		}
+		return nil
+	})
+
+	app.Register("AllFollowersFromFile", func() error {
+		usernames, err := goutilio.StringsFromFile(*usernamesFile, goutilio.StringsFromFileSkipEmpty(true))
+		if err != nil {
+			return err
+		}
+
+		errs := make(chan error)
+		out := make(chan string)
+		go func() {
+			var wg sync.WaitGroup
+			for i := 0; i < 100; i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for u := range usernames {
+						if err := client.Follow(u); err != nil {
+							errs <- err
+						} else {
+							out <- u
+						}
+					}
+				}()
+			}
+			wg.Wait()
+			close(out)
+			close(errs)
+		}()
+
+		for u := range out {
+			log.Printf("done: %s", u)
+		}
+		for err := range errs {
+			log.Fatalf("error: %v", err)
+		}
+		return nil
+	})
+
+	app.Register("Persist", func() error {
+		username := defaultUsername()
+		user := f.MakeUser(username)
+		if err := user.Persist(ctx,
+			model.UserPersistMax(*max),
+			model.UserPersistThreads(*threads),
+			model.UserPersistForce(*force)); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	app.Register("Read", func() error {
+		u := defaultUser()
+
+		{
+			c := make(chan *model.User)
+			go func() {
+				users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads))
+				for u := range users {
+					c <- u
+				}
+				close(c)
+			}()
+
+			i := 0
+			for f := range c {
+				log.Printf("followers[%d]: %s", i, f.Username())
+				i++
+			}
+		}
+		{
+			c := make(chan *model.User)
+			go func() {
+				users, _ := u.Following(ctx, model.UserFollowingMax(*max), model.UserFollowingMax(*threads))
+				for u := range users {
+					c <- u
+				}
+				close(c)
+			}()
+
+			i := 0
+			for f := range c {
+				log.Printf("following[%d]: %s", i, f.Username())
+				i++
+			}
+		}
+		return nil
+	})
+
+	app.Register("PersistAll", func() error {
+		u := defaultUser()
+
+		{
+			c := make(chan *model.User)
+			go func() {
+				users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads))
+				for u := range users {
+					c <- u
+				}
+				close(c)
+			}()
+
+			for f := range c {
+				if err := f.Persist(ctx); err != nil {
+					return err
+				}
+			}
+		}
+		{
+			c := make(chan *model.User)
+			go func() {
+				users, _ := u.Following(ctx, model.UserFollowingMax(*max), model.UserFollowingMax(*threads))
+				for u := range users {
+					c <- u
+				}
+				close(c)
+			}()
+
+			for f := range c {
+				if err := f.Persist(ctx); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+
+	app.Register("CreatePost", func() error {
+		requireStringFlag(text, "text")
+		info, err := createPost(*text)
+		if err != nil {
+			return err
+		}
+		log.Printf("CreatePost: %s", mustFormatString(info))
+		return nil
+	})
+
+	app.Register("Reply", func() error {
+		requireStringFlag(text, "text")
+		requireStringFlag(postID, "postID")
+		info, err := reply(*postID, *text)
+		if err != nil {
+			return err
+		}
+		log.Printf("Reply: %s", mustFormatString(info))
+		return nil
+	})
+
+	app.Register("DeletePost", func() error {
+		info, err := client.DeletePost(*postID)
+		if err != nil {
+			return err
+		}
+		log.Printf("DeletePost: %s", mustFormatString(info))
+		return nil
+	})
+
+	app.Register("PersistInDB", func() error {
+		u := defaultUser()
+		if err := u.PersistInDB(ctx); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	app.Register("Upload", func() error {
+		requireStringFlag(uploadImage, "upload_image")
+		var img string
+		{
+			res, err := client.Upload(*uploadImage)
+			if err != nil {
+				return err
+			}
+			log.Printf("Upload: %v", res)
+			img = res.ORI
+			if strings.HasPrefix(img, "/") {
+				img = string(img[1:])
+			}
+		}
+		{
+			res, err := client.UpdateProfile(api.UpdateProfileIcon(img))
+			if err != nil {
+				return err
+			}
+			log.Printf("UpdateProfile: %v", res)
+		}
+		return nil
+	})
+
+	app.Register("CreatePostImage", func() error {
+		requireStringFlag(uploadImage, "upload_image")
+		var img string
+		{
+			res, err := client.Upload(*uploadImage)
+			if err != nil {
+				return err
+			}
+			log.Printf("Upload: %v", res)
+			img = res.ORI
+			if strings.HasPrefix(img, "/") {
+				img = string(img[1:])
+			}
+		}
+		{
+			res, err := createPostWithImage(*text, img)
+			if err != nil {
+				return err
+			}
+			log.Printf("CreatePost: %v", res)
+		}
+		return nil
+	})
+
+	app.Register("CreatePostCustomImage", func() error {
+		requireStringFlag(uploadImage, "post_image")
+		res, err := createPost(*text)
+		if err != nil {
+			return err
+		}
+		log.Printf("CreatePost: %v", res)
+		return nil
+	})
+
+	app.Register("UpdateProfile", func() error {
+		res, err := client.UpdateProfile(
+			api.UpdateProfileBackgroundImage(*profileBackgroundImage),
+			api.UpdateProfileDescription(*profileDescription),
+			api.UpdateProfileLocation(*profileLocation),
+			api.UpdateProfileWebsite(*profileWebsite),
+		)
+		if err != nil {
+			return err
+		}
+		log.Printf("UpdateProfile: %v", res)
+		return nil
+	})
+
+	app.Register("LikeAll", func() error {
+		u := defaultUser()
+
+		followers := findFollowers(u)
+
+		threads := or.Int(*threads, 20)
+		parallel.ExecAndDrain(followers, threads, func(x interface{}) (interface{}, error) {
+			f := x.(*model.User)
+			posts, err := client.GetPosts(f.Username())
+			if err != nil {
+				return false, err
+			}
+			if len(posts) == 0 {
+				return false, nil
+			}
+			for i, post := range posts {
+				log.Printf("%s[%d] trying to like: https://gettr.com/post/%s", f.Username(), i, post.ID)
+				if err := client.LikePost(post.ID); err != nil {
+					log.Printf("LikePost error: %v", err)
+					if isLimitExceeded(err) {
+						log.Fatalf("Limit exceeded: %v", err)
+					}
+				} else {
+					log.Printf("%s[%d] liked: https://gettr.com/post/%s", f.Username(), i, post.ID)
+				}
+			}
+			return true, nil
+		})
+		return nil
+	})
+
+	app.Register("SharePostAll", func() error {
+		u := self()
+		shareAll(u)
+		return nil
+	})
+
+	app.Register("SharePostFollowers", func() error {
+		u := defaultUser()
+		shareAll(u)
+		return nil
+	})
+
+	app.Register("ReplyAll", func() error {
 		u := self()
 		replyAll(u)
-	}
+		return nil
+	})
 
-	if should("ReplyFollowers") {
+	app.Register("ReplyFollowers", func() error {
 		u := defaultUser()
 		replyAll(u)
-	}
+		return nil
+	})
 
-	if should("ReplyLiveNow") {
+	app.Register("ReplyLiveNow", func() error {
 		posts, err := client.LiveNow()
 		if err != nil {
 			return err
@@ -823,17 +799,19 @@ func Main(ctx context.Context) error {
 			replyToPost(post)
 			maybePause()
 		}
-	}
+		return nil
+	})
 
-	if should("SharePost") {
+	app.Register("SharePost", func() error {
 		requireStringFlag(postID, "post_id")
 		requireStringFlag(text, "text")
 		if err := client.SharePost(*postID, *text, api.SharePostDebug(*debug)); err != nil {
 			return err
 		}
-	}
+		return nil
+	})
 
-	if should("Chat") {
+	app.Register("Chat", func() error {
 		requireStringFlag(postID, "post_id")
 		requireStringFlag(text, "text")
 		ok, err := client.Chat(*postID, *text)
@@ -841,9 +819,10 @@ func Main(ctx context.Context) error {
 			return err
 		}
 		log.Printf("Chat: %t", ok)
-	}
+		return nil
+	})
 
-	if should("ChatLiveNow") {
+	app.Register("ChatLiveNow", func() error {
 		requireStringFlag(text, "text")
 		posts, err := client.LiveNow()
 		if err != nil {
@@ -862,9 +841,10 @@ func Main(ctx context.Context) error {
 			}
 			maybePause()
 		}
-	}
+		return nil
+	})
 
-	if should("ChatThreads") {
+	app.Register("ChatThreads", func() error {
 		requireStringFlag(postID, "post_id")
 		requireStringFlag(text, "text")
 		threads := or.Int(*threads, 200)
@@ -879,9 +859,10 @@ func Main(ctx context.Context) error {
 				log.Printf("Chat: %t", ok)
 			}
 		})
-	}
+		return nil
+	})
 
-	if should("DeleteAll") {
+	app.Register("DeleteAll", func() error {
 		posts, err := client.GetPosts(client.Username())
 		if err != nil {
 			return err
@@ -893,9 +874,10 @@ func Main(ctx context.Context) error {
 			}
 			log.Printf("deleted: %s -> %v", p.ID, ok)
 		}
-	}
+		return nil
+	})
 
-	if should("SearchPosts") {
+	app.Register("SearchPosts", func() error {
 		requireStringFlag(query, "query")
 		info, err := client.SearchPosts(*query, api.SearchMax(*max), api.SearchOffset(*offset), api.SearchDebug(*debug))
 		if err != nil {
@@ -905,9 +887,10 @@ func Main(ctx context.Context) error {
 		for i, p := range info {
 			log.Printf(" [%d] %s", i, p.URI())
 		}
-	}
+		return nil
+	})
 
-	if should("SearchUsers") {
+	app.Register("SearchUsers", func() error {
 		requireStringFlag(query, "query")
 		info, err := client.SearchUsers(*query, api.SearchMax(*max), api.SearchOffset(*offset), api.SearchDebug(*debug))
 		if err != nil {
@@ -917,9 +900,10 @@ func Main(ctx context.Context) error {
 		for _, p := range info {
 			log.Printf(" - %s", p.URI())
 		}
-	}
+		return nil
+	})
 
-	if should("AllPosts") {
+	app.Register("AllPosts", func() error {
 		posts, errors := client.AllPosts(*other, api.AllPostsMax(*max), api.AllPostsOffset(*offset), api.AllPostsThreads(*threads))
 		parallel.WaitFor(func() {
 			i := 0
@@ -934,19 +918,16 @@ func Main(ctx context.Context) error {
 				log.Printf("error: %v", e)
 			}
 		})
-	}
+		return nil
+	})
 
-	if !shouldReturnedTrueOnce {
-		var actions []string
-		for s := range actionMap {
-			actions = append(actions, fmt.Sprintf("%q", s))
-		}
-		msg := fmt.Sprintf("no valid actions in %v.\nThe possible actions are:\n", actions)
-		sort.Strings(possibleActions)
-		for _, s := range possibleActions {
-			msg += " - " + s + "\n"
-		}
-		return errors.Errorf(msg)
+	app.Register("Help", func() error {
+		app.ShowHelp()
+		return nil
+	})
+
+	if err := app.Run(); err != nil {
+		return err
 	}
 
 	return nil
