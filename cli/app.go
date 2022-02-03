@@ -13,6 +13,10 @@ import (
 	"github.com/thomaso-mirodin/intmath/intgr"
 )
 
+var (
+	actions = flag.String("actions", "", "comma-delimited list of calls to make")
+)
+
 type cmd struct {
 	name   string
 	abbrev string
@@ -147,16 +151,13 @@ func (a *app) preRun() {
 	for _, c := range a.cmds {
 		abbrev := getAbbrev(c.name)
 		if !isUnique(abbrev) {
-			for i := 0; i < len(c.name); i++ {
+			for i := 0; i <= len(c.name); i++ {
 				sub := strings.ToLower(string(c.name[0:i]))
 				if isUnique(sub) {
 					abbrev = sub
 					break
 				}
 			}
-		}
-		if !isUnique(abbrev) {
-			abbrev = strings.ToLower(c.name)
 		}
 		c.abbrev = abbrev
 	}

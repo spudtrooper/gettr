@@ -21,7 +21,6 @@ import (
 )
 
 var (
-	actions                = flag.String("actions", "", "comma-delimited list of calls to make")
 	pause                  = flag.Duration("pause", 0, "pause amount between follows")
 	offset                 = flag.Int("offset", 0, "offset for calls that take offsets")
 	other                  = flag.String("other", "", "other username")
