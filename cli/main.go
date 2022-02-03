@@ -458,6 +458,22 @@ func Main(ctx context.Context) error {
 		return nil
 	})
 
+	app.Register("AllFollowersWebsites", func() error {
+		u := defaultUser()
+		followers := findFollowers(u)
+		for f := range followers {
+			f := f.(*model.User)
+			website, err := f.Website(ctx)
+			if err != nil {
+				return err
+			}
+			if website != "" {
+				fmt.Println(website)
+			}
+		}
+		return nil
+	})
+
 	app.Register("PrintAllFollowingCallback", func() error {
 		username := defaultUsername()
 		if err := client.AllFollowings(username, func(offset int, userInfos api.UserInfos) error {
