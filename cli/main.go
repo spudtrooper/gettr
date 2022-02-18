@@ -49,8 +49,9 @@ func isLimitExceeded(err error) bool {
 	return strings.Contains(err.Error(), "E_METER_LIMIT_EXCEEDED")
 }
 
-func Main(ctx context.Context, args []string) error {
+func Main(ctx context.Context) error {
 	app := minimalcli.Make()
+	app.Init()
 
 	f, err := model.MakeFactoryFromFlags(ctx)
 	if err != nil {
@@ -226,7 +227,7 @@ func Main(ctx context.Context, args []string) error {
 		})
 	}
 
-	app.Register("GetUserInfo", func(context.Context, []string) error {
+	app.Register("GetUserInfo", func(context.Context) error {
 		username := defaultUsername()
 		info, err := client.GetUserInfo(username)
 		if err != nil {
@@ -236,7 +237,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("GetPublicGlobals", func(context.Context, []string) error {
+	app.Register("GetPublicGlobals", func(context.Context) error {
 		info, err := client.GetPublicGlobals()
 		if err != nil {
 			return err
@@ -245,7 +246,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("GetSuggestions", func(context.Context, []string) error {
+	app.Register("GetSuggestions", func(context.Context) error {
 		info, err := client.GetSuggestions()
 		if err != nil {
 			return err
@@ -254,7 +255,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("GetPosts", func(context.Context, []string) error {
+	app.Register("GetPosts", func(context.Context) error {
 		username := defaultUsername()
 		infos, err := client.GetPosts(username)
 		if err != nil {
@@ -266,7 +267,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("Timeline", func(context.Context, []string) error {
+	app.Register("Timeline", func(context.Context) error {
 		infos, err := client.Timeline()
 		if err != nil {
 			return err
@@ -277,7 +278,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("LiveNow", func(context.Context, []string) error {
+	app.Register("LiveNow", func(context.Context) error {
 		infos, err := client.LiveNow()
 		if err != nil {
 			return err
@@ -288,7 +289,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("GetComments", func(context.Context, []string) error {
+	app.Register("GetComments", func(context.Context) error {
 		requireStringFlag(postID, "post_id")
 		infos, err := client.GetComments(*postID)
 		if err != nil {
@@ -300,7 +301,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("GetPost", func(context.Context, []string) error {
+	app.Register("GetPost", func(context.Context) error {
 		requireStringFlag(postID, "post_id")
 		info, err := client.GetPost(*postID)
 		if err != nil {
@@ -310,7 +311,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("GetMuted", func(context.Context, []string) error {
+	app.Register("GetMuted", func(context.Context) error {
 		info, err := client.GetMuted()
 		if err != nil {
 			return err
@@ -319,7 +320,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("GetFollowings", func(context.Context, []string) error {
+	app.Register("GetFollowings", func(context.Context) error {
 		username := defaultUsername()
 		infos, err := client.GetFollowings(username, api.FollowingsOffset(*offset), api.FollowingsMax(*max))
 		if err != nil {
@@ -331,7 +332,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("GetAllFollowings", func(context.Context, []string) error {
+	app.Register("GetAllFollowings", func(context.Context) error {
 		username := defaultUsername()
 		infos, err := client.GetAllFollowings(username)
 		if err != nil {
@@ -349,7 +350,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("GetFollowers", func(context.Context, []string) error {
+	app.Register("GetFollowers", func(context.Context) error {
 		username := defaultUsername()
 		infos, err := client.GetFollowers(username, api.FollowersOffset(*offset), api.FollowersMax(*max))
 		if err != nil {
@@ -361,7 +362,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("GetAllFollowers", func(context.Context, []string) error {
+	app.Register("GetAllFollowers", func(context.Context) error {
 		username := defaultUsername()
 		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
 			log.Printf("following users[%d] of %s", offset, username)
@@ -376,7 +377,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("FollowAllCallback", func(context.Context, []string) error {
+	app.Register("FollowAllCallback", func(context.Context) error {
 		requireStringFlag(other, "other")
 
 		existingFollowers := sets.String(findFollowerUsernames(f.MakeUser(client.Username())))
@@ -404,7 +405,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("FollowAll", func(context.Context, []string) error {
+	app.Register("FollowAll", func(context.Context) error {
 		requireStringFlag(other, "other")
 
 		existingFollowers := sets.String(findFollowerUsernames(f.MakeUser(client.Username())))
@@ -431,7 +432,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("PrintAllFollowersCallback", func(context.Context, []string) error {
+	app.Register("PrintAllFollowersCallback", func(context.Context) error {
 		username := defaultUsername()
 		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
 			log.Printf("following users[%d] of %s", offset, username)
@@ -445,7 +446,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("PrintAllFollowers", func(context.Context, []string) error {
+	app.Register("PrintAllFollowers", func(context.Context) error {
 		u := defaultUser()
 		followers := findFollowers(u)
 		i := 0
@@ -457,7 +458,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("AllFollowersWebsites", func(context.Context, []string) error {
+	app.Register("AllFollowersWebsites", func(context.Context) error {
 		u := defaultUser()
 		followers := findFollowers(u)
 		for f := range followers {
@@ -473,7 +474,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("PrintAllFollowingCallback", func(context.Context, []string) error {
+	app.Register("PrintAllFollowingCallback", func(context.Context) error {
 		username := defaultUsername()
 		if err := client.AllFollowings(username, func(offset int, userInfos api.UserInfos) error {
 			log.Printf("following users[%d] of %s", offset, username)
@@ -487,7 +488,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("PrintAllFollowing", func(context.Context, []string) error {
+	app.Register("PrintAllFollowing", func(context.Context) error {
 		u := defaultUser()
 		following := make(chan *model.User)
 		go func() {
@@ -515,7 +516,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("AllFollowersFromFile", func(context.Context, []string) error {
+	app.Register("AllFollowersFromFile", func(context.Context) error {
 		usernames, err := goutilio.StringsFromFile(*usernamesFile, goutilio.StringsFromFileSkipEmpty(true))
 		if err != nil {
 			return err
@@ -552,7 +553,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("Persist", func(context.Context, []string) error {
+	app.Register("Persist", func(context.Context) error {
 		username := defaultUsername()
 		user := f.MakeUser(username)
 		if err := user.Persist(ctx,
@@ -564,7 +565,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("Read", func(context.Context, []string) error {
+	app.Register("Read", func(context.Context) error {
 		u := defaultUser()
 
 		{
@@ -602,7 +603,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("PersistAll", func(context.Context, []string) error {
+	app.Register("PersistAll", func(context.Context) error {
 		u := defaultUser()
 
 		{
@@ -640,7 +641,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("CreatePost", func(context.Context, []string) error {
+	app.Register("CreatePost", func(context.Context) error {
 		requireStringFlag(text, "text")
 		info, err := createPost(*text)
 		if err != nil {
@@ -650,7 +651,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("Reply", func(context.Context, []string) error {
+	app.Register("Reply", func(context.Context) error {
 		requireStringFlag(text, "text")
 		requireStringFlag(postID, "postID")
 		info, err := reply(*postID, *text)
@@ -661,7 +662,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("DeletePost", func(context.Context, []string) error {
+	app.Register("DeletePost", func(context.Context) error {
 		info, err := client.DeletePost(*postID)
 		if err != nil {
 			return err
@@ -670,7 +671,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("PersistInDB", func(context.Context, []string) error {
+	app.Register("PersistInDB", func(context.Context) error {
 		u := defaultUser()
 		if err := u.PersistInDB(ctx); err != nil {
 			return err
@@ -678,7 +679,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("Upload", func(context.Context, []string) error {
+	app.Register("Upload", func(context.Context) error {
 		requireStringFlag(uploadImage, "upload_image")
 		var img string
 		{
@@ -702,7 +703,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("CreatePostImage", func(context.Context, []string) error {
+	app.Register("CreatePostImage", func(context.Context) error {
 		requireStringFlag(uploadImage, "upload_image")
 		var img string
 		{
@@ -726,7 +727,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("CreatePostCustomImage", func(context.Context, []string) error {
+	app.Register("CreatePostCustomImage", func(context.Context) error {
 		requireStringFlag(uploadImage, "post_image")
 		res, err := createPost(*text)
 		if err != nil {
@@ -736,7 +737,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("UpdateProfile", func(context.Context, []string) error {
+	app.Register("UpdateProfile", func(context.Context) error {
 		res, err := client.UpdateProfile(
 			api.UpdateProfileBackgroundImage(*profileBackgroundImage),
 			api.UpdateProfileDescription(*profileDescription),
@@ -750,7 +751,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("LikeAll", func(context.Context, []string) error {
+	app.Register("LikeAll", func(context.Context) error {
 		u := defaultUser()
 
 		followers := findFollowers(u)
@@ -781,31 +782,31 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("SharePostAll", func(context.Context, []string) error {
+	app.Register("SharePostAll", func(context.Context) error {
 		u := self()
 		shareAll(u)
 		return nil
 	})
 
-	app.Register("SharePostFollowers", func(context.Context, []string) error {
+	app.Register("SharePostFollowers", func(context.Context) error {
 		u := defaultUser()
 		shareAll(u)
 		return nil
 	})
 
-	app.Register("ReplyAll", func(context.Context, []string) error {
+	app.Register("ReplyAll", func(context.Context) error {
 		u := self()
 		replyAll(u)
 		return nil
 	})
 
-	app.Register("ReplyFollowers", func(context.Context, []string) error {
+	app.Register("ReplyFollowers", func(context.Context) error {
 		u := defaultUser()
 		replyAll(u)
 		return nil
 	})
 
-	app.Register("ReplyLiveNow", func(context.Context, []string) error {
+	app.Register("ReplyLiveNow", func(context.Context) error {
 		posts, err := client.LiveNow()
 		if err != nil {
 			return err
@@ -817,7 +818,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("SharePost", func(context.Context, []string) error {
+	app.Register("SharePost", func(context.Context) error {
 		requireStringFlag(postID, "post_id")
 		requireStringFlag(text, "text")
 		if err := client.SharePost(*postID, *text, api.SharePostDebug(*debug)); err != nil {
@@ -826,7 +827,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("Chat", func(context.Context, []string) error {
+	app.Register("Chat", func(context.Context) error {
 		requireStringFlag(postID, "post_id")
 		requireStringFlag(text, "text")
 		ok, err := client.Chat(*postID, *text)
@@ -837,7 +838,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("ChatLiveNow", func(context.Context, []string) error {
+	app.Register("ChatLiveNow", func(context.Context) error {
 		requireStringFlag(text, "text")
 		posts, err := client.LiveNow()
 		if err != nil {
@@ -859,7 +860,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("ChatThreads", func(context.Context, []string) error {
+	app.Register("ChatThreads", func(context.Context) error {
 		requireStringFlag(postID, "post_id")
 		requireStringFlag(text, "text")
 		threads := or.Int(*threads, 200)
@@ -877,7 +878,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("DeleteAll", func(context.Context, []string) error {
+	app.Register("DeleteAll", func(context.Context) error {
 		posts, err := client.GetPosts(client.Username())
 		if err != nil {
 			return err
@@ -892,7 +893,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("SearchPosts", func(context.Context, []string) error {
+	app.Register("SearchPosts", func(context.Context) error {
 		requireStringFlag(query, "query")
 		info, err := client.SearchPosts(*query, api.SearchMax(*max), api.SearchOffset(*offset), api.SearchDebug(*debug))
 		if err != nil {
@@ -905,7 +906,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("SearchUsers", func(context.Context, []string) error {
+	app.Register("SearchUsers", func(context.Context) error {
 		requireStringFlag(query, "query")
 		info, err := client.SearchUsers(*query, api.SearchMax(*max), api.SearchOffset(*offset), api.SearchDebug(*debug))
 		if err != nil {
@@ -918,7 +919,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	app.Register("AllPosts", func(context.Context, []string) error {
+	app.Register("AllPosts", func(context.Context) error {
 		posts, errors := client.AllPosts(*other, api.AllPostsMax(*max), api.AllPostsOffset(*offset), api.AllPostsThreads(*threads))
 		parallel.WaitFor(func() {
 			i := 0
@@ -936,7 +937,7 @@ func Main(ctx context.Context, args []string) error {
 		return nil
 	})
 
-	if err := app.Run(ctx, args); err != nil {
+	if err := app.Run(ctx); err != nil {
 		return err
 	}
 
