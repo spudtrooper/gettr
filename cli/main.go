@@ -66,7 +66,7 @@ func Main(ctx context.Context) error {
 	}
 
 	findFollowersWithExceptions := func(u *model.User, existing sets.StringSet) chan interface{} {
-		followers := make(chan interface{})
+		res := make(chan interface{})
 		go func() {
 			users, _ := u.Followers(ctx, model.UserFollowersMax(*max), model.UserFollowersMax(*threads), model.UserFollowersOffset(*offset))
 			for u := range users {
@@ -74,17 +74,39 @@ func Main(ctx context.Context) error {
 					if existing[u.Username()] {
 						log.Printf("skipping %s because we already follow them", u.Username())
 					} else {
-						followers <- u
+						res <- u
 					}
 				}
 			}
-			close(followers)
+			close(res)
 		}()
-		return followers
+		return res
 	}
 
 	findFollowers := func(u *model.User) chan interface{} {
 		return findFollowersWithExceptions(u, sets.StringSet{})
+	}
+
+	findFollowingsWithExceptions := func(u *model.User, existing sets.StringSet) chan interface{} {
+		res := make(chan interface{})
+		go func() {
+			users, _ := u.Following(ctx, model.UserFollowingMax(*max), model.UserFollowingMax(*threads), model.UserFollowingOffset(*offset))
+			for u := range users {
+				if ui, _ := u.UserInfo(ctx); ui.Username != "" {
+					if existing[u.Username()] {
+						log.Printf("skipping %s because we already follow them", u.Username())
+					} else {
+						res <- u
+					}
+				}
+			}
+			close(res)
+		}()
+		return res
+	}
+
+	findFollowings := func(u *model.User) chan interface{} {
+		return findFollowingsWithExceptions(u, sets.StringSet{})
 	}
 
 	createPostWithImage := func(text, img string) (api.CreatePostInfo, error) {
@@ -942,6 +964,22 @@ func Main(ctx context.Context) error {
 		if err := client.Unfollow(username); err != nil {
 			return err
 		}
+		return nil
+	})
+
+	app.Register("UnfollowAll", func(context.Context) error {
+		u := defaultUser()
+		followings := findFollowings(u)
+		threads := or.Int(*threads, 20)
+		parallel.ExecAndDrain(followings, threads, func(x interface{}) (interface{}, error) {
+			f := x.(*model.User)
+			log.Printf("unfollowing: %s", f.Username())
+			if err := client.Unfollow(f.Username()); err != nil {
+				log.Printf("error unfollowing: %s: %v", f.Username(), err)
+				return false, err
+			}
+			return true, nil
+		})
 		return nil
 	})
 
