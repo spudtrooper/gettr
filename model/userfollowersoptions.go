@@ -1,6 +1,6 @@
 package model
 
-// genopts --opt_type=UserFollowersOption --prefix=UserFollowers --outfile=model/userfollowersoptions.go 'offset:int' 'max:int' 'incl:[]string' 'start:int' 'threads:int' 'fromDisk' 'force'
+//go:generate genopts --opt_type=UserFollowersOption --prefix=UserFollowers --outfile=model/userfollowersoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "fromDisk" "force"
 
 type UserFollowersOption func(*userFollowersOptionImpl)
 

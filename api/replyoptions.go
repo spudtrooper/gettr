@@ -1,6 +1,6 @@
 package api
 
-// genopts --opt_type=ReplyOption --prefix=Reply --outfile=api/replyoptions.go 'images:[]string' 'debug:bool' 'previewImage:string' 'description:string' 'title:string' 'previewSource:string'
+//go:generate genopts --opt_type=ReplyOption --prefix=Reply --outfile=api/replyoptions.go "images:[]string" "debug:bool" "previewImage:string" "description:string" "title:string" "previewSource:string"
 
 type ReplyOption func(*replyOptionImpl)
 

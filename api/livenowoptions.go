@@ -2,7 +2,7 @@ package api
 
 import "time"
 
-// genopts --opt_type=LiveNowOption --prefix=LiveNow --outfile=api/livenowoptions.go 'offset:int' 'max:int' 'dir:string' 'incl:[]string' 'merge:string' 'start:time.Time' 'lang:string'
+//go:generate genopts --opt_type=LiveNowOption --prefix=LiveNow --outfile=api/livenowoptions.go "offset:int" "max:int" "dir:string" "incl:[]string" "merge:string" "start:time.Time" "lang:string"
 
 type LiveNowOption func(*liveNowOptionImpl)
 

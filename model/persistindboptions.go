@@ -1,6 +1,6 @@
 package model
 
-// genopts --opt_type=PersistInDBOption --prefix=PersistInDB --outfile=model/persistindboptions.go 'threads:int'
+//go:generate genopts --opt_type=PersistInDBOption --prefix=PersistInDB --outfile=model/persistindboptions.go "threads:int"
 
 type PersistInDBOption func(*persistInDBOptionImpl)
 

@@ -1,6 +1,6 @@
 package api
 
-// genopts --opt_type=MakeClientOption --prefix=MakeClient --outfile=api/makeclientoptions.go 'debug:bool'
+//go:generate genopts --opt_type=MakeClientOption --prefix=MakeClient --outfile=api/makeclientoptions.go "debug:bool"
 
 type MakeClientOption func(*makeClientOptionImpl)
 

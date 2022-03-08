@@ -1,6 +1,6 @@
 package api
 
-// genopts --opt_type=PostsOption --prefix=Posts --outfile=api/postsoptions.go 'offset:int' 'max:int' 'dir:string' 'incl:[]string' 'fp:string'
+//go:generate genopts --opt_type=PostsOption --prefix=Posts --outfile=api/postsoptions.go "offset:int" "max:int" "dir:string" "incl:[]string" "fp:string"
 
 type PostsOption func(*postsOptionImpl)
 

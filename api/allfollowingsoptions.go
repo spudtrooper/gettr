@@ -1,6 +1,6 @@
 package api
 
-// genopts --opt_type=AllFollowingsOption --prefix=AllFollowings --outfile=api/allfollowingsoptions.go 'offset:int' 'max:int' 'incl:[]string' 'start:int' 'threads:int' 'force'
+//go:generate genopts --opt_type=AllFollowingsOption --prefix=AllFollowings --outfile=api/allfollowingsoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "force"
 
 type AllFollowingsOption func(*allFollowingsOptionImpl)
 
