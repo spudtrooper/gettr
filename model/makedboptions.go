@@ -1,6 +1,6 @@
 package model
 
-//go:generate genopts --opt_type=MakeDBOption --prefix=MakeDB --outfile=model/makedboptions.go "port:int" "dbName:string"
+//go:generate genopts --opt_type=MakeDBOption --prefix=MakeDB --outfile=makedboptions.go "port:int" "dbName:string"
 
 type MakeDBOption func(*makeDBOptionImpl)
 

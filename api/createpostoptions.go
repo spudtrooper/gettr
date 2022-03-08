@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=CreatePostOption --prefix=CreatePost --outfile=api/createpostoptions.go "images:[]string" "debug:bool" "previewImage:string" "description:string" "title:string" "previewSource:string"
+//go:generate genopts --opt_type=CreatePostOption --prefix=CreatePost --outfile=createpostoptions.go "images:[]string" "debug:bool" "previewImage:string" "description:string" "title:string" "previewSource:string"
 
 type CreatePostOption func(*createPostOptionImpl)
 

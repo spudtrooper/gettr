@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=RequestOption --prefix=Request --outfile=api/requestoptions.go "extraHeaders:map[string]string" "host:string" "customPayload:interface{}"
+//go:generate genopts --opt_type=RequestOption --prefix=Request --outfile=requestoptions.go "extraHeaders:map[string]string" "host:string" "customPayload:interface{}"
 
 type RequestOption func(*requestOptionImpl)
 

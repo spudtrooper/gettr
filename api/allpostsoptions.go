@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=AllPostsOption --prefix=AllPosts --outfile=api/allpostsoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "force"
+//go:generate genopts --opt_type=AllPostsOption --prefix=AllPosts --outfile=allpostsoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "force"
 
 type AllPostsOption func(*allPostsOptionImpl)
 

@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=SearchOption --prefix=Search --outfile=api/searchoptions.go "max:int" "incl:[]string" "offset:int" "debug"
+//go:generate genopts --opt_type=SearchOption --prefix=Search --outfile=searchoptions.go "max:int" "incl:[]string" "offset:int" "debug"
 
 type SearchOption func(*searchOptionImpl)
 

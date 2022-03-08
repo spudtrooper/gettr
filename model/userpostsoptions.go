@@ -1,6 +1,6 @@
 package model
 
-//go:generate genopts --opt_type=UserPostsOption --prefix=UserPosts --outfile=model/userpostsoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "fromDisk" "force"
+//go:generate genopts --opt_type=UserPostsOption --prefix=UserPosts --outfile=userpostsoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "fromDisk" "force"
 
 type UserPostsOption func(*userPostsOptionImpl)
 

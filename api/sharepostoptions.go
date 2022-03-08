@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=SharePostOption --prefix=SharePost --outfile=api/sharepostoptions.go "debug"
+//go:generate genopts --opt_type=SharePostOption --prefix=SharePost --outfile=sharepostoptions.go "debug"
 
 type SharePostOption func(*sharePostOptionImpl)
 

@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=PostOption --prefix=Post --outfile=api/postoptions.go "incl:[]string" "max"
+//go:generate genopts --opt_type=PostOption --prefix=Post --outfile=postoptions.go "incl:[]string" "max"
 
 type PostOption func(*postOptionImpl)
 

@@ -1,6 +1,6 @@
 package htmlgen
 
-//go:generate genopts --opt_type=GenerateOption --prefix=Generate --outfile=htmlgen/generateoptions.go "writeCSV" "writeSimpleHTML" "writeDescriptionsHTML" "writeTwitterFollowersHTML" "writeHTML" "limit:int" "all" "threads:int" "sortUsers"
+//go:generate genopts --opt_type=GenerateOption --prefix=Generate --outfile=generateoptions.go "writeCSV" "writeSimpleHTML" "writeDescriptionsHTML" "writeTwitterFollowersHTML" "writeHTML" "limit:int" "all" "threads:int" "sortUsers"
 
 type GenerateOption func(*generateOptionImpl)
 

@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=FollowersOption --prefix=Followers --outfile=api/followersoptions.go "offset:int" "max:int" "incl:[]string"
+//go:generate genopts --opt_type=FollowersOption --prefix=Followers --outfile=followersoptions.go "offset:int" "max:int" "incl:[]string"
 
 type FollowersOption func(*followersOptionImpl)
 

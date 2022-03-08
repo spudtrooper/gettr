@@ -2,7 +2,7 @@ package api
 
 import "time"
 
-//go:generate genopts --opt_type=TimelineOption --prefix=Timeline --outfile=api/timelineoptions.go "offset:int" "max:int" "dir:string" "incl:[]string" "merge:string" "start:time.Time"
+//go:generate genopts --opt_type=TimelineOption --prefix=Timeline --outfile=timelineoptions.go "offset:int" "max:int" "dir:string" "incl:[]string" "merge:string" "start:time.Time"
 
 type TimelineOption func(*timelineOptionImpl)
 

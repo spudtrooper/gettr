@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=CommentsOption --prefix=Comments --outfile=api/commentsoptions.go "offset:int" "max:int" "dir:string" "incl:[]string"
+//go:generate genopts --opt_type=CommentsOption --prefix=Comments --outfile=commentsoptions.go "offset:int" "max:int" "dir:string" "incl:[]string"
 
 type CommentsOption func(*commentsOptionImpl)
 

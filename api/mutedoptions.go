@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=MutedOption --prefix=Muted --outfile=api/mutedoptions.go "offset:int" "max:int" "incl:[]string"
+//go:generate genopts --opt_type=MutedOption --prefix=Muted --outfile=mutedoptions.go "offset:int" "max:int" "incl:[]string"
 
 type MutedOption func(*mutedOptionImpl)
 

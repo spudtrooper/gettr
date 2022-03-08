@@ -1,6 +1,6 @@
 package model
 
-//go:generate genopts --opt_type=UserInfoOption --prefix=UserInfo --outfile=model/userinfooptions.go "dontRetry"
+//go:generate genopts --opt_type=UserInfoOption --prefix=UserInfo --outfile=userinfooptions.go "dontRetry"
 
 type UserInfoOption func(*userInfoOptionImpl)
 
