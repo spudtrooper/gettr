@@ -937,6 +937,14 @@ func Main(ctx context.Context) error {
 		return nil
 	})
 
+	app.Register("Unfollow", func(context.Context) error {
+		username := *other
+		if err := client.Unfollow(username); err != nil {
+			return err
+		}
+		return nil
+	})
+
 	if err := app.Run(ctx); err != nil {
 		return err
 	}

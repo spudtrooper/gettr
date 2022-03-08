@@ -891,3 +891,15 @@ func (c *Core) Chat(postID string, text string, cOpts ...ChatOption) (bool, erro
 	}
 	return payload, nil
 }
+
+func (c *Core) Unfollow(username string) error {
+	route := fmt.Sprintf("u/user/%s/unfollows/%s/", c.username, username)
+	extraHeaders := map[string]string{
+		"content-type": `application/json`,
+	}
+	var payload interface{}
+	if _, err := c.post(route, &payload, nil, RequestExtraHeaders(extraHeaders)); err != nil {
+		return err
+	}
+	return nil
+}
