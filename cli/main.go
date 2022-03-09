@@ -4,13 +4,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"math/rand"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/spudtrooper/gettr/api"
+	"github.com/spudtrooper/gettr/log"
 	"github.com/spudtrooper/gettr/model"
 	"github.com/spudtrooper/goutil/flags"
 	"github.com/spudtrooper/goutil/formatstruct"
@@ -192,7 +192,8 @@ func Main(ctx context.Context) error {
 				return false, nil
 			}
 			post := posts[rand.Int()%len(posts)]
-			log.Printf("%s trying to share: https://gettr.com/post/%s", f.Username(), post.ID)
+			uri := fmt.Sprintf("https://gettr.com/post/%s", post.ID)
+			log.Printf("%s trying to share: %s", f.Username(), uri)
 			if err := client.SharePost(post.ID, *text, api.SharePostDebug(*debug)); err != nil {
 				log.Printf("SharePost error: %v", err)
 				if isLimitExceeded(err) {
@@ -217,14 +218,16 @@ func Main(ctx context.Context) error {
 		if comment == "" {
 			comment = "Nice work, homie"
 		}
-		log.Printf("trying to comment on: https://gettr.com/post/%s with %q", post.ID, comment)
+		uri := "https://gettr.com/post/" + post.ID
+		log.Printf("trying to comment on: %s with %q", uri, comment)
 		if _, err := reply(post.ID, comment); err != nil {
 			log.Printf("Reply error: %v", err)
 			if isLimitExceeded(err) {
 				log.Fatalf("Limit exceeded: %v", err)
 			}
 		} else {
-			log.Printf("commented on https://gettr.com/post/%s", post.ID)
+			uri := "https://gettr.com/post/" + post.ID
+			log.Printf("commented on %s", uri)
 		}
 		return nil
 	}
@@ -789,7 +792,8 @@ func Main(ctx context.Context) error {
 				return false, nil
 			}
 			for i, post := range posts {
-				log.Printf("%s[%d] trying to like: https://gettr.com/post/%s", f.Username(), i, post.ID)
+				uri := "https://gettr.com/post/" + post.ID
+				log.Printf("%s[%d] trying to like: %s", f.Username(), i, uri)
 				if err := client.LikePost(post.ID); err != nil {
 					log.Printf("LikePost error: %v", err)
 					if isLimitExceeded(err) {
@@ -992,6 +996,7 @@ func Main(ctx context.Context) error {
 					log.Printf("error unfollowing: %s: %v", u.Username, err)
 					return err
 				}
+				log.Printf("unfollowed %s", u.Username)
 			}
 			return nil
 		}, api.AllFollowingsOffset(*offset)); err != nil {
