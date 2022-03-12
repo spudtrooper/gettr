@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=PostsOption --prefix=Posts --outfile=postsoptions.go "offset:int" "max:int" "dir:string" "incl:[]string" "fp:string"
+//go:generate genopts --prefix=Posts --outfile=api/postsoptions.go "offset:int" "max:int" "dir:string" "incl:[]string" "fp:string"
 
 type PostsOption func(*postsOptionImpl)
 
@@ -17,10 +17,20 @@ func PostsOffset(offset int) PostsOption {
 		opts.offset = offset
 	}
 }
+func PostsOffsetFlag(offset *int) PostsOption {
+	return func(opts *postsOptionImpl) {
+		opts.offset = *offset
+	}
+}
 
 func PostsMax(max int) PostsOption {
 	return func(opts *postsOptionImpl) {
 		opts.max = max
+	}
+}
+func PostsMaxFlag(max *int) PostsOption {
+	return func(opts *postsOptionImpl) {
+		opts.max = *max
 	}
 }
 
@@ -29,16 +39,31 @@ func PostsDir(dir string) PostsOption {
 		opts.dir = dir
 	}
 }
+func PostsDirFlag(dir *string) PostsOption {
+	return func(opts *postsOptionImpl) {
+		opts.dir = *dir
+	}
+}
 
 func PostsIncl(incl []string) PostsOption {
 	return func(opts *postsOptionImpl) {
 		opts.incl = incl
 	}
 }
+func PostsInclFlag(incl *[]string) PostsOption {
+	return func(opts *postsOptionImpl) {
+		opts.incl = *incl
+	}
+}
 
 func PostsFp(fp string) PostsOption {
 	return func(opts *postsOptionImpl) {
 		opts.fp = fp
+	}
+}
+func PostsFpFlag(fp *string) PostsOption {
+	return func(opts *postsOptionImpl) {
+		opts.fp = *fp
 	}
 }
 

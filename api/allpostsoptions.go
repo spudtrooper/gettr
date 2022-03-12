@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=AllPostsOption --prefix=AllPosts --outfile=allpostsoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "force"
+//go:generate genopts --prefix=AllPosts --outfile=api/allpostsoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "force"
 
 type AllPostsOption func(*allPostsOptionImpl)
 
@@ -18,10 +18,20 @@ func AllPostsOffset(offset int) AllPostsOption {
 		opts.offset = offset
 	}
 }
+func AllPostsOffsetFlag(offset *int) AllPostsOption {
+	return func(opts *allPostsOptionImpl) {
+		opts.offset = *offset
+	}
+}
 
 func AllPostsMax(max int) AllPostsOption {
 	return func(opts *allPostsOptionImpl) {
 		opts.max = max
+	}
+}
+func AllPostsMaxFlag(max *int) AllPostsOption {
+	return func(opts *allPostsOptionImpl) {
+		opts.max = *max
 	}
 }
 
@@ -30,10 +40,20 @@ func AllPostsIncl(incl []string) AllPostsOption {
 		opts.incl = incl
 	}
 }
+func AllPostsInclFlag(incl *[]string) AllPostsOption {
+	return func(opts *allPostsOptionImpl) {
+		opts.incl = *incl
+	}
+}
 
 func AllPostsStart(start int) AllPostsOption {
 	return func(opts *allPostsOptionImpl) {
 		opts.start = start
+	}
+}
+func AllPostsStartFlag(start *int) AllPostsOption {
+	return func(opts *allPostsOptionImpl) {
+		opts.start = *start
 	}
 }
 
@@ -42,10 +62,20 @@ func AllPostsThreads(threads int) AllPostsOption {
 		opts.threads = threads
 	}
 }
+func AllPostsThreadsFlag(threads *int) AllPostsOption {
+	return func(opts *allPostsOptionImpl) {
+		opts.threads = *threads
+	}
+}
 
 func AllPostsForce(force bool) AllPostsOption {
 	return func(opts *allPostsOptionImpl) {
 		opts.force = force
+	}
+}
+func AllPostsForceFlag(force *bool) AllPostsOption {
+	return func(opts *allPostsOptionImpl) {
+		opts.force = *force
 	}
 }
 

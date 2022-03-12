@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=FollowersOption --prefix=Followers --outfile=followersoptions.go "offset:int" "max:int" "incl:[]string"
+//go:generate genopts --prefix=Followers --outfile=api/followersoptions.go "offset:int" "max:int" "incl:[]string"
 
 type FollowersOption func(*followersOptionImpl)
 
@@ -15,16 +15,31 @@ func FollowersOffset(offset int) FollowersOption {
 		opts.offset = offset
 	}
 }
+func FollowersOffsetFlag(offset *int) FollowersOption {
+	return func(opts *followersOptionImpl) {
+		opts.offset = *offset
+	}
+}
 
 func FollowersMax(max int) FollowersOption {
 	return func(opts *followersOptionImpl) {
 		opts.max = max
 	}
 }
+func FollowersMaxFlag(max *int) FollowersOption {
+	return func(opts *followersOptionImpl) {
+		opts.max = *max
+	}
+}
 
 func FollowersIncl(incl []string) FollowersOption {
 	return func(opts *followersOptionImpl) {
 		opts.incl = incl
+	}
+}
+func FollowersInclFlag(incl *[]string) FollowersOption {
+	return func(opts *followersOptionImpl) {
+		opts.incl = *incl
 	}
 }
 

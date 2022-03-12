@@ -2,7 +2,7 @@ package model
 
 import "go.mongodb.org/mongo-driver/bson"
 
-//go:generate genopts --opt_type=CountPostsOption --prefix=CountPosts --outfile=countpostsoptions.go "filter:bson.D"
+//go:generate genopts --prefix=CountPosts --outfile=model/countpostsoptions.go "filter:bson.D"
 
 type CountPostsOption func(*countPostsOptionImpl)
 
@@ -13,6 +13,11 @@ type CountPostsOptions interface {
 func CountPostsFilter(filter bson.D) CountPostsOption {
 	return func(opts *countPostsOptionImpl) {
 		opts.filter = filter
+	}
+}
+func CountPostsFilterFlag(filter *bson.D) CountPostsOption {
+	return func(opts *countPostsOptionImpl) {
+		opts.filter = *filter
 	}
 }
 

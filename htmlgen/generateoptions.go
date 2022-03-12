@@ -1,6 +1,6 @@
 package htmlgen
 
-//go:generate genopts --opt_type=GenerateOption --prefix=Generate --outfile=generateoptions.go "writeCSV" "writeSimpleHTML" "writeDescriptionsHTML" "writeTwitterFollowersHTML" "writeHTML" "limit:int" "all" "threads:int" "sortUsers"
+//go:generate genopts --prefix=Generate --outfile=htmlgen/generateoptions.go "writeCSV" "writeSimpleHTML" "writeDescriptionsHTML" "writeTwitterFollowersHTML" "writeHTML" "limit:int" "all" "threads:int" "sortUsers"
 
 type GenerateOption func(*generateOptionImpl)
 
@@ -21,10 +21,20 @@ func GenerateWriteCSV(writeCSV bool) GenerateOption {
 		opts.writeCSV = writeCSV
 	}
 }
+func GenerateWriteCSVFlag(writeCSV *bool) GenerateOption {
+	return func(opts *generateOptionImpl) {
+		opts.writeCSV = *writeCSV
+	}
+}
 
 func GenerateWriteSimpleHTML(writeSimpleHTML bool) GenerateOption {
 	return func(opts *generateOptionImpl) {
 		opts.writeSimpleHTML = writeSimpleHTML
+	}
+}
+func GenerateWriteSimpleHTMLFlag(writeSimpleHTML *bool) GenerateOption {
+	return func(opts *generateOptionImpl) {
+		opts.writeSimpleHTML = *writeSimpleHTML
 	}
 }
 
@@ -33,10 +43,20 @@ func GenerateWriteDescriptionsHTML(writeDescriptionsHTML bool) GenerateOption {
 		opts.writeDescriptionsHTML = writeDescriptionsHTML
 	}
 }
+func GenerateWriteDescriptionsHTMLFlag(writeDescriptionsHTML *bool) GenerateOption {
+	return func(opts *generateOptionImpl) {
+		opts.writeDescriptionsHTML = *writeDescriptionsHTML
+	}
+}
 
 func GenerateWriteTwitterFollowersHTML(writeTwitterFollowersHTML bool) GenerateOption {
 	return func(opts *generateOptionImpl) {
 		opts.writeTwitterFollowersHTML = writeTwitterFollowersHTML
+	}
+}
+func GenerateWriteTwitterFollowersHTMLFlag(writeTwitterFollowersHTML *bool) GenerateOption {
+	return func(opts *generateOptionImpl) {
+		opts.writeTwitterFollowersHTML = *writeTwitterFollowersHTML
 	}
 }
 
@@ -45,10 +65,20 @@ func GenerateWriteHTML(writeHTML bool) GenerateOption {
 		opts.writeHTML = writeHTML
 	}
 }
+func GenerateWriteHTMLFlag(writeHTML *bool) GenerateOption {
+	return func(opts *generateOptionImpl) {
+		opts.writeHTML = *writeHTML
+	}
+}
 
 func GenerateLimit(limit int) GenerateOption {
 	return func(opts *generateOptionImpl) {
 		opts.limit = limit
+	}
+}
+func GenerateLimitFlag(limit *int) GenerateOption {
+	return func(opts *generateOptionImpl) {
+		opts.limit = *limit
 	}
 }
 
@@ -57,16 +87,31 @@ func GenerateAll(all bool) GenerateOption {
 		opts.all = all
 	}
 }
+func GenerateAllFlag(all *bool) GenerateOption {
+	return func(opts *generateOptionImpl) {
+		opts.all = *all
+	}
+}
 
 func GenerateThreads(threads int) GenerateOption {
 	return func(opts *generateOptionImpl) {
 		opts.threads = threads
 	}
 }
+func GenerateThreadsFlag(threads *int) GenerateOption {
+	return func(opts *generateOptionImpl) {
+		opts.threads = *threads
+	}
+}
 
 func GenerateSortUsers(sortUsers bool) GenerateOption {
 	return func(opts *generateOptionImpl) {
 		opts.sortUsers = sortUsers
+	}
+}
+func GenerateSortUsersFlag(sortUsers *bool) GenerateOption {
+	return func(opts *generateOptionImpl) {
+		opts.sortUsers = *sortUsers
 	}
 }
 

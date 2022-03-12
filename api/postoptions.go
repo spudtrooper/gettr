@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=PostOption --prefix=Post --outfile=postoptions.go "incl:[]string" "max"
+//go:generate genopts --prefix=Post --outfile=api/postoptions.go "incl:[]string" "max"
 
 type PostOption func(*postOptionImpl)
 
@@ -14,10 +14,20 @@ func PostIncl(incl []string) PostOption {
 		opts.incl = incl
 	}
 }
+func PostInclFlag(incl *[]string) PostOption {
+	return func(opts *postOptionImpl) {
+		opts.incl = *incl
+	}
+}
 
 func PostMax(max bool) PostOption {
 	return func(opts *postOptionImpl) {
 		opts.max = max
+	}
+}
+func PostMaxFlag(max *bool) PostOption {
+	return func(opts *postOptionImpl) {
+		opts.max = *max
 	}
 }
 

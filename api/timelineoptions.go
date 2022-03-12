@@ -2,7 +2,7 @@ package api
 
 import "time"
 
-//go:generate genopts --opt_type=TimelineOption --prefix=Timeline --outfile=timelineoptions.go "offset:int" "max:int" "dir:string" "incl:[]string" "merge:string" "start:time.Time"
+//go:generate genopts --prefix=Timeline --outfile=api/timelineoptions.go "offset:int" "max:int" "dir:string" "incl:[]string" "merge:string" "start:time.Time"
 
 type TimelineOption func(*timelineOptionImpl)
 
@@ -20,10 +20,20 @@ func TimelineOffset(offset int) TimelineOption {
 		opts.offset = offset
 	}
 }
+func TimelineOffsetFlag(offset *int) TimelineOption {
+	return func(opts *timelineOptionImpl) {
+		opts.offset = *offset
+	}
+}
 
 func TimelineMax(max int) TimelineOption {
 	return func(opts *timelineOptionImpl) {
 		opts.max = max
+	}
+}
+func TimelineMaxFlag(max *int) TimelineOption {
+	return func(opts *timelineOptionImpl) {
+		opts.max = *max
 	}
 }
 
@@ -32,10 +42,20 @@ func TimelineDir(dir string) TimelineOption {
 		opts.dir = dir
 	}
 }
+func TimelineDirFlag(dir *string) TimelineOption {
+	return func(opts *timelineOptionImpl) {
+		opts.dir = *dir
+	}
+}
 
 func TimelineIncl(incl []string) TimelineOption {
 	return func(opts *timelineOptionImpl) {
 		opts.incl = incl
+	}
+}
+func TimelineInclFlag(incl *[]string) TimelineOption {
+	return func(opts *timelineOptionImpl) {
+		opts.incl = *incl
 	}
 }
 
@@ -44,10 +64,20 @@ func TimelineMerge(merge string) TimelineOption {
 		opts.merge = merge
 	}
 }
+func TimelineMergeFlag(merge *string) TimelineOption {
+	return func(opts *timelineOptionImpl) {
+		opts.merge = *merge
+	}
+}
 
 func TimelineStart(start time.Time) TimelineOption {
 	return func(opts *timelineOptionImpl) {
 		opts.start = start
+	}
+}
+func TimelineStartFlag(start *time.Time) TimelineOption {
+	return func(opts *timelineOptionImpl) {
+		opts.start = *start
 	}
 }
 

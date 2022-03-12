@@ -2,7 +2,7 @@ package api
 
 import "time"
 
-//go:generate genopts --opt_type=LiveNowOption --prefix=LiveNow --outfile=livenowoptions.go "offset:int" "max:int" "dir:string" "incl:[]string" "merge:string" "start:time.Time" "lang:string"
+//go:generate genopts --prefix=LiveNow --outfile=api/livenowoptions.go "offset:int" "max:int" "dir:string" "incl:[]string" "merge:string" "start:time.Time" "lang:string"
 
 type LiveNowOption func(*liveNowOptionImpl)
 
@@ -21,10 +21,20 @@ func LiveNowOffset(offset int) LiveNowOption {
 		opts.offset = offset
 	}
 }
+func LiveNowOffsetFlag(offset *int) LiveNowOption {
+	return func(opts *liveNowOptionImpl) {
+		opts.offset = *offset
+	}
+}
 
 func LiveNowMax(max int) LiveNowOption {
 	return func(opts *liveNowOptionImpl) {
 		opts.max = max
+	}
+}
+func LiveNowMaxFlag(max *int) LiveNowOption {
+	return func(opts *liveNowOptionImpl) {
+		opts.max = *max
 	}
 }
 
@@ -33,10 +43,20 @@ func LiveNowDir(dir string) LiveNowOption {
 		opts.dir = dir
 	}
 }
+func LiveNowDirFlag(dir *string) LiveNowOption {
+	return func(opts *liveNowOptionImpl) {
+		opts.dir = *dir
+	}
+}
 
 func LiveNowIncl(incl []string) LiveNowOption {
 	return func(opts *liveNowOptionImpl) {
 		opts.incl = incl
+	}
+}
+func LiveNowInclFlag(incl *[]string) LiveNowOption {
+	return func(opts *liveNowOptionImpl) {
+		opts.incl = *incl
 	}
 }
 
@@ -45,16 +65,31 @@ func LiveNowMerge(merge string) LiveNowOption {
 		opts.merge = merge
 	}
 }
+func LiveNowMergeFlag(merge *string) LiveNowOption {
+	return func(opts *liveNowOptionImpl) {
+		opts.merge = *merge
+	}
+}
 
 func LiveNowStart(start time.Time) LiveNowOption {
 	return func(opts *liveNowOptionImpl) {
 		opts.start = start
 	}
 }
+func LiveNowStartFlag(start *time.Time) LiveNowOption {
+	return func(opts *liveNowOptionImpl) {
+		opts.start = *start
+	}
+}
 
 func LiveNowLang(lang string) LiveNowOption {
 	return func(opts *liveNowOptionImpl) {
 		opts.lang = lang
+	}
+}
+func LiveNowLangFlag(lang *string) LiveNowOption {
+	return func(opts *liveNowOptionImpl) {
+		opts.lang = *lang
 	}
 }
 

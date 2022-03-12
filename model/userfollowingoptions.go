@@ -1,6 +1,6 @@
 package model
 
-//go:generate genopts --opt_type=UserFollowingOption --prefix=UserFollowing --outfile=userfollowingoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "fromDisk" "force"
+//go:generate genopts --prefix=UserFollowing --outfile=model/userfollowingoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "fromDisk" "force"
 
 type UserFollowingOption func(*userFollowingOptionImpl)
 
@@ -19,10 +19,20 @@ func UserFollowingOffset(offset int) UserFollowingOption {
 		opts.offset = offset
 	}
 }
+func UserFollowingOffsetFlag(offset *int) UserFollowingOption {
+	return func(opts *userFollowingOptionImpl) {
+		opts.offset = *offset
+	}
+}
 
 func UserFollowingMax(max int) UserFollowingOption {
 	return func(opts *userFollowingOptionImpl) {
 		opts.max = max
+	}
+}
+func UserFollowingMaxFlag(max *int) UserFollowingOption {
+	return func(opts *userFollowingOptionImpl) {
+		opts.max = *max
 	}
 }
 
@@ -31,10 +41,20 @@ func UserFollowingIncl(incl []string) UserFollowingOption {
 		opts.incl = incl
 	}
 }
+func UserFollowingInclFlag(incl *[]string) UserFollowingOption {
+	return func(opts *userFollowingOptionImpl) {
+		opts.incl = *incl
+	}
+}
 
 func UserFollowingStart(start int) UserFollowingOption {
 	return func(opts *userFollowingOptionImpl) {
 		opts.start = start
+	}
+}
+func UserFollowingStartFlag(start *int) UserFollowingOption {
+	return func(opts *userFollowingOptionImpl) {
+		opts.start = *start
 	}
 }
 
@@ -43,16 +63,31 @@ func UserFollowingThreads(threads int) UserFollowingOption {
 		opts.threads = threads
 	}
 }
+func UserFollowingThreadsFlag(threads *int) UserFollowingOption {
+	return func(opts *userFollowingOptionImpl) {
+		opts.threads = *threads
+	}
+}
 
 func UserFollowingFromDisk(fromDisk bool) UserFollowingOption {
 	return func(opts *userFollowingOptionImpl) {
 		opts.fromDisk = fromDisk
 	}
 }
+func UserFollowingFromDiskFlag(fromDisk *bool) UserFollowingOption {
+	return func(opts *userFollowingOptionImpl) {
+		opts.fromDisk = *fromDisk
+	}
+}
 
 func UserFollowingForce(force bool) UserFollowingOption {
 	return func(opts *userFollowingOptionImpl) {
 		opts.force = force
+	}
+}
+func UserFollowingForceFlag(force *bool) UserFollowingOption {
+	return func(opts *userFollowingOptionImpl) {
+		opts.force = *force
 	}
 }
 

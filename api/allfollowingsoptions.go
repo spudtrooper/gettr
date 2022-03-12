@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=AllFollowingsOption --prefix=AllFollowings --outfile=allfollowingsoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "force"
+//go:generate genopts --prefix=AllFollowings --outfile=api/allfollowingsoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "force"
 
 type AllFollowingsOption func(*allFollowingsOptionImpl)
 
@@ -18,10 +18,20 @@ func AllFollowingsOffset(offset int) AllFollowingsOption {
 		opts.offset = offset
 	}
 }
+func AllFollowingsOffsetFlag(offset *int) AllFollowingsOption {
+	return func(opts *allFollowingsOptionImpl) {
+		opts.offset = *offset
+	}
+}
 
 func AllFollowingsMax(max int) AllFollowingsOption {
 	return func(opts *allFollowingsOptionImpl) {
 		opts.max = max
+	}
+}
+func AllFollowingsMaxFlag(max *int) AllFollowingsOption {
+	return func(opts *allFollowingsOptionImpl) {
+		opts.max = *max
 	}
 }
 
@@ -30,10 +40,20 @@ func AllFollowingsIncl(incl []string) AllFollowingsOption {
 		opts.incl = incl
 	}
 }
+func AllFollowingsInclFlag(incl *[]string) AllFollowingsOption {
+	return func(opts *allFollowingsOptionImpl) {
+		opts.incl = *incl
+	}
+}
 
 func AllFollowingsStart(start int) AllFollowingsOption {
 	return func(opts *allFollowingsOptionImpl) {
 		opts.start = start
+	}
+}
+func AllFollowingsStartFlag(start *int) AllFollowingsOption {
+	return func(opts *allFollowingsOptionImpl) {
+		opts.start = *start
 	}
 }
 
@@ -42,10 +62,20 @@ func AllFollowingsThreads(threads int) AllFollowingsOption {
 		opts.threads = threads
 	}
 }
+func AllFollowingsThreadsFlag(threads *int) AllFollowingsOption {
+	return func(opts *allFollowingsOptionImpl) {
+		opts.threads = *threads
+	}
+}
 
 func AllFollowingsForce(force bool) AllFollowingsOption {
 	return func(opts *allFollowingsOptionImpl) {
 		opts.force = force
+	}
+}
+func AllFollowingsForceFlag(force *bool) AllFollowingsOption {
+	return func(opts *allFollowingsOptionImpl) {
+		opts.force = *force
 	}
 }
 

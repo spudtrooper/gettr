@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=CreatePostOption --prefix=CreatePost --outfile=createpostoptions.go "images:[]string" "debug:bool" "previewImage:string" "description:string" "title:string" "previewSource:string"
+//go:generate genopts --prefix=CreatePost --outfile=api/createpostoptions.go "images:[]string" "debug:bool" "previewImage:string" "description:string" "title:string" "previewSource:string"
 
 type CreatePostOption func(*createPostOptionImpl)
 
@@ -18,10 +18,20 @@ func CreatePostImages(images []string) CreatePostOption {
 		opts.images = images
 	}
 }
+func CreatePostImagesFlag(images *[]string) CreatePostOption {
+	return func(opts *createPostOptionImpl) {
+		opts.images = *images
+	}
+}
 
 func CreatePostDebug(debug bool) CreatePostOption {
 	return func(opts *createPostOptionImpl) {
 		opts.debug = debug
+	}
+}
+func CreatePostDebugFlag(debug *bool) CreatePostOption {
+	return func(opts *createPostOptionImpl) {
+		opts.debug = *debug
 	}
 }
 
@@ -30,10 +40,20 @@ func CreatePostPreviewImage(previewImage string) CreatePostOption {
 		opts.previewImage = previewImage
 	}
 }
+func CreatePostPreviewImageFlag(previewImage *string) CreatePostOption {
+	return func(opts *createPostOptionImpl) {
+		opts.previewImage = *previewImage
+	}
+}
 
 func CreatePostDescription(description string) CreatePostOption {
 	return func(opts *createPostOptionImpl) {
 		opts.description = description
+	}
+}
+func CreatePostDescriptionFlag(description *string) CreatePostOption {
+	return func(opts *createPostOptionImpl) {
+		opts.description = *description
 	}
 }
 
@@ -42,10 +62,20 @@ func CreatePostTitle(title string) CreatePostOption {
 		opts.title = title
 	}
 }
+func CreatePostTitleFlag(title *string) CreatePostOption {
+	return func(opts *createPostOptionImpl) {
+		opts.title = *title
+	}
+}
 
 func CreatePostPreviewSource(previewSource string) CreatePostOption {
 	return func(opts *createPostOptionImpl) {
 		opts.previewSource = previewSource
+	}
+}
+func CreatePostPreviewSourceFlag(previewSource *string) CreatePostOption {
+	return func(opts *createPostOptionImpl) {
+		opts.previewSource = *previewSource
 	}
 }
 

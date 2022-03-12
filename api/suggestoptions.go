@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=SuggestOption --prefix=Suggest --outfile=suggestoptions.go "max:int" "incl:[]string" "offset:int"
+//go:generate genopts --prefix=Suggest --outfile=api/suggestoptions.go "max:int" "incl:[]string" "offset:int"
 
 type SuggestOption func(*suggestOptionImpl)
 
@@ -15,16 +15,31 @@ func SuggestMax(max int) SuggestOption {
 		opts.max = max
 	}
 }
+func SuggestMaxFlag(max *int) SuggestOption {
+	return func(opts *suggestOptionImpl) {
+		opts.max = *max
+	}
+}
 
 func SuggestIncl(incl []string) SuggestOption {
 	return func(opts *suggestOptionImpl) {
 		opts.incl = incl
 	}
 }
+func SuggestInclFlag(incl *[]string) SuggestOption {
+	return func(opts *suggestOptionImpl) {
+		opts.incl = *incl
+	}
+}
 
 func SuggestOffset(offset int) SuggestOption {
 	return func(opts *suggestOptionImpl) {
 		opts.offset = offset
+	}
+}
+func SuggestOffsetFlag(offset *int) SuggestOption {
+	return func(opts *suggestOptionImpl) {
+		opts.offset = *offset
 	}
 }
 

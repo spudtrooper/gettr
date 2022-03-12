@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=SearchOption --prefix=Search --outfile=searchoptions.go "max:int" "incl:[]string" "offset:int" "debug"
+//go:generate genopts --prefix=Search --outfile=api/searchoptions.go "max:int" "incl:[]string" "offset:int" "debug"
 
 type SearchOption func(*searchOptionImpl)
 
@@ -16,10 +16,20 @@ func SearchMax(max int) SearchOption {
 		opts.max = max
 	}
 }
+func SearchMaxFlag(max *int) SearchOption {
+	return func(opts *searchOptionImpl) {
+		opts.max = *max
+	}
+}
 
 func SearchIncl(incl []string) SearchOption {
 	return func(opts *searchOptionImpl) {
 		opts.incl = incl
+	}
+}
+func SearchInclFlag(incl *[]string) SearchOption {
+	return func(opts *searchOptionImpl) {
+		opts.incl = *incl
 	}
 }
 
@@ -28,10 +38,20 @@ func SearchOffset(offset int) SearchOption {
 		opts.offset = offset
 	}
 }
+func SearchOffsetFlag(offset *int) SearchOption {
+	return func(opts *searchOptionImpl) {
+		opts.offset = *offset
+	}
+}
 
 func SearchDebug(debug bool) SearchOption {
 	return func(opts *searchOptionImpl) {
 		opts.debug = debug
+	}
+}
+func SearchDebugFlag(debug *bool) SearchOption {
+	return func(opts *searchOptionImpl) {
+		opts.debug = *debug
 	}
 }
 

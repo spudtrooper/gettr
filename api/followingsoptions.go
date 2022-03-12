@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=FollowingsOption --prefix=Followings --outfile=followingsoptions.go "offset:int" "max:int" "incl:[]string"
+//go:generate genopts --prefix=Followings --outfile=api/followingsoptions.go "offset:int" "max:int" "incl:[]string"
 
 type FollowingsOption func(*followingsOptionImpl)
 
@@ -15,16 +15,31 @@ func FollowingsOffset(offset int) FollowingsOption {
 		opts.offset = offset
 	}
 }
+func FollowingsOffsetFlag(offset *int) FollowingsOption {
+	return func(opts *followingsOptionImpl) {
+		opts.offset = *offset
+	}
+}
 
 func FollowingsMax(max int) FollowingsOption {
 	return func(opts *followingsOptionImpl) {
 		opts.max = max
 	}
 }
+func FollowingsMaxFlag(max *int) FollowingsOption {
+	return func(opts *followingsOptionImpl) {
+		opts.max = *max
+	}
+}
 
 func FollowingsIncl(incl []string) FollowingsOption {
 	return func(opts *followingsOptionImpl) {
 		opts.incl = incl
+	}
+}
+func FollowingsInclFlag(incl *[]string) FollowingsOption {
+	return func(opts *followingsOptionImpl) {
+		opts.incl = *incl
 	}
 }
 

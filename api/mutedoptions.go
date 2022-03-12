@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=MutedOption --prefix=Muted --outfile=mutedoptions.go "offset:int" "max:int" "incl:[]string"
+//go:generate genopts --prefix=Muted --outfile=api/mutedoptions.go "offset:int" "max:int" "incl:[]string"
 
 type MutedOption func(*mutedOptionImpl)
 
@@ -15,16 +15,31 @@ func MutedOffset(offset int) MutedOption {
 		opts.offset = offset
 	}
 }
+func MutedOffsetFlag(offset *int) MutedOption {
+	return func(opts *mutedOptionImpl) {
+		opts.offset = *offset
+	}
+}
 
 func MutedMax(max int) MutedOption {
 	return func(opts *mutedOptionImpl) {
 		opts.max = max
 	}
 }
+func MutedMaxFlag(max *int) MutedOption {
+	return func(opts *mutedOptionImpl) {
+		opts.max = *max
+	}
+}
 
 func MutedIncl(incl []string) MutedOption {
 	return func(opts *mutedOptionImpl) {
 		opts.incl = incl
+	}
+}
+func MutedInclFlag(incl *[]string) MutedOption {
+	return func(opts *mutedOptionImpl) {
+		opts.incl = *incl
 	}
 }
 

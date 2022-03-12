@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=UpdateProfileOption --prefix=UpdateProfile --outfile=updateprofileoptions.go "description:string" "backgroundImage:string" "icon:string" "location:string" "website:string"
+//go:generate genopts --prefix=UpdateProfile --outfile=api/updateprofileoptions.go "description:string" "backgroundImage:string" "icon:string" "location:string" "website:string"
 
 type UpdateProfileOption func(*updateProfileOptionImpl)
 
@@ -17,10 +17,20 @@ func UpdateProfileDescription(description string) UpdateProfileOption {
 		opts.description = description
 	}
 }
+func UpdateProfileDescriptionFlag(description *string) UpdateProfileOption {
+	return func(opts *updateProfileOptionImpl) {
+		opts.description = *description
+	}
+}
 
 func UpdateProfileBackgroundImage(backgroundImage string) UpdateProfileOption {
 	return func(opts *updateProfileOptionImpl) {
 		opts.backgroundImage = backgroundImage
+	}
+}
+func UpdateProfileBackgroundImageFlag(backgroundImage *string) UpdateProfileOption {
+	return func(opts *updateProfileOptionImpl) {
+		opts.backgroundImage = *backgroundImage
 	}
 }
 
@@ -29,16 +39,31 @@ func UpdateProfileIcon(icon string) UpdateProfileOption {
 		opts.icon = icon
 	}
 }
+func UpdateProfileIconFlag(icon *string) UpdateProfileOption {
+	return func(opts *updateProfileOptionImpl) {
+		opts.icon = *icon
+	}
+}
 
 func UpdateProfileLocation(location string) UpdateProfileOption {
 	return func(opts *updateProfileOptionImpl) {
 		opts.location = location
 	}
 }
+func UpdateProfileLocationFlag(location *string) UpdateProfileOption {
+	return func(opts *updateProfileOptionImpl) {
+		opts.location = *location
+	}
+}
 
 func UpdateProfileWebsite(website string) UpdateProfileOption {
 	return func(opts *updateProfileOptionImpl) {
 		opts.website = website
+	}
+}
+func UpdateProfileWebsiteFlag(website *string) UpdateProfileOption {
+	return func(opts *updateProfileOptionImpl) {
+		opts.website = *website
 	}
 }
 

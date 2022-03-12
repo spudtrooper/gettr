@@ -1,6 +1,6 @@
 package model
 
-//go:generate genopts --opt_type=UserPersistOption --prefix=UserPersist --outfile=userpersistoptions.go "max:int" "threads:int" "force:bool"
+//go:generate genopts --prefix=UserPersist --outfile=model/userpersistoptions.go "max:int" "threads:int" "force:bool"
 
 type UserPersistOption func(*userPersistOptionImpl)
 
@@ -15,16 +15,31 @@ func UserPersistMax(max int) UserPersistOption {
 		opts.max = max
 	}
 }
+func UserPersistMaxFlag(max *int) UserPersistOption {
+	return func(opts *userPersistOptionImpl) {
+		opts.max = *max
+	}
+}
 
 func UserPersistThreads(threads int) UserPersistOption {
 	return func(opts *userPersistOptionImpl) {
 		opts.threads = threads
 	}
 }
+func UserPersistThreadsFlag(threads *int) UserPersistOption {
+	return func(opts *userPersistOptionImpl) {
+		opts.threads = *threads
+	}
+}
 
 func UserPersistForce(force bool) UserPersistOption {
 	return func(opts *userPersistOptionImpl) {
 		opts.force = force
+	}
+}
+func UserPersistForceFlag(force *bool) UserPersistOption {
+	return func(opts *userPersistOptionImpl) {
+		opts.force = *force
 	}
 }
 

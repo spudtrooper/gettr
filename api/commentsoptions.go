@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=CommentsOption --prefix=Comments --outfile=commentsoptions.go "offset:int" "max:int" "dir:string" "incl:[]string"
+//go:generate genopts --prefix=Comments --outfile=api/commentsoptions.go "offset:int" "max:int" "dir:string" "incl:[]string"
 
 type CommentsOption func(*commentsOptionImpl)
 
@@ -16,10 +16,20 @@ func CommentsOffset(offset int) CommentsOption {
 		opts.offset = offset
 	}
 }
+func CommentsOffsetFlag(offset *int) CommentsOption {
+	return func(opts *commentsOptionImpl) {
+		opts.offset = *offset
+	}
+}
 
 func CommentsMax(max int) CommentsOption {
 	return func(opts *commentsOptionImpl) {
 		opts.max = max
+	}
+}
+func CommentsMaxFlag(max *int) CommentsOption {
+	return func(opts *commentsOptionImpl) {
+		opts.max = *max
 	}
 }
 
@@ -28,10 +38,20 @@ func CommentsDir(dir string) CommentsOption {
 		opts.dir = dir
 	}
 }
+func CommentsDirFlag(dir *string) CommentsOption {
+	return func(opts *commentsOptionImpl) {
+		opts.dir = *dir
+	}
+}
 
 func CommentsIncl(incl []string) CommentsOption {
 	return func(opts *commentsOptionImpl) {
 		opts.incl = incl
+	}
+}
+func CommentsInclFlag(incl *[]string) CommentsOption {
+	return func(opts *commentsOptionImpl) {
+		opts.incl = *incl
 	}
 }
 

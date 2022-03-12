@@ -1,6 +1,6 @@
 package model
 
-//go:generate genopts --opt_type=PersistInDBOption --prefix=PersistInDB --outfile=persistindboptions.go "threads:int"
+//go:generate genopts --prefix=PersistInDB --outfile=model/persistindboptions.go "threads:int"
 
 type PersistInDBOption func(*persistInDBOptionImpl)
 
@@ -11,6 +11,11 @@ type PersistInDBOptions interface {
 func PersistInDBThreads(threads int) PersistInDBOption {
 	return func(opts *persistInDBOptionImpl) {
 		opts.threads = threads
+	}
+}
+func PersistInDBThreadsFlag(threads *int) PersistInDBOption {
+	return func(opts *persistInDBOptionImpl) {
+		opts.threads = *threads
 	}
 }
 

@@ -1,6 +1,6 @@
 package model
 
-//go:generate genopts --opt_type=UserInfoOption --prefix=UserInfo --outfile=userinfooptions.go "dontRetry"
+//go:generate genopts --prefix=UserInfo --outfile=model/userinfooptions.go "dontRetry"
 
 type UserInfoOption func(*userInfoOptionImpl)
 
@@ -11,6 +11,11 @@ type UserInfoOptions interface {
 func UserInfoDontRetry(dontRetry bool) UserInfoOption {
 	return func(opts *userInfoOptionImpl) {
 		opts.dontRetry = dontRetry
+	}
+}
+func UserInfoDontRetryFlag(dontRetry *bool) UserInfoOption {
+	return func(opts *userInfoOptionImpl) {
+		opts.dontRetry = *dontRetry
 	}
 }
 

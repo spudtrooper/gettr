@@ -1,6 +1,6 @@
 package model
 
-//go:generate genopts --opt_type=MakeDBOption --prefix=MakeDB --outfile=makedboptions.go "port:int" "dbName:string"
+//go:generate genopts --prefix=MakeDB --outfile=model/makedboptions.go "port:int" "dbName:string"
 
 type MakeDBOption func(*makeDBOptionImpl)
 
@@ -14,10 +14,20 @@ func MakeDBPort(port int) MakeDBOption {
 		opts.port = port
 	}
 }
+func MakeDBPortFlag(port *int) MakeDBOption {
+	return func(opts *makeDBOptionImpl) {
+		opts.port = *port
+	}
+}
 
 func MakeDBDbName(dbName string) MakeDBOption {
 	return func(opts *makeDBOptionImpl) {
 		opts.dbName = dbName
+	}
+}
+func MakeDBDbNameFlag(dbName *string) MakeDBOption {
+	return func(opts *makeDBOptionImpl) {
+		opts.dbName = *dbName
 	}
 }
 

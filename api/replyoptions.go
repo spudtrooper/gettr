@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=ReplyOption --prefix=Reply --outfile=replyoptions.go "images:[]string" "debug:bool" "previewImage:string" "description:string" "title:string" "previewSource:string"
+//go:generate genopts --prefix=Reply --outfile=api/replyoptions.go "images:[]string" "debug:bool" "previewImage:string" "description:string" "title:string" "previewSource:string"
 
 type ReplyOption func(*replyOptionImpl)
 
@@ -18,10 +18,20 @@ func ReplyImages(images []string) ReplyOption {
 		opts.images = images
 	}
 }
+func ReplyImagesFlag(images *[]string) ReplyOption {
+	return func(opts *replyOptionImpl) {
+		opts.images = *images
+	}
+}
 
 func ReplyDebug(debug bool) ReplyOption {
 	return func(opts *replyOptionImpl) {
 		opts.debug = debug
+	}
+}
+func ReplyDebugFlag(debug *bool) ReplyOption {
+	return func(opts *replyOptionImpl) {
+		opts.debug = *debug
 	}
 }
 
@@ -30,10 +40,20 @@ func ReplyPreviewImage(previewImage string) ReplyOption {
 		opts.previewImage = previewImage
 	}
 }
+func ReplyPreviewImageFlag(previewImage *string) ReplyOption {
+	return func(opts *replyOptionImpl) {
+		opts.previewImage = *previewImage
+	}
+}
 
 func ReplyDescription(description string) ReplyOption {
 	return func(opts *replyOptionImpl) {
 		opts.description = description
+	}
+}
+func ReplyDescriptionFlag(description *string) ReplyOption {
+	return func(opts *replyOptionImpl) {
+		opts.description = *description
 	}
 }
 
@@ -42,10 +62,20 @@ func ReplyTitle(title string) ReplyOption {
 		opts.title = title
 	}
 }
+func ReplyTitleFlag(title *string) ReplyOption {
+	return func(opts *replyOptionImpl) {
+		opts.title = *title
+	}
+}
 
 func ReplyPreviewSource(previewSource string) ReplyOption {
 	return func(opts *replyOptionImpl) {
 		opts.previewSource = previewSource
+	}
+}
+func ReplyPreviewSourceFlag(previewSource *string) ReplyOption {
+	return func(opts *replyOptionImpl) {
+		opts.previewSource = *previewSource
 	}
 }
 

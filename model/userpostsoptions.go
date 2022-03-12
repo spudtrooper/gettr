@@ -1,6 +1,6 @@
 package model
 
-//go:generate genopts --opt_type=UserPostsOption --prefix=UserPosts --outfile=userpostsoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "fromDisk" "force"
+//go:generate genopts --prefix=UserPosts --outfile=model/userpostsoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "fromDisk" "force"
 
 type UserPostsOption func(*userPostsOptionImpl)
 
@@ -19,10 +19,20 @@ func UserPostsOffset(offset int) UserPostsOption {
 		opts.offset = offset
 	}
 }
+func UserPostsOffsetFlag(offset *int) UserPostsOption {
+	return func(opts *userPostsOptionImpl) {
+		opts.offset = *offset
+	}
+}
 
 func UserPostsMax(max int) UserPostsOption {
 	return func(opts *userPostsOptionImpl) {
 		opts.max = max
+	}
+}
+func UserPostsMaxFlag(max *int) UserPostsOption {
+	return func(opts *userPostsOptionImpl) {
+		opts.max = *max
 	}
 }
 
@@ -31,10 +41,20 @@ func UserPostsIncl(incl []string) UserPostsOption {
 		opts.incl = incl
 	}
 }
+func UserPostsInclFlag(incl *[]string) UserPostsOption {
+	return func(opts *userPostsOptionImpl) {
+		opts.incl = *incl
+	}
+}
 
 func UserPostsStart(start int) UserPostsOption {
 	return func(opts *userPostsOptionImpl) {
 		opts.start = start
+	}
+}
+func UserPostsStartFlag(start *int) UserPostsOption {
+	return func(opts *userPostsOptionImpl) {
+		opts.start = *start
 	}
 }
 
@@ -43,16 +63,31 @@ func UserPostsThreads(threads int) UserPostsOption {
 		opts.threads = threads
 	}
 }
+func UserPostsThreadsFlag(threads *int) UserPostsOption {
+	return func(opts *userPostsOptionImpl) {
+		opts.threads = *threads
+	}
+}
 
 func UserPostsFromDisk(fromDisk bool) UserPostsOption {
 	return func(opts *userPostsOptionImpl) {
 		opts.fromDisk = fromDisk
 	}
 }
+func UserPostsFromDiskFlag(fromDisk *bool) UserPostsOption {
+	return func(opts *userPostsOptionImpl) {
+		opts.fromDisk = *fromDisk
+	}
+}
 
 func UserPostsForce(force bool) UserPostsOption {
 	return func(opts *userPostsOptionImpl) {
 		opts.force = force
+	}
+}
+func UserPostsForceFlag(force *bool) UserPostsOption {
+	return func(opts *userPostsOptionImpl) {
+		opts.force = *force
 	}
 }
 

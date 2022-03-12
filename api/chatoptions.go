@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=ChatOption --prefix=Chat --outfile=chatoptions.go "debug"
+//go:generate genopts --prefix=Chat --outfile=api/chatoptions.go "debug"
 
 type ChatOption func(*chatOptionImpl)
 
@@ -11,6 +11,11 @@ type ChatOptions interface {
 func ChatDebug(debug bool) ChatOption {
 	return func(opts *chatOptionImpl) {
 		opts.debug = debug
+	}
+}
+func ChatDebugFlag(debug *bool) ChatOption {
+	return func(opts *chatOptionImpl) {
+		opts.debug = *debug
 	}
 }
 

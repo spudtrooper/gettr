@@ -1,6 +1,6 @@
 package api
 
-//go:generate genopts --opt_type=SharePostOption --prefix=SharePost --outfile=sharepostoptions.go "debug"
+//go:generate genopts --prefix=SharePost --outfile=api/sharepostoptions.go "debug"
 
 type SharePostOption func(*sharePostOptionImpl)
 
@@ -11,6 +11,11 @@ type SharePostOptions interface {
 func SharePostDebug(debug bool) SharePostOption {
 	return func(opts *sharePostOptionImpl) {
 		opts.debug = debug
+	}
+}
+func SharePostDebugFlag(debug *bool) SharePostOption {
+	return func(opts *sharePostOptionImpl) {
+		opts.debug = *debug
 	}
 }
 
