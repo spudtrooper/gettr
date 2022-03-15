@@ -971,7 +971,7 @@ func Main(ctx context.Context) error {
 		return nil
 	})
 
-	app.Register("UnfollowAllAsync", func(context.Context) error {
+	app.Register("UnfollowAll", func(context.Context) error {
 		u := defaultUser()
 		followings := findFollowings(u)
 		threads := or.Int(*threads, 20)
@@ -983,11 +983,11 @@ func Main(ctx context.Context) error {
 				return false, err
 			}
 			return true, nil
-		})
+		}, parallel.ExecExitOnError(true))
 		return nil
 	})
 
-	app.Register("UnfollowAll", func(context.Context) error {
+	app.Register("UnfollowAllSync", func(context.Context) error {
 		username := defaultUsername()
 		if err := client.AllFollowings(username, func(offset int, userInfos api.UserInfos) error {
 			log.Printf("unfollowing users[%d] of %s", offset, username)
