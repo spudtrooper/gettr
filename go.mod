@@ -9,10 +9,10 @@ replace github.com/spudtrooper/minimalcli => ../minimalcli
 require (
 	github.com/fatih/color v1.13.0
 	github.com/pkg/errors v0.9.1
-	github.com/spudtrooper/goutil v0.1.56
+	github.com/spudtrooper/goutil v0.1.67
 	github.com/spudtrooper/minimalcli v0.0.0-20220218140555-74daced67dea
 	github.com/thomaso-mirodin/intmath v0.0.0-20160323211736-5dc6d854e46e
-	go.mongodb.org/mongo-driver v1.8.2
+	go.mongodb.org/mongo-driver v1.8.4
 )
 
 require (
