@@ -392,7 +392,7 @@ func Main(ctx context.Context) error {
 		if err := client.AllFollowers(username, func(offset int, userInfos api.UserInfos) error {
 			log.Printf("following users[%d] of %s", offset, username)
 			for i, u := range userInfos {
-				log.Printf("users[%d][%d]: %v", offset, i, u)
+				log.Printf("users[%d][%d]: %v", offset, i, mustFormatString(u))
 				maybePause()
 			}
 			return nil
