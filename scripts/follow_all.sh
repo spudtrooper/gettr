@@ -13,5 +13,6 @@ if [[ -z "$msg" ]]; then
     )
     RANDOM=$$$(date +%s)
     other=${others[$RANDOM % ${#others[@]}]}
+    echo "... other: $other"
 fi
 go run main.go --other $other --actions FollowAll

@@ -48,7 +48,7 @@ func (u *User) Infl(ctx context.Context, uOpts ...UserInfoOption) (int, error) {
 	if ui.Username == "" {
 		return 0, errors.Errorf("Infl: no userInfo for: %s", u.username)
 	}
-	return ui.Infl, nil
+	return ui.Infl.Int(), nil
 }
 
 func (u *User) Lang(ctx context.Context, uOpts ...UserInfoOption) (string, error) {

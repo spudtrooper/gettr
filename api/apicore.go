@@ -271,29 +271,29 @@ type ShareInfo struct {
 }
 
 type UserInfo struct {
-	BGImg     string     `json:"bgimg"`
-	Desc      string     `json:"dsc"`
-	ICO       string     `json:"ico"`
-	Infl      int        `json:"infl"`
-	Lang      string     `json:"lang"`
-	OUsername string     `json:"ousername"`
-	Username  string     `json:"username"`
-	Website   string     `json:"website"`
-	TwtFlg    StringInt  `json:"twt_flg"`
-	TwtFlw    StringInt  `json:"twt_flw"`
-	Flg       StringInt  `json:"flg"`
-	Flw       StringInt  `json:"flw"`
-	CDate     StringDate `json:"cdate"`
-	UDate     StringDate `json:"udate"`
-	Type      string     `json:"_t"`
-	ID        string     `json:"_id"`
-	Nickname  string     `json:"nickname"`
-	Status    string     `json:"status"`
-	Email     string     `json:"email"`
+	BGImg     string    `json:"bgimg"`
+	Desc      string    `json:"dsc"`
+	ICO       string    `json:"ico"`
+	Infl      StringInt `json:"infl"`
+	Lang      string    `json:"lang"`
+	OUsername string    `json:"ousername"`
+	Username  string    `json:"username"`
+	Website   string    `json:"website"`
+	TwtFlg    StringInt `json:"twt_flg"`
+	TwtFlw    StringInt `json:"twt_flw"`
+	Flg       int       `json:"flg"`
+	Flw       int       `json:"flw"`
+	CDate     IntDate   `json:"cdate"`
+	UDate     IntDate   `json:"udate"`
+	Type      string    `json:"_t"`
+	ID        string    `json:"_id"`
+	Nickname  string    `json:"nickname"`
+	Status    string    `json:"status"`
+	Email     string    `json:"email"`
 }
 
-func (u UserInfo) Following() int        { return u.Flw.Int() }
-func (u UserInfo) Followers() int        { return u.Flg.Int() }
+func (u UserInfo) Following() int        { return u.Flw }
+func (u UserInfo) Followers() int        { return u.Flg }
 func (u UserInfo) TwitterFollowing() int { return u.TwtFlw.Int() }
 func (u UserInfo) TwitterFollowers() int { return u.TwtFlg.Int() }
 func (u UserInfo) URI() string           { return userURI(u.ID) }
