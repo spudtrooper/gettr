@@ -200,7 +200,7 @@ func Main(ctx context.Context) error {
 					log.Fatalf("Limit exceeded: %v", err)
 				}
 			} else {
-				log.Printf("shared https://gettr.com/post/%s from %s", post.ID, f.Username())
+				log.Printf("shared %s from %s", post.ID, "https://gettr.com/post/"+f.Username())
 			}
 			return true, nil
 		})
@@ -800,7 +800,7 @@ func Main(ctx context.Context) error {
 						log.Fatalf("Limit exceeded: %v", err)
 					}
 				} else {
-					log.Printf("%s[%d] liked: https://gettr.com/post/%s", f.Username(), i, post.ID)
+					log.Printf("%s[%d] liked: %s", "https://gettr.com/post/"+f.Username(), i, post.ID)
 				}
 			}
 			return true, nil
