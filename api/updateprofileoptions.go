@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package api
 
-//go:generate genopts --prefix=UpdateProfile --outfile=api/updateprofileoptions.go "description:string" "backgroundImage:string" "icon:string" "location:string" "website:string"
+//go:generate genopts --prefix=UpdateProfile --outfile=updateprofileoptions.go "description:string" "backgroundImage:string" "icon:string" "location:string" "website:string"
 
 type UpdateProfileOption func(*updateProfileOptionImpl)
 

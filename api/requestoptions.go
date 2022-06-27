@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package api
 
-//go:generate genopts --prefix=Request --outfile=api/requestoptions.go "extraHeaders:map[string]string" "host:string" "customPayload:interface{}"
+//go:generate genopts --prefix=Request --outfile=requestoptions.go "extraHeaders:map[string]string" "host:string" "customPayload:interface{}"
 
 type RequestOption func(*requestOptionImpl)
 

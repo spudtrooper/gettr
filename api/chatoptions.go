@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package api
 
-//go:generate genopts --prefix=Chat --outfile=api/chatoptions.go "debug"
+//go:generate genopts --prefix=Chat --outfile=chatoptions.go "debug"
 
 type ChatOption func(*chatOptionImpl)
 

@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package api
 
-//go:generate genopts --prefix=AllPosts --outfile=api/allpostsoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "force"
+//go:generate genopts --prefix=AllPosts --outfile=allpostsoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "force"
 
 type AllPostsOption func(*allPostsOptionImpl)
 

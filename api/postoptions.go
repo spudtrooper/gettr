@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package api
 
-//go:generate genopts --prefix=Post --outfile=api/postoptions.go "incl:[]string" "max"
+//go:generate genopts --prefix=Post --outfile=postoptions.go "incl:[]string" "max"
 
 type PostOption func(*postOptionImpl)
 

@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package api
 
-//go:generate genopts --prefix=SharePost --outfile=api/sharepostoptions.go "debug"
+//go:generate genopts --prefix=SharePost --outfile=sharepostoptions.go "debug"
 
 type SharePostOption func(*sharePostOptionImpl)
 

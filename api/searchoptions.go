@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package api
 
-//go:generate genopts --prefix=Search --outfile=api/searchoptions.go "max:int" "incl:[]string" "offset:int" "debug"
+//go:generate genopts --prefix=Search --outfile=searchoptions.go "max:int" "incl:[]string" "offset:int" "debug"
 
 type SearchOption func(*searchOptionImpl)
 

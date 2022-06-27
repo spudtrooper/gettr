@@ -1,8 +1,9 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package api
 
 import "time"
 
-//go:generate genopts --prefix=Timeline --outfile=api/timelineoptions.go "offset:int" "max:int" "dir:string" "incl:[]string" "merge:string" "start:time.Time"
+//go:generate genopts --prefix=Timeline --outfile=timelineoptions.go "offset:int" "max:int" "dir:string" "incl:[]string" "merge:string" "start:time.Time"
 
 type TimelineOption func(*timelineOptionImpl)
 

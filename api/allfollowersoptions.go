@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package api
 
-//go:generate genopts --prefix=AllFollowers --outfile=api/allfollowersoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "force"
+//go:generate genopts --prefix=AllFollowers --outfile=allfollowersoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "force"
 
 type AllFollowersOption func(*allFollowersOptionImpl)
 

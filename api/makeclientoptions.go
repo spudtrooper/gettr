@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package api
 
-//go:generate genopts --prefix=MakeClient --outfile=api/makeclientoptions.go "debug:bool"
+//go:generate genopts --prefix=MakeClient --outfile=makeclientoptions.go "debug:bool"
 
 type MakeClientOption func(*makeClientOptionImpl)
 

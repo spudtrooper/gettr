@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package api
 
-//go:generate genopts --prefix=Followings --outfile=api/followingsoptions.go "offset:int" "max:int" "incl:[]string"
+//go:generate genopts --prefix=Followings --outfile=followingsoptions.go "offset:int" "max:int" "incl:[]string"
 
 type FollowingsOption func(*followingsOptionImpl)
 

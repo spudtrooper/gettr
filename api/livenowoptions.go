@@ -1,8 +1,9 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package api
 
 import "time"
 
-//go:generate genopts --prefix=LiveNow --outfile=api/livenowoptions.go "offset:int" "max:int" "dir:string" "incl:[]string" "merge:string" "start:time.Time" "lang:string"
+//go:generate genopts --prefix=LiveNow --outfile=livenowoptions.go "offset:int" "max:int" "dir:string" "incl:[]string" "merge:string" "start:time.Time" "lang:string"
 
 type LiveNowOption func(*liveNowOptionImpl)
 

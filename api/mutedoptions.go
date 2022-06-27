@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package api
 
-//go:generate genopts --prefix=Muted --outfile=api/mutedoptions.go "offset:int" "max:int" "incl:[]string"
+//go:generate genopts --prefix=Muted --outfile=mutedoptions.go "offset:int" "max:int" "incl:[]string"
 
 type MutedOption func(*mutedOptionImpl)
 

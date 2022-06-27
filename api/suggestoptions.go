@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package api
 
-//go:generate genopts --prefix=Suggest --outfile=api/suggestoptions.go "max:int" "incl:[]string" "offset:int"
+//go:generate genopts --prefix=Suggest --outfile=suggestoptions.go "max:int" "incl:[]string" "offset:int"
 
 type SuggestOption func(*suggestOptionImpl)
 

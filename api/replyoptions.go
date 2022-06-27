@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package api
 
-//go:generate genopts --prefix=Reply --outfile=api/replyoptions.go "images:[]string" "debug:bool" "previewImage:string" "description:string" "title:string" "previewSource:string"
+//go:generate genopts --prefix=Reply --outfile=replyoptions.go "images:[]string" "debug:bool" "previewImage:string" "description:string" "title:string" "previewSource:string"
 
 type ReplyOption func(*replyOptionImpl)
 
