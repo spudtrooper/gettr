@@ -164,7 +164,11 @@ func (c *Core) request(method, route string, result interface{}, body io.Reader,
 
 	start := time.Now()
 
-	client := &http.Client{}
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
