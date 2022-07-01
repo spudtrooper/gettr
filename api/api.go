@@ -164,11 +164,13 @@ func (c *Core) request(method, route string, result interface{}, body io.Reader,
 
 	start := time.Now()
 
-	client := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+	client := &http.Client{}
+	if opts.NoRedirect() {
+		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
-		},
+		}
 	}
+
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
@@ -205,6 +207,17 @@ func (c *Core) request(method, route string, result interface{}, body io.Reader,
 		readDur := readStop.Sub(reqStop)
 		totalDur := readStop.Sub(start)
 		log.Printf("request stats: total:%v request:%v read:%v", totalDur, reqDur, readDur)
+	}
+
+	if c.debug {
+		log.Printf("response <<<\n%s\n>>>", string(data))
+	}
+
+	if c := string(data); strings.Contains(c, "Request unsuccessful") {
+		return nil, errors.Errorf("LIMITED: Request unsuccessful. Incapsula incident")
+	}
+	if c := string(data); strings.Contains(c, "<HTML><HEAD><TITLE>Loading</TITLE>") {
+		return nil, errors.Errorf("LIMITED: Loading instead")
 	}
 
 	if c.debug {

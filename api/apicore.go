@@ -849,7 +849,7 @@ func (c *Core) Reply(postID string, text string, cOpts ...ReplyOption) (ReplyInf
 	extraHeaders := map[string]string{
 		"Content-Type": "application/x-www-form-urlencoded",
 	}
-	if _, err := c.post(route, &payload, strings.NewReader(data.Encode()), RequestExtraHeaders(extraHeaders)); err != nil {
+	if _, err := c.post(route, &payload, strings.NewReader(data.Encode()), RequestExtraHeaders(extraHeaders), RequestNoRedirect(true)); err != nil {
 		return ReplyInfo{}, err
 	}
 	return payload.Data, nil

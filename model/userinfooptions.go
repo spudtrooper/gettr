@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package model
 
-//go:generate genopts --prefix=UserInfo --outfile=model/userinfooptions.go "dontRetry"
+//go:generate genopts --prefix=UserInfo --outfile=userinfooptions.go "dontRetry"
 
 type UserInfoOption func(*userInfoOptionImpl)
 

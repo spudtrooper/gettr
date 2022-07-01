@@ -1,8 +1,9 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package model
 
 import "go.mongodb.org/mongo-driver/bson"
 
-//go:generate genopts --prefix=CountPosts --outfile=model/countpostsoptions.go "filter:bson.D"
+//go:generate genopts --prefix=CountPosts --outfile=countpostsoptions.go "filter:bson.D"
 
 type CountPostsOption func(*countPostsOptionImpl)
 

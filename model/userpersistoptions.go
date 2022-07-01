@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package model
 
-//go:generate genopts --prefix=UserPersist --outfile=model/userpersistoptions.go "max:int" "threads:int" "force:bool"
+//go:generate genopts --prefix=UserPersist --outfile=userpersistoptions.go "max:int" "threads:int" "force:bool"
 
 type UserPersistOption func(*userPersistOptionImpl)
 

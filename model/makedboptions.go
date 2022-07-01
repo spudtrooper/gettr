@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package model
 
-//go:generate genopts --prefix=MakeDB --outfile=model/makedboptions.go "port:int" "dbName:string"
+//go:generate genopts --prefix=MakeDB --outfile=makedboptions.go "port:int" "dbName:string"
 
 type MakeDBOption func(*makeDBOptionImpl)
 

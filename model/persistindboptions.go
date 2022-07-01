@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package model
 
-//go:generate genopts --prefix=PersistInDB --outfile=model/persistindboptions.go "threads:int"
+//go:generate genopts --prefix=PersistInDB --outfile=persistindboptions.go "threads:int"
 
 type PersistInDBOption func(*persistInDBOptionImpl)
 

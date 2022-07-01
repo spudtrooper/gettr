@@ -1,6 +1,7 @@
+// DO NOT EDIT MANUALLY: Generated from https://github.com/spudtrooper/genopts
 package model
 
-//go:generate genopts --prefix=UserPosts --outfile=model/userpostsoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "fromDisk" "force"
+//go:generate genopts --prefix=UserPosts --outfile=userpostsoptions.go "offset:int" "max:int" "incl:[]string" "start:int" "threads:int" "fromDisk" "force"
 
 type UserPostsOption func(*userPostsOptionImpl)
 

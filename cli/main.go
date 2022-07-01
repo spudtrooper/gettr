@@ -43,15 +43,23 @@ var (
 	profileBackgroundImage = flags.String("profile_background_image", "profile background image to update")
 	debug                  = flags.Bool("debug", "generic debug for some actions")
 	query                  = flags.String("query", "query for search")
+	banner                 = flags.Bool("banner", "print banner before commands")
 )
 
 func isLimitExceeded(err error) bool {
 	return strings.Contains(err.Error(), "E_METER_LIMIT_EXCEEDED")
 }
 
+func isLimited(err error) bool {
+	return strings.Contains(err.Error(), "LIMITED")
+}
+
 func Main(ctx context.Context) error {
 	app := minimalcli.Make()
 	app.Init()
+	if *banner {
+		app.SetPrintBanner(true)
+	}
 
 	f, err := model.MakeFactoryFromFlags(ctx)
 	if err != nil {
@@ -224,6 +232,9 @@ func Main(ctx context.Context) error {
 			log.Printf("Reply error: %v", err)
 			if isLimitExceeded(err) {
 				log.Fatalf("Limit exceeded: %v", err)
+			}
+			if isLimited(err) {
+				log.Fatalf("Loading instance: %v", err)
 			}
 		} else {
 			uri := "https://gettr.com/post/" + post.ID
@@ -678,7 +689,7 @@ func Main(ctx context.Context) error {
 
 	app.Register("Reply", func(context.Context) error {
 		requireStringFlag(text, "text")
-		requireStringFlag(postID, "postID")
+		requireStringFlag(postID, "post_id")
 		info, err := reply(*postID, *text)
 		if err != nil {
 			return err
