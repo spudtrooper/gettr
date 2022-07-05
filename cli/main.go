@@ -223,9 +223,7 @@ func Main(ctx context.Context) error {
 		if len(comments) > 0 {
 			comment = comments[rand.Int()%len(comments)].Text
 		}
-		if comment == "" {
-			comment = "Nice work, homie"
-		}
+		comment = or.String(comment, "Nice work, homie")
 		uri := "https://gettr.com/post/" + post.ID
 		log.Printf("trying to comment on: %s with %q", uri, comment)
 		if _, err := reply(post.ID, comment); err != nil {

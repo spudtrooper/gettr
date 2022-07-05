@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 other="$@"
 if [[ -z "$msg" ]]; then
     other="tuckercarlson"
