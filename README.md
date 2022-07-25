@@ -29,3 +29,9 @@ Starting mongodb
 ```bash
 brew services start mongodb-community@5.0
 ```
+
+or
+
+```bash
+sudo mongod --dbpath /usr/local/var/mongodb
+```
